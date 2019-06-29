@@ -1,0 +1,17 @@
+# SConstruct db
+*.dblite
+
+# Visual Studio Cache
+.vs/
+
+# VSCode Cache
+.vscode/
+
+# Binaries
+bin/
+*.dll
+*.obj
+*.so
+*.dylib
+*.exe
+*.out
