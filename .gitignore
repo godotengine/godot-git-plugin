@@ -1,11 +1,17 @@
 # SConstruct db
 *.dblite
 
+# Godot Serialisations
+api.json
+
 # Visual Studio Cache
 .vs/
 
 # VSCode Cache
 .vscode/
+
+# Helper scripts
+*.help.bat
 
 # Binaries
 bin/

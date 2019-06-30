@@ -2,16 +2,15 @@
 #define GIT_API_H
 
 #include <Godot.hpp>
-#include <Sprite.hpp>
+#include <EditorVCS.hpp>
 
 namespace godot {
 
-    class GitAPI : public Sprite {
+    class GitAPI : public EditorVCS {
 
-        GODOT_CLASS(GitAPI, Sprite) // This base class is temporary
+        GODOT_CLASS(GitAPI, EditorVCS) // This base class is temporary
 
     private:
-        float time_passed;
 
     public:
         static void _register_methods();
