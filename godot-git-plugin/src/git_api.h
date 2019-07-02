@@ -20,6 +20,8 @@ public:
 
     void _init();
 
+	String get_vcs_name();
+
     void _process(float delta);
 };
 
