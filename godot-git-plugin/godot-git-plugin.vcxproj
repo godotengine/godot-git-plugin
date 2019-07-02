@@ -73,6 +73,9 @@
     <IncludePath>.\src\;..\godot-cpp\godot_headers\;..\godot-cpp\include\gen;..\godot-cpp\include\core\;..\godot-cpp\include\;$(IncludePath)</IncludePath>
     <LibraryPath>..\godot-cpp\bin;$(LibraryPath)</LibraryPath>
     <SourcePath>.\src\;$(VC_SourcePath);</SourcePath>
+    <OutDir>$(SolutionDir)..\demo\bin\win64\</OutDir>
+    <IntDir>$(SolutionDir)..\demo\bin\win64\intermediate\</IntDir>
+    <TargetName>libgitapi</TargetName>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
@@ -131,6 +134,8 @@
     <ClInclude Include="src\git_api.h" />
   </ItemGroup>
   <ItemGroup>
+    <None Include=".clang-format" />
+    <None Include=".editorconfig" />
     <None Include="cpp.hint" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

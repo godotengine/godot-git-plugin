@@ -8,6 +8,8 @@ void GitAPI::_register_methods() {
 }
 
 GitAPI::GitAPI() {
+
+	register_singleton((Node *)this);
 }
 
 GitAPI::~GitAPI() {
@@ -15,7 +17,7 @@ GitAPI::~GitAPI() {
 
 void GitAPI::_init() {
 
-	EditorVCS::replace_singleton((Node *) this);
+	WARN_PRINT("Gitinit!");
 }
 
 void GitAPI::_process(float delta) {

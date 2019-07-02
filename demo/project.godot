@@ -16,8 +16,11 @@ _global_script_class_icons={
 [application]
 
 config/name="demo"
-run/main_scene="res://demo.tscn"
 config/icon="res://icon.png"
+
+[gdnative]
+
+singletons=[ "res://bin/git_api.gdnlib" ]
 
 [rendering]
 
