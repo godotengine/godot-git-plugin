@@ -10,9 +10,6 @@ api.json
 # VSCode Cache
 .vscode/
 
-# Helper scripts
-*.help.bat
-
 # Binaries
 bin/
 *.dll
