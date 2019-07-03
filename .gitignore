@@ -17,5 +17,6 @@ bin/
 *.so
 *.dylib
 *.exe
+*.os
 *.out
 .import/
