@@ -18,3 +18,4 @@ bin/
 *.dylib
 *.exe
 *.out
+.import/

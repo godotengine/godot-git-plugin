@@ -1,11 +1,3 @@
-[gd_scene load_steps=3 format=2]
-
-[ext_resource path="res://bin/gitapi.gdns" type="Script" id=1]
-[ext_resource path="res://icon.png" type="Texture" id=2]
+[gd_scene format=2]
 
 [node name="Node2D" type="Node2D"]
-
-[node name="Sprite" type="Sprite" parent="."]
-texture = ExtResource( 2 )
-centered = false
-script = ExtResource( 1 )

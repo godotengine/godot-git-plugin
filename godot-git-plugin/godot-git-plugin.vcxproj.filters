@@ -29,5 +29,7 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="cpp.hint" />
+    <None Include=".clang-format" />
+    <None Include=".editorconfig" />
   </ItemGroup>
 </Project>
