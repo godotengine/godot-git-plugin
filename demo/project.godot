@@ -20,7 +20,7 @@ config/icon="res://icon.png"
 
 [gdnative]
 
-singletons=[ "res://bin/git_api.gdnlib" ]
+singletons=[ "res://gitapi.gdnlib" ]
 
 [rendering]
 
