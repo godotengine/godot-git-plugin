@@ -1,31 +1,16 @@
 #include "git_api.h"
+#include "vcs_interface_struct.h"
 
 #include <ClassDB.hpp>
 
 namespace godot {
 
-void GitAPI::_register_methods() {
+VCSInterface *vcs_api_struct = NULL;
 
-    register_method("_process", &GitAPI::_process);
-	register_method("get_vcs_name", &GitAPI::get_vcs_name);
-}
+String GitAPI::_get_vcs_name() {
 
-GitAPI::GitAPI() {
-}
-
-GitAPI::~GitAPI() {
-}
-
-void GitAPI::_init() {
-	godot::Godot::print("Gitinit!");
-}
-
-String GitAPI::get_vcs_name() {
-
+	WARN_PRINT("VCS Name is return as Git");
 	return "Git";
-}
-
-void GitAPI::_process(float delta) {
 }
 
 }

@@ -4,27 +4,10 @@
 #include <Godot.hpp>
 #include <EditorVCSInterface.hpp>
 
-namespace godot {
+namespace godot { namespace GitAPI {
 
-class GitAPI : public EditorVCSInterface {
+	String _get_vcs_name();
 
-	GODOT_CLASS(GitAPI, EditorVCSInterface)
-
-private:
-
-public:
-    static void _register_methods();
-
-    GitAPI();
-    ~GitAPI();
-
-    void _init();
-
-	String get_vcs_name();
-
-    void _process(float delta);
-};
-
-}
+} }
 
 #endif // !GIT_API_H
