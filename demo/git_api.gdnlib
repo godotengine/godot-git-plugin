@@ -1,6 +1,6 @@
 [general]
 
-singleton=true
+singleton=false
 load_once=true
 symbol_prefix="godot_"
 reloadable=true
@@ -11,4 +11,4 @@ Windows.64="res://bin/win64/libgitapi.dll"
 
 [dependencies]
 
-Windows.64=[  ]
+Windows.64=""

@@ -1,0 +1,6 @@
+[gd_resource type="NativeScript" format=2]
+
+[resource]
+resource_name = "GitAPI"
+class_name = "GitAPI"
+script_class_name = "GitAPI"
