@@ -13,13 +13,21 @@ void GitAPI::_register_methods() {
 	register_method("shut_down", &GitAPI::shut_down);
 	register_method("get_project_name", &GitAPI::get_project_name);
 	register_method("get_vcs_name", &GitAPI::get_vcs_name);
-
 }
 
-void GitAPI::get_commit_dock_panel_container() {
+Control *GitAPI::get_commit_dock_panel_container() {
+
+	return &Control();
 }
 
-void GitAPI::get_initialization_settings_panel_container() {
+Control *GitAPI::get_initialization_settings_panel_container() {
+
+	panel_container = new PanelContainer();
+
+	button = new Button();
+	panel_container->add_child(button);
+
+	return panel_container;
 }
 
 String GitAPI::get_project_name() {
@@ -35,7 +43,7 @@ String GitAPI::get_vcs_name() {
 
 bool GitAPI::initialize(const String project_root_path) {
 
-	return false;
+	return true;
 }
 
 bool GitAPI::shut_down() {
@@ -50,13 +58,9 @@ void GitAPI::_process() {
 }
 
 GitAPI::GitAPI() {
-
-	WARN_PRINT("Init");
-	WARN_PRINT("called submit");
-	this->call<Node *>("submit_vcs_addon", this);
 }
 
 GitAPI::~GitAPI() {
 }
 
-}
+} // namespace godot

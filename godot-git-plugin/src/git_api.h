@@ -2,6 +2,9 @@
 #define GIT_API_H
 
 #include <Godot.hpp>
+#include <Control.hpp>
+#include <PanelContainer.hpp>
+#include <Button.hpp>
 #include <EditorVCSInterface.hpp>
 
 namespace godot {
@@ -10,12 +13,15 @@ class GitAPI : public EditorVCSInterface {
 
 	GODOT_CLASS(GitAPI, EditorVCSInterface)
 
+	godot::PanelContainer *panel_container;
+	godot::Button *button;
+
 public:
 	static void _register_methods();
 
 	bool initialize(const String project_root_path);
-	void get_commit_dock_panel_container();
-	void get_initialization_settings_panel_container();
+	Control *get_commit_dock_panel_container();
+	Control *get_initialization_settings_panel_container();
 	bool shut_down();
 
 	String get_project_name();
