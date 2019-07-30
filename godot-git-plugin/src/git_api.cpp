@@ -37,7 +37,6 @@ String GitAPI::get_project_name() {
 
 String GitAPI::get_vcs_name() {
 
-	WARN_PRINT("VCS Name is return as Git");
 	return "Git";
 }
 

@@ -18,7 +18,6 @@ class GitAPI : public EditorVCSInterface {
 
 public:
 	static void _register_methods();
-
 	bool initialize(const String project_root_path);
 	Control *get_commit_dock_panel_container();
 	Control *get_initialization_settings_panel_container();
