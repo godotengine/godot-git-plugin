@@ -17,7 +17,7 @@ opts.Add(PathVariable('target_name', 'The library name.', 'libgitapi', PathVaria
 # Local dependency paths, adapt them to your setup
 godot_headers_path = "godot-cpp/godot_headers/"
 cpp_bindings_path = "godot-cpp/"
-cpp_library = "godot-cpp/bin/libgodot-cpp"
+cpp_library = "libgodot-cpp"
 
 # only support 64 at this time..
 bits = 64
