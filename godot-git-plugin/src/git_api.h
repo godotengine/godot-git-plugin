@@ -8,6 +8,8 @@
 #include <PanelContainer.hpp>
 
 #define memnew(m_Class) new m_Class()
+
+// NULL objects are not being checked to discourage lazy destruction of objects
 #define memdelete(m_pointer) delete m_pointer
 
 namespace godot {
