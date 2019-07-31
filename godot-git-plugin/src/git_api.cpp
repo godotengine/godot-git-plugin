@@ -1,7 +1,5 @@
 #include "git_api.h"
 
-#include <ClassDB.hpp>
-
 namespace godot {
 
 void GitAPI::_register_methods() {
