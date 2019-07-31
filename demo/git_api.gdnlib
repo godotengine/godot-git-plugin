@@ -12,5 +12,5 @@ X11.64="res://bin/x11/libgitapi.so"
 
 [dependencies]
 
-Windows.64=[  ]
+Windows.64=[ "res://bin/win64/git2.dll" ]
 X11.64=[  ]

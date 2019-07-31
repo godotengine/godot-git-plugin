@@ -83,7 +83,7 @@ env.Append(LIBPATH=[cpp_bindings_path + 'bin/'])
 env.Append(LIBS=[cpp_library])
 
 # tweak this if you want to use different folders, or more folders, to store your source code in.
-env.Append(CPPPATH=['godot-git-plugin/src/'])
+env.Append(CPPPATH=['godot-git-plugin/src/', 'godot-git-plugin/thirdparty/libgit2/include/'])
 sources = Glob('godot-git-plugin/src/*.cpp')
 
 library = env.SharedLibrary(target=env['target_path'] + env['target_name'] , source=sources)
