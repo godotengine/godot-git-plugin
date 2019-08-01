@@ -42,8 +42,8 @@ if env['platform'] == '':
 # Check our platform specifics
 if env['platform'] == "osx":
     env['target_path'] += 'osx/'
-    libgit2_lib_path += 'osx/'
     cpp_library += '.osx'
+    libgit2_lib_path += 'osx/'
     if env['target'] in ('debug', 'd'):
         env.Append(CCFLAGS = ['-g','-O2', '-arch', 'x86_64'])
         env.Append(LINKFLAGS = ['-arch', 'x86_64'])

@@ -6,7 +6,7 @@ void GitAPI::_register_methods() {
 
 	register_method("_process", &GitAPI::_process);
 
-	register_method("_initialiaze", &GitAPI::_initialize);
+	register_method("_initialize", &GitAPI::_initialize);
 	register_method("_get_vcs_name", &GitAPI::_get_vcs_name);
 	register_method("_get_project_name", &GitAPI::_get_project_name);
 	register_method("_get_commit_dock_panel_container", &GitAPI::_get_commit_dock_panel_container);
@@ -16,7 +16,7 @@ void GitAPI::_register_methods() {
 
 Variant GitAPI::_get_commit_dock_panel_container() {
 
-	return init_settings_panel_container;
+	return NULL;
 }
 
 Variant GitAPI::_get_initialization_settings_panel_container() {
@@ -40,6 +40,14 @@ String GitAPI::_get_vcs_name() {
 }
 
 bool GitAPI::_initialize(const String project_root_path) {
+
+	ERR_FAIL_COND_V(project_root_path == "", false);
+
+	git_repository_init_options opts = GIT_REPOSITORY_INIT_OPTIONS_INIT;
+	opts.flags |= GIT_REPOSITORY_INIT_NO_REINIT;
+	GIT2_CALL(git_repository_init_ext(&repo, project_root_path.alloc_c_string(), &opts) == 0, false);
+
+	GIT2_CALL(git_repository_open(&repo, project_root_path.alloc_c_string()) == 0, false);
 
 	return true;
 }
