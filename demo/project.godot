@@ -8,14 +8,20 @@
 
 config_version=4
 
-_global_script_classes=[  ]
+_global_script_classes=[ {
+"base": "",
+"class": "GitAPI",
+"language": "NativeScript",
+"path": "res://git_api.gdns"
+} ]
 _global_script_class_icons={
-
+"GitAPI": ""
 }
 
 [application]
 
 config/name="demo"
+run/main_scene="res://demo.tscn"
 config/icon="res://icon.png"
 
 [gdnative]

@@ -132,7 +132,6 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\git_api.h" />
-    <ClInclude Include="src\vcs_interface_struct.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include=".clang-format" />
