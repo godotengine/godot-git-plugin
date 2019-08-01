@@ -24,9 +24,9 @@ build/
 
 # Binaries for distribution
 !/demo/bin/
-!git.dll
+!libgit.dll
+!libgit.a
+!libgit.lib
 !libgitapi.dll
-!git.so
 !libgitapi.so
-!git.dylib
 !libgitapi.dylib
