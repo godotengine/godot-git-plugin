@@ -2,6 +2,8 @@
 
 namespace godot {
 
+bool GitAPI::is_initialized = false;
+
 void GitAPI::_register_methods() {
 
 	register_method("_process", &GitAPI::_process);
@@ -39,15 +41,24 @@ String GitAPI::_get_vcs_name() {
 	return "Git";
 }
 
-bool GitAPI::_initialize(const String project_root_path) {
+bool GitAPI::_initialize(const String p_project_root_path) {
 
-	ERR_FAIL_COND_V(project_root_path == "", false);
+	ERR_FAIL_COND_V(p_project_root_path == "", false);
+
+	if (is_initialized == false) {
+
+		GIT2_CALL(git_libgit2_init() == 1, false);
+		is_initialized = true;
+	} else {
+
+		return true;
+	}
 
 	git_repository_init_options opts = GIT_REPOSITORY_INIT_OPTIONS_INIT;
 	opts.flags |= GIT_REPOSITORY_INIT_NO_REINIT;
-	GIT2_CALL(git_repository_init_ext(&repo, project_root_path.alloc_c_string(), &opts) == 0, false);
+	GIT2_CALL(git_repository_init_ext(&repo, p_project_root_path.alloc_c_string(), &opts) == 0, false);
 
-	GIT2_CALL(git_repository_open(&repo, project_root_path.alloc_c_string()) == 0, false);
+	GIT2_CALL(git_repository_open(&repo, p_project_root_path.alloc_c_string()) == 0, false);
 
 	return true;
 }
