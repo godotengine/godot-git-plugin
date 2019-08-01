@@ -18,7 +18,8 @@ opts.Add(PathVariable('target_name', 'The library name.', 'libgitapi', PathVaria
 godot_headers_path = "godot-cpp/godot_headers/"
 cpp_bindings_path = "godot-cpp/"
 cpp_library = "libgodot-cpp"
-libgit2_path = "demo/bin/"
+libgit2_lib_path = "demo/bin/"
+libgit2_include_path = "godot-git-plugin/thirdparty/libgit2/include/"
 
 # only support 64 at this time..
 bits = 64
@@ -41,7 +42,7 @@ if env['platform'] == '':
 # Check our platform specifics
 if env['platform'] == "osx":
     env['target_path'] += 'osx/'
-    libgit2_path += 'osx/'
+    libgit2_lib_path += 'osx/'
     cpp_library += '.osx'
     if env['target'] in ('debug', 'd'):
         env.Append(CCFLAGS = ['-g','-O2', '-arch', 'x86_64'])
@@ -53,7 +54,7 @@ if env['platform'] == "osx":
 elif env['platform'] in ('x11', 'linux'):
     env['target_path'] += 'x11/'
     cpp_library += '.linux'
-    libgit2_path += 'x11/'
+    libgit2_lib_path += 'x11/'
     if env['target'] in ('debug', 'd'):
         env.Append(CCFLAGS = ['-fPIC', '-g3','-Og', '-std=c++17'])
     else:
@@ -62,7 +63,7 @@ elif env['platform'] in ('x11', 'linux'):
 elif env['platform'] == "windows":
     env['target_path'] += 'win64/'
     cpp_library += '.windows'
-    libgit2_path += 'win64/'
+    libgit2_lib_path += 'win64/'
     # This makes sure to keep the session environment variables on windows,
     # that way you can run scons in a vs 2017 prompt and it will find all the required tools
     env.Append(ENV = os.environ)
@@ -82,11 +83,11 @@ cpp_library += '.' + str(bits)
 
 # make sure our binding library properly includes
 env.Append(CPPPATH=['.', godot_headers_path, cpp_bindings_path + 'include/', cpp_bindings_path + 'include/core/', cpp_bindings_path + 'include/gen/'])
-env.Append(LIBPATH=[cpp_bindings_path + 'bin/', libgit2_path])
+env.Append(LIBPATH=[cpp_bindings_path + 'bin/', libgit2_lib_path])
 env.Append(LIBS=[cpp_library, 'git2'])
 
 # tweak this if you want to use different folders, or more folders, to store your source code in.
-env.Append(CPPPATH=['godot-git-plugin/src/', 'godot-git-plugin/thirdparty/libgit2/include/'])
+env.Append(CPPPATH=['godot-git-plugin/src/', libgit2_include_path])
 sources = Glob('godot-git-plugin/src/*.cpp')
 
 library = env.SharedLibrary(target=env['target_path'] + env['target_name'] , source=sources)
