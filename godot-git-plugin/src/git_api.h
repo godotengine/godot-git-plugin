@@ -17,7 +17,7 @@
 #define GIT2_CALL(m_libgit2_function_check, m_fail_return) \
 {                                                          \
 	bool res = m_libgit2_function_check;                   \
-	if (res) {                                             \
+	if (!res) {                                            \
 		const git_error *e = giterr_last();                \
 		WARN_PRINT(e->message);                            \
 		return m_fail_return;                              \
@@ -30,7 +30,8 @@ class GitAPI : public EditorVCSInterface {
 
 	GODOT_CLASS(GitAPI, EditorVCSInterface)
 
-	bool is_initialized;
+	static bool is_initialized;
+
 	godot::PanelContainer *init_settings_panel_container;
 	godot::Button *init_settings_button;
 
@@ -43,7 +44,7 @@ public:
 	Variant _get_initialization_settings_panel_container();
 	String _get_project_name();
 	String _get_vcs_name();
-	bool _initialize(const String project_root_path);
+	bool _initialize(const String p_project_root_path);
 	bool _shut_down();
 
 	void _init();
