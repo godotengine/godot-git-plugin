@@ -70,8 +70,8 @@
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <IncludePath>.\src\;..\godot-cpp\godot_headers\;..\godot-cpp\include\gen;..\godot-cpp\include\core\;..\godot-cpp\include\;$(IncludePath)</IncludePath>
-    <LibraryPath>..\godot-cpp\bin;$(LibraryPath)</LibraryPath>
+    <IncludePath>D:\CPP Projects\godot-git-plugin\godot-git-plugin\thirdparty\libgit2\include;.\src\;..\godot-cpp\godot_headers\;..\godot-cpp\include\gen;..\godot-cpp\include\core\;..\godot-cpp\include\;$(IncludePath)</IncludePath>
+    <LibraryPath>D:\CPP Projects\godot-git-plugin\demo\bin\win64;..\godot-cpp\bin;$(LibraryPath)</LibraryPath>
     <SourcePath>.\src\;$(VC_SourcePath);</SourcePath>
     <OutDir>$(SolutionDir)..\demo\bin\win64\</OutDir>
     <IntDir>$(SolutionDir)..\demo\bin\win64\intermediate\</IntDir>
@@ -93,7 +93,7 @@
       <ConformanceMode>true</ConformanceMode>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>libgodot-cpp.windows.debug.64.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>libgodot-cpp.windows.debug.64.lib;git2.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <SubSystem>Console</SubSystem>
       <OutputFile>$(SolutionDir)..\demo\bin\win64\libgitapi.dll</OutputFile>
     </Link>

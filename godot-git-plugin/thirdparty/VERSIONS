@@ -1,0 +1,3 @@
+# This file lists all thirdparty libraries used in this plugin with the latest commit link of when source was picked up
+
+libgit2: https://github.com/libgit2/libgit2/commit/f039c836438f96407abc08cbd238b9102318deb2

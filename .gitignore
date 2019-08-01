@@ -12,11 +12,24 @@ api.json
 
 # Binaries
 bin/
+intermediate/
+build/
 *.dll
 *.obj
 *.so
 *.dylib
+*.pdb
+*.ilk
 *.exe
 *.os
 *.out
 .import/
+
+# Binaries for distribution
+!/demo/bin/
+!libgitapi.dll
+!libgitapi.so
+!libgitapi.dylib
+!git2.lib
+!libgit.a
+

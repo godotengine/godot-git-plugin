@@ -7,8 +7,22 @@
 #include <Godot.hpp>
 #include <PanelContainer.hpp>
 
+#include <git2.h>
+
 #define memnew(m_Class) new m_Class()
-#define memdelete(m_pointer) delete m_pointer
+
+// NULL objects are not being handled to discourage lazy destruction of objects
+#define memdelete(m_pointer) m_pointer ? WARN_PRINT("GIT API tried to delete a NULL object") : delete m_pointer;
+
+#define GIT2_CALL(m_libgit2_function_check, m_fail_return) \
+{                                                          \
+	bool res = m_libgit2_function_check;                   \
+	if (!res) {                                            \
+		const git_error *e = giterr_last();                \
+		WARN_PRINT(e->message);                            \
+		return m_fail_return;                              \
+	}                                                      \
+}
 
 namespace godot {
 
@@ -16,8 +30,12 @@ class GitAPI : public EditorVCSInterface {
 
 	GODOT_CLASS(GitAPI, EditorVCSInterface)
 
+	static bool is_initialized;
+
 	godot::PanelContainer *init_settings_panel_container;
 	godot::Button *init_settings_button;
+
+	git_repository *repo;
 
 public:
 	static void _register_methods();
@@ -26,7 +44,7 @@ public:
 	Variant _get_initialization_settings_panel_container();
 	String _get_project_name();
 	String _get_vcs_name();
-	bool _initialize(const String project_root_path);
+	bool _initialize(const String p_project_root_path);
 	bool _shut_down();
 
 	void _init();
