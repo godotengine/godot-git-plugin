@@ -37,8 +37,6 @@ class GitAPI : public EditorVCSInterface {
 
 	git_repository *repo;
 
-	git_repository *repo;
-
 public:
 	static void _register_methods();
 
