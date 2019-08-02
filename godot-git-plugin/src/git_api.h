@@ -32,8 +32,8 @@ class GitAPI : public EditorVCSInterface {
 
 	static bool is_initialized;
 
-	godot::PanelContainer *init_settings_panel_container;
-	godot::Button *init_settings_button;
+	PanelContainer *init_settings_panel_container;
+	Button *init_settings_button;
 
 	git_repository *repo;
 
