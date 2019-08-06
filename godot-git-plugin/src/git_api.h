@@ -6,23 +6,11 @@
 #include <EditorVCSInterface.hpp>
 #include <Godot.hpp>
 #include <PanelContainer.hpp>
+#include <File.hpp>
 
 #include <git2.h>
 
-#define memnew(m_Class) new m_Class()
-
-// NULL objects are not being handled to discourage lazy destruction of objects
-#define memdelete(m_pointer) m_pointer ? WARN_PRINT("GIT API tried to delete a NULL object") : delete m_pointer;
-
-#define GIT2_CALL(m_libgit2_function_check, m_fail_return) \
-{                                                          \
-	bool res = m_libgit2_function_check;                   \
-	if (!res) {                                            \
-		const git_error *e = giterr_last();                \
-		WARN_PRINT(e->message);                            \
-		return m_fail_return;                              \
-	}                                                      \
-}
+#include <git_common.h>
 
 namespace godot {
 
@@ -31,21 +19,29 @@ class GitAPI : public EditorVCSInterface {
 	GODOT_CLASS(GitAPI, EditorVCSInterface)
 
 	static bool is_initialized;
+	static bool is_repo_open;
 
 	PanelContainer *init_settings_panel_container;
 	Button *init_settings_button;
 
 	git_repository *repo;
+	git_signature *author;
+	git_signature *committer;
+
 
 public:
 	static void _register_methods();
 
-	Variant _get_commit_dock_panel_container();
-	Variant _get_initialization_settings_panel_container();
+	void _commit(const String msg);
+	PanelContainer *_get_commit_dock_panel_container();
+	PanelContainer *_get_initialization_settings_panel_container();
+	bool _get_is_vcs_intialized();
 	String _get_project_name();
+	Dictionary _get_untracked_files_data();
 	String _get_vcs_name();
-	bool _initialize(const String p_project_root_path);
+	bool _initialize(const String project_root_path);
 	bool _shut_down();
+	void _stage_all();
 
 	void _init();
 	void _process();

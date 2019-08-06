@@ -26,6 +26,9 @@
     <ClInclude Include="src\git_api.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="src\git_common.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="cpp.hint" />

@@ -132,6 +132,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\git_api.h" />
+    <ClInclude Include="src\git_common.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include=".clang-format" />
