@@ -19,7 +19,7 @@ void GitAPI::_register_methods() {
 	register_method("_shut_down", &GitAPI::_shut_down);
 }
 
-PanelContainer *GitAPI::_get_commit_dock_panel_container() {
+Object *GitAPI::_get_commit_dock_panel_container() {
 
 	return NULL;
 }
@@ -56,13 +56,13 @@ void GitAPI::_stage_all() {
 	git_index_free(index);
 }
 
-Variant GitAPI::_get_initialization_settings_panel_container() {
+Object *GitAPI::_get_initialization_settings_panel_container() {
 
 	init_settings_panel_container = memnew(PanelContainer);
 	init_settings_button = memnew(Button);
 	init_settings_panel_container->add_child(init_settings_button);
 
-	return *(Variant *)init_settings_panel_container;
+	return Variant(init_settings_panel_container);
 }
 
 bool GitAPI::_get_is_vcs_intialized() {

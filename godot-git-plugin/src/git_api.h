@@ -37,8 +37,8 @@ public:
 	void _commit(const String msg);
 	bool _get_is_vcs_intialized();
 	String _get_project_name();
-	PanelContainer *_get_commit_dock_panel_container();
-	Variant _get_initialization_settings_panel_container();
+	Object *_get_commit_dock_panel_container();
+	Object *_get_initialization_settings_panel_container();
 	Dictionary _get_untracked_files_data();
 	String _get_vcs_name();
 	bool _initialize(const String project_root_path);
