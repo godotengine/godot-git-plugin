@@ -129,9 +129,13 @@
   <ItemGroup>
     <ClCompile Include="src\gdlibrary.cpp" />
     <ClCompile Include="src\git_api.cpp" />
+    <ClCompile Include="src\git_callbacks.cpp" />
+    <ClCompile Include="src\git_common.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="src\allocation_defs.h" />
     <ClInclude Include="src\git_api.h" />
+    <ClInclude Include="src\git_callbacks.h" />
     <ClInclude Include="src\git_common.h" />
   </ItemGroup>
   <ItemGroup>

@@ -32,48 +32,37 @@ void GitAPI::_commit(const String p_msg) {
 		return;
 	}
 
-	git_oid tree_id, parent_id, commit_id;
-	git_tree *tree;
-	git_commit *parent;
-	char oid_hex[GIT_OID_HEXSZ + 1] = { 0 };
-
-	GIT2_CALL(git_signature_new(&author, "test", "test@gmail.com", 123456789, 60));
-	GIT2_CALL(git_signature_new(&committer, "test", "test@github.com", 987654321, 90));
-
-	GIT2_CALL(git_oid_fromstr(&tree_id, "f60079018b664e4e79329a7ef9559c8d9e0378d1"));
-	GIT2_CALL(git_tree_lookup(&tree, repo, &tree_id));
-	GIT2_CALL(git_oid_fromstr(&parent_id, "5b5b025afb0b4c913b4c338a42934a3863bf3644"));
-	GIT2_CALL(git_commit_lookup(&parent, repo, &parent_id));
-
-	const char *msg = p_msg.alloc_c_string();
-	git_buf *clean_msg = NULL;
-	GIT2_CALL(git_message_prettify(clean_msg, msg, 0, '#'));
-
-	GIT2_CALL(git_commit_create_v(
-			&commit_id,
-			repo,
-			NULL,
-			author,
-			committer,
-			NULL,
-			clean_msg->ptr,
-			tree,
-			1,
-			parent));
-
-	git_buf_dispose(clean_msg);
 }
 
 void GitAPI::_stage_all() {
+
+	git_index_matched_path_cb matched_cb = NULL;
+	git_index *index;
+	git_strarray array = { 0 };
+	int options = 0, count = 0;
+	StatusPayload payload;
+
+	GIT2_CALL(git_repository_index(&index, repo), "Could not get repository index", NULL);
+	ERR_FAIL_NULL(repo);
+
+	matched_cb = &status_callback;
+
+	payload.repo = repo;
+
+	GIT2_CALL(git_index_add_all(index, &array, 0, matched_cb, &payload), "Could not stage in repository", NULL);
+	GIT2_CALL(git_index_update_all(index, &array, matched_cb, &payload), "Could not update in repository", NULL);
+
+	GIT2_CALL(git_index_write(index), "Could not write index object", NULL);
+	git_index_free(index);
 }
 
-PanelContainer *GitAPI::_get_initialization_settings_panel_container() {
+Variant GitAPI::_get_initialization_settings_panel_container() {
 
 	init_settings_panel_container = memnew(PanelContainer);
 	init_settings_button = memnew(Button);
 	init_settings_panel_container->add_child(init_settings_button);
 
-	return *(Variant *) (init_settings_panel_container);
+	return *(Variant *)init_settings_panel_container;
 }
 
 bool GitAPI::_get_is_vcs_intialized() {
@@ -102,8 +91,9 @@ bool GitAPI::_initialize(const String p_project_root_path) {
 
 	if (is_initialized == false) {
 
-		GIT2_CALL(git_libgit2_init() == 1, false);
+		GIT2_CALL(git_libgit2_init(), "Could not initialize libgit2", NULL);
 		is_initialized = true;
+
 	} else {
 
 		return true;
@@ -112,10 +102,17 @@ bool GitAPI::_initialize(const String p_project_root_path) {
 	git_repository_init_options opts = GIT_REPOSITORY_INIT_OPTIONS_INIT;
 	opts.flags |= GIT_REPOSITORY_INIT_NO_REINIT;
 
-	GIT2_CALL(git_repository_init_ext(&repo, p_project_root_path.alloc_c_string(), &opts) == 0, false);
+	GIT2_CALL(git_repository_init_ext(&repo, p_project_root_path.alloc_c_string(), &opts), "Could not initialize repository", NULL);
 	is_initialized = true;
-	GIT2_CALL(git_repository_open(&repo, p_project_root_path.alloc_c_string()) == 0, false);
+	ERR_FAIL_NULL_V(repo, false);
+
+	GIT2_CALL(git_repository_open(&repo, p_project_root_path.alloc_c_string()), "Could not open repository", false);
 	is_repo_open = true;
+
+	if (repo) {
+
+		WARN_PRINT("Git API was initialised successfully");
+	}
 
 	return true;
 }
@@ -126,7 +123,7 @@ bool GitAPI::_shut_down() {
 	memdelete(init_settings_button);
 
 	git_repository_free(repo);
-	GIT2_CALL(git_libgit2_shutdown() == 0, false);
+	GIT2_CALL(git_libgit2_shutdown(), "Could not shutdown Git Addon", false);
 
 	return true;
 }

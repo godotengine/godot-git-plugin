@@ -1,19 +1,20 @@
 #ifndef GIT_COMMON_H
 #define GIT_COMMON_H
 
-#define memnew(m_Class) new m_Class()
+#include <Godot.hpp>
 
-// NULL objects are not being handled to discourage lazy destruction of objects
-#define memdelete(m_pointer) m_pointer ? WARN_PRINT("Git API tried to delete a NULL object") : delete m_pointer;
+#include <git2.h>
 
-#define GIT2_CALL(m_libgit2_function_check, m_fail_return) \
-	{                                                      \
-		bool res = m_libgit2_function_check;               \
-		if (!res) {                                        \
-			const git_error *e = giterr_last();            \
-			WARN_PRINT(e->message);                        \
-			return m_fail_return;                          \
-		}                                                  \
+void check_git2_errors(int error, const char *message, const char *extra);
+
+#define GIT2_CALL(function_call, m_error_msg, m_additional_msg)                \
+	{                                                                          \
+		check_git2_errors(function_call, m_error_msg, m_additional_msg);       \
 	}
+
+struct StatusPayload {
+
+	git_repository *repo;
+};
 
 #endif // !GIT_COMMON_H

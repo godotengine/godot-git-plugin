@@ -6,11 +6,14 @@
 #include <EditorVCSInterface.hpp>
 #include <Godot.hpp>
 #include <PanelContainer.hpp>
+#include <Directory.hpp>
 #include <File.hpp>
 
 #include <git2.h>
 
 #include <git_common.h>
+#include <allocation_defs.h>
+#include <git_callbacks.h>
 
 namespace godot {
 
@@ -28,15 +31,14 @@ class GitAPI : public EditorVCSInterface {
 	git_signature *author;
 	git_signature *committer;
 
-
 public:
 	static void _register_methods();
 
 	void _commit(const String msg);
-	PanelContainer *_get_commit_dock_panel_container();
-	PanelContainer *_get_initialization_settings_panel_container();
 	bool _get_is_vcs_intialized();
 	String _get_project_name();
+	PanelContainer *_get_commit_dock_panel_container();
+	Variant _get_initialization_settings_panel_container();
 	Dictionary _get_untracked_files_data();
 	String _get_vcs_name();
 	bool _initialize(const String project_root_path);
