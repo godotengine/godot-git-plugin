@@ -11,15 +11,16 @@ void check_git2_errors(int error, const char *message, const char *extra) {
 	}
 
 	if ((lg2err = git_error_last()) != NULL && lg2err->message != NULL) {
+
 		lg2msg = lg2err->message;
 		lg2spacer = " - ";
 	}
 
 	if (extra) {
 
-		fprintf(stderr, "%s '%s' [%d]%s%s\n", message, extra, error, lg2spacer, lg2msg);
+		printf("%s '%s' [%d]%s%s\n", message, extra, error, lg2spacer, lg2msg);
 	} else {
 
-		fprintf(stderr, "%s [%d]%s%s\n", message, error, lg2spacer, lg2msg);
+		printf("%s [%d]%s%s\n", message, error, lg2spacer, lg2msg);
 	}
 }
