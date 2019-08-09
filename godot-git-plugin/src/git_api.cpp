@@ -111,31 +111,29 @@ Dictionary GitAPI::_get_modified_files_data() {
 	for (size_t i = 0; i < count; ++i) {
 
 		const git_status_entry *entry = git_status_byindex(statuses, i);
-		
 		switch (entry->status) {
 
-			case GIT_STATUS_INDEX_NEW: { // GIT_STATUS_WT???
+			case GIT_STATUS_WT_NEW: {
 
-				diff[entry->head_to_index->new_file.path] = "new";
+				diff[entry->index_to_workdir->new_file.path] = 0;
 			} break;
-			case GIT_STATUS_INDEX_MODIFIED: {
+			case GIT_STATUS_WT_MODIFIED: {
 
-				diff[entry->head_to_index->new_file.path] = "modified";
+				diff[entry->index_to_workdir->new_file.path] = 1;
 			} break;
-			case GIT_STATUS_INDEX_RENAMED: {
+			case GIT_STATUS_WT_RENAMED: {
 
-				diff[entry->head_to_index->new_file.path] = "renamed";
+				diff[entry->index_to_workdir->new_file.path] = 2;
 			} break;
-			case GIT_STATUS_INDEX_DELETED: {
+			case GIT_STATUS_WT_DELETED: {
 
-				diff[entry->head_to_index->new_file.path] = "deleted";
+				diff[entry->index_to_workdir->new_file.path] = 3;
 			} break;
-			case GIT_STATUS_INDEX_TYPECHANGE: {
+			case GIT_STATUS_WT_TYPECHANGE: {
 
-				diff[entry->head_to_index->new_file.path] = "typechange";
+				diff[entry->index_to_workdir->new_file.path] = 4;
 			} break;
 		}
-		printf("%s", entry->head_to_index->new_file.path);
 	}
 
 	git_status_list_free(statuses);
