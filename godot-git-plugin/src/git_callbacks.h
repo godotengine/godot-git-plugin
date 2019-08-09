@@ -6,7 +6,6 @@
 
 #include <git_common.h>
 
-
 int status_callback(const char *p_path, const char *p_matched_pathspec, void *p_payload);
 
 #endif // !GIT_CALLBACKS_H

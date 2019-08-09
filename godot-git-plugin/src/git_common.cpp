@@ -18,9 +18,9 @@ void check_git2_errors(int error, const char *message, const char *extra) {
 
 	if (extra) {
 
-		printf("%s '%s' [%d]%s%s\n", message, extra, error, lg2spacer, lg2msg);
+		printf("Git API: %s '%s' [%d]%s%s\n", message, extra, error, lg2spacer, lg2msg);
 	} else {
 
-		printf("%s [%d]%s%s\n", message, error, lg2spacer, lg2msg);
+		printf("Git API: %s [%d]%s%s\n", message, error, lg2spacer, lg2msg);
 	}
 }
