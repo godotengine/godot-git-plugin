@@ -175,7 +175,7 @@ bool GitAPI::_initialize(const String p_project_root_path) {
 		_commit("Initial Commit");
 	}
 
-	GIT2_CALL(git_repository_open(&repo, p_project_root_path.alloc_c_string()), "Could not open repository", false);
+	GIT2_CALL(git_repository_open(&repo, p_project_root_path.alloc_c_string()), "Could not open repository", NULL);
 
 	return is_initialized;
 }
@@ -183,7 +183,7 @@ bool GitAPI::_initialize(const String p_project_root_path) {
 bool GitAPI::_shut_down() {
 
 	git_repository_free(repo);
-	GIT2_CALL(git_libgit2_shutdown(), "Could not shutdown Git Addon", false);
+	GIT2_CALL(git_libgit2_shutdown(), "Could not shutdown Git Addon", NULL);
 
 	return true;
 }
