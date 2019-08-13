@@ -1,10 +1,10 @@
 #ifndef GIT_API_H
 #define GIT_API_H
 
+#include <Godot.hpp>
 #include <Button.hpp>
 #include <Control.hpp>
 #include <EditorVCSInterface.hpp>
-#include <Godot.hpp>
 #include <PanelContainer.hpp>
 #include <Directory.hpp>
 #include <File.hpp>
@@ -29,6 +29,7 @@ class GitAPI : public EditorVCSInterface {
 	git_repository *repo;
 	git_signature *author;
 	git_signature *committer;
+	Array staged_files;
 
 	void _commit(const String p_msg);
 	Control *_get_commit_dock_panel_container();

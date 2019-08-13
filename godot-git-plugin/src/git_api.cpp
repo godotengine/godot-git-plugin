@@ -54,13 +54,10 @@ void GitAPI::_commit(const String p_msg) {
 
 void GitAPI::_stage_file(const String p_file_path) {
 
-	git_index *index;
+	if (staged_files.find(p_file_path) == -1) {
 
-	char *c_path = p_file_path.alloc_c_string();
-	GIT2_CALL(git_index_open(&index, c_path), "Could not load file to index", c_path);
-	GIT2_CALL(git_index_add_bypath(index, c_path), "Could not stage file", c_path);
-
-	git_index_free(index);
+		staged_files.push_back(p_file_path);
+	}
 }
 
 void GitAPI::create_gitignore() {
@@ -111,27 +108,40 @@ Dictionary GitAPI::_get_modified_files_data() {
 	for (size_t i = 0; i < count; ++i) {
 
 		const git_status_entry *entry = git_status_byindex(statuses, i);
+		String path;
+		if (entry->index_to_workdir) {
+
+			path = entry->index_to_workdir->new_file.path;
+		} else {
+
+			path = entry->head_to_index->new_file.path;
+		}
 		switch (entry->status) {
 
+			case GIT_STATUS_INDEX_NEW:
 			case GIT_STATUS_WT_NEW: {
 
-				diff[entry->index_to_workdir->new_file.path] = 0;
+				diff[path] = 0;
 			} break;
+			case GIT_STATUS_INDEX_MODIFIED:
 			case GIT_STATUS_WT_MODIFIED: {
 
-				diff[entry->index_to_workdir->new_file.path] = 1;
+				diff[path] = 1;
 			} break;
+			case GIT_STATUS_INDEX_RENAMED:
 			case GIT_STATUS_WT_RENAMED: {
 
-				diff[entry->index_to_workdir->new_file.path] = 2;
+				diff[path] = 2;
 			} break;
+			case GIT_STATUS_INDEX_DELETED:
 			case GIT_STATUS_WT_DELETED: {
 
-				diff[entry->index_to_workdir->new_file.path] = 3;
+				diff[path] = 3;
 			} break;
+			case GIT_STATUS_INDEX_TYPECHANGE:
 			case GIT_STATUS_WT_TYPECHANGE: {
 
-				diff[entry->index_to_workdir->new_file.path] = 4;
+				diff[path] = 4;
 			} break;
 		}
 	}
@@ -172,7 +182,7 @@ bool GitAPI::_initialize(const String p_project_root_path) {
 		is_initialized = true;
 
 		create_gitignore();
-		_commit("Initial Commit");
+		commit("Initial Commit");
 	}
 
 	GIT2_CALL(git_repository_open(&repo, p_project_root_path.alloc_c_string()), "Could not open repository", NULL);
