@@ -22,14 +22,13 @@ class GitAPI : public EditorVCSInterface {
 	GODOT_CLASS(GitAPI, EditorVCSInterface)
 
 	static bool is_initialized;
+
+	Array staged_files;
 	
 	PanelContainer *init_settings_panel_container;
 	Button *init_settings_button;
 
 	git_repository *repo;
-	git_signature *author;
-	git_signature *committer;
-	Array staged_files;
 
 	void _commit(const String p_msg);
 	Control *_get_commit_dock_panel_container();
@@ -41,11 +40,13 @@ class GitAPI : public EditorVCSInterface {
 	bool _initialize(const String p_project_root_path);
 	bool _shut_down();
 	void _stage_file(const String p_file_path);
+	void _unstage_file(const String p_file_path);
 
 public:
 	static void _register_methods();
 
 	void create_gitignore();
+	void create_initial_commit();
 
 	void _init();
 	void _process();
