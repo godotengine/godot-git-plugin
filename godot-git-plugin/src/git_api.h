@@ -34,7 +34,7 @@ class GitAPI : public EditorVCSInterface {
 	Control *_get_initialization_settings_panel_container();
 	bool _get_is_vcs_intialized();
 	Dictionary _get_modified_files_data();
-	String _get_file_diff(const String file_path);
+	Array _get_file_diff(const String file_path);
 	String _get_project_name();
 	String _get_vcs_name();
 	bool _initialize(const String p_project_root_path);
@@ -48,8 +48,7 @@ public:
 	static GitAPI *get_singleton() { return singleton; }
 
 	bool is_initialized;
-	
-	String diff_content_container;
+	Array diff_contents;
 
 	void create_gitignore_and_gitattributes();
 	void create_initial_commit();

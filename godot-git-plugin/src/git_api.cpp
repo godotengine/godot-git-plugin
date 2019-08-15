@@ -97,6 +97,7 @@ void GitAPI::create_gitignore_and_gitattributes() {
 		file->store_string(
 			"# Import cache\n"
 			".import/\n\n"
+
 			"# Binaries\n"
 			"bin/\n"
 			"build/\n"
@@ -235,13 +236,13 @@ Dictionary GitAPI::_get_modified_files_data() {
 	return diff;
 }
 
-String GitAPI::_get_file_diff(const String file_path) {
+Array GitAPI::_get_file_diff(const String file_path) {
 
 	git_diff_options opts = GIT_DIFF_OPTIONS_INIT;
 	git_diff *diff;
 	char *pathspec = file_path.alloc_c_string();
 
-	opts.context_lines = 0;
+	opts.context_lines = 3;
 	opts.interhunk_lines = 0;
 	opts.flags = GIT_DIFF_DISABLE_PATHSPEC_MATCH | GIT_DIFF_INCLUDE_UNTRACKED;
 	opts.pathspec.strings = &pathspec;
@@ -249,12 +250,12 @@ String GitAPI::_get_file_diff(const String file_path) {
 
 	git_diff_index_to_workdir(&diff, repo, NULL, &opts);
 
-	diff_content_container = "";
+	diff_contents.clear();
 	git_diff_print(diff, GIT_DIFF_FORMAT_PATCH, diff_line_callback_function, NULL);
 
 	git_diff_free(diff);
 
-	return diff_content_container;
+	return diff_contents;
 }
 
 String GitAPI::_get_project_name() {
