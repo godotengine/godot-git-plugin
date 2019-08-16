@@ -30,44 +30,52 @@ Control *GitAPI::_get_commit_dock_panel_container() {
 void GitAPI::_commit(const String p_msg) {
 
 	git_signature *default_sign;
-	git_oid tree_id, parent_id, commit_id;
+	git_oid tree_id, parent_commit_id, new_commit_id;
 	git_tree *tree;
 	git_index *repo_index;
-	git_commit *parent;
+	git_commit *parent_commit;
 
-	git_signature_default(&default_sign, repo);
-	git_reference_name_to_id(&parent_id, repo, "HEAD");
-
-	git_repository_index(&repo_index, repo);
+	GIT2_CALL(git_repository_index(&repo_index, repo), "Could not get repository index", NULL);
 	for (int i = 0; i < staged_files.size(); i++) {
 
-		git_index_add_bypath(repo_index, ((String)staged_files[i]).alloc_c_string());
+		String file_path = ((String)staged_files[i]);
+		File *file = File::_new();
+		if (file->file_exists(file_path)) {
+
+			GIT2_CALL(git_index_add_bypath(repo_index, file_path.alloc_c_string()), "Could not add file by path", NULL);
+		} else {
+
+			GIT2_CALL(git_index_remove_bypath(repo_index, file_path.alloc_c_string()), "Could not add file by path", NULL);
+		}
 	}
-	git_index_write_tree(&tree_id, repo_index);
-	git_tree_lookup(&tree, repo, &tree_id);
+	GIT2_CALL(git_index_write_tree(&tree_id, repo_index), "Could not write index to tree", NULL);
+	GIT2_CALL(git_index_write(repo_index), "Could not write index to disk", NULL);
+	GIT2_CALL(git_signature_default(&default_sign, repo), "Could not get default signature", NULL);
+	GIT2_CALL(git_tree_lookup(&tree, repo, &tree_id), "Could not lookup tree from ID", NULL);
 
-	GIT2_CALL(git_reference_name_to_id(&parent_id, repo, "HEAD"), "Could not get HEAD reference for parent ID", NULL);
-	git_commit_lookup(&parent, repo, &parent_id);
+	GIT2_CALL(git_reference_name_to_id(&parent_commit_id, repo, "HEAD"), "Could not get parent ID", NULL);
+	GIT2_CALL(git_commit_lookup(&parent_commit, repo, &parent_commit_id), "Could not lookup parent commit data", NULL);
 
-	git_commit_create_v(
-		&commit_id,
-		repo,
-		"HEAD",
-		default_sign,
-		default_sign,
-		NULL,
-		p_msg.alloc_c_string(),
-		tree,
-		1,
-		parent
-	);
+	GIT2_CALL(
+		git_commit_create_v(
+			&new_commit_id,
+			repo,
+			"HEAD",
+			default_sign,
+			default_sign,
+			"UTF-8",
+			p_msg.alloc_c_string(),
+			tree,
+			1,
+			parent_commit),
+		"Could not create commit",
+		NULL);
 
 	staged_files.clear();
 
-	git_index_write(repo_index);
 	git_index_free(repo_index);
 	git_signature_free(default_sign);
-	git_commit_free(parent);
+	git_commit_free(parent_commit);
 	git_tree_free(tree);
 }
 
@@ -158,7 +166,7 @@ void GitAPI::create_initial_commit() {
 		"Could not create the initial commit",
 		NULL);
 
-	git_index_write(repo_index);
+	GIT2_CALL(git_index_write(repo_index), "Could not write index to disk", NULL);
 	git_index_free(repo_index);
 	git_tree_free(tree);
 	git_signature_free(sig);
@@ -248,10 +256,10 @@ Array GitAPI::_get_file_diff(const String file_path) {
 	opts.pathspec.strings = &pathspec;
 	opts.pathspec.count = 1;
 
-	git_diff_index_to_workdir(&diff, repo, NULL, &opts);
+	GIT2_CALL(git_diff_index_to_workdir(&diff, repo, NULL, &opts), "Could not create diff for index from working directory", NULL);
 
 	diff_contents.clear();
-	git_diff_print(diff, GIT_DIFF_FORMAT_PATCH, diff_line_callback_function, NULL);
+	GIT2_CALL(git_diff_print(diff, GIT_DIFF_FORMAT_PATCH, diff_line_callback_function, NULL), "Call to diff handler provided unsuccessful", NULL);
 
 	git_diff_free(diff);
 
