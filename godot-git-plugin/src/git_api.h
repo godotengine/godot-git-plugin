@@ -30,8 +30,6 @@ class GitAPI : public EditorVCSInterface {
 	git_repository *repo;
 	
 	void _commit(const String p_msg);
-	Control *_get_commit_dock_panel_container();
-	Control *_get_initialization_settings_panel_container();
 	bool _get_is_vcs_intialized();
 	Dictionary _get_modified_files_data();
 	Array _get_file_diff(const String file_path);

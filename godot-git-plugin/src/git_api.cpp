@@ -9,8 +9,6 @@ void GitAPI::_register_methods() {
 	register_method("_process", &GitAPI::_process);
 
 	register_method("_commit", &GitAPI::_commit);
-	register_method("_get_commit_dock_panel_container", &GitAPI::_get_commit_dock_panel_container);
-	register_method("_get_initialization_settings_panel_container", &GitAPI::_get_initialization_settings_panel_container);
 	register_method("_get_is_vcs_intialized", &GitAPI::_get_is_vcs_intialized);
 	register_method("_get_modified_files_data", &GitAPI::_get_modified_files_data);
 	register_method("_get_file_diff", &GitAPI::_get_file_diff);
@@ -20,11 +18,6 @@ void GitAPI::_register_methods() {
 	register_method("_shut_down", &GitAPI::_shut_down);
 	register_method("_stage_file", &GitAPI::_stage_file);
 	register_method("_unstage_file", &GitAPI::_unstage_file);
-}
-
-Control *GitAPI::_get_commit_dock_panel_container() {
-
-	return NULL;
 }
 
 void GitAPI::_commit(const String p_msg) {
@@ -170,15 +163,6 @@ void GitAPI::create_initial_commit() {
 	git_index_free(repo_index);
 	git_tree_free(tree);
 	git_signature_free(sig);
-}
-
-Control *GitAPI::_get_initialization_settings_panel_container() {
-
-	init_settings_panel_container = memnew(PanelContainer);
-	init_settings_button = memnew(Button);
-	init_settings_panel_container->add_child(init_settings_button);
-
-	return Variant(init_settings_panel_container);
 }
 
 bool GitAPI::_get_is_vcs_intialized() {
