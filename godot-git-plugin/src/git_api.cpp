@@ -114,18 +114,18 @@ void GitAPI::create_gitignore_and_gitattributes() {
 			"# Set the default behavior, in case people don't have core.autocrlf set.\n"
 			"* text=auto\n\n"
 
-			"#Explicitly declare text files you want to always be normalized and converted\n"
-			"#to native line endings on checkout.\n"
+			"# Explicitly declare text files you want to always be normalized and converted\n"
+			"# to native line endings on checkout.\n"
 			"*.cpp text\n"
 			"*.c text\n"
 			"*.h text\n"
 			"*.gd text\n"
 			"*.cs text\n\n"
 
-			"#Declare files that will always have CRLF line endings on checkout.\n"
+			"# Declare files that will always have CRLF line endings on checkout.\n"
 			"*.sln text eol=crlf\n\n"
 
-			"#Denote all files that are truly binary and should not be modified.\n"
+			"# Denote all files that are truly binary and should not be modified.\n"
 			"*.png binary\n"
 			"*.jpg binary\n");
 		file->close();
@@ -175,7 +175,7 @@ Dictionary GitAPI::_get_modified_files_data() {
 	git_status_options opts = GIT_STATUS_OPTIONS_INIT;
 	opts.show = GIT_STATUS_SHOW_INDEX_AND_WORKDIR;
 	opts.flags = GIT_STATUS_OPT_EXCLUDE_SUBMODULES;
-	opts.flags |= GIT_STATUS_OPT_INCLUDE_UNTRACKED | GIT_STATUS_OPT_RENAMES_HEAD_TO_INDEX | GIT_STATUS_OPT_SORT_CASE_SENSITIVELY;
+	opts.flags |= GIT_STATUS_OPT_INCLUDE_UNTRACKED | GIT_STATUS_OPT_RENAMES_HEAD_TO_INDEX | GIT_STATUS_OPT_SORT_CASE_SENSITIVELY | GIT_STATUS_OPT_RECURSE_UNTRACKED_DIRS;
 
 	git_status_list *statuses = NULL;
 	GIT2_CALL(git_status_list_new(&statuses, repo, &opts), "Could not get status information from repository", NULL);
