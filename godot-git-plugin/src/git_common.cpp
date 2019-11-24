@@ -55,8 +55,8 @@ extern "C" int diff_line_callback_function(const git_diff_delta *delta, const gi
 	result["line_count"] = line->num_lines;
 	result["old_line_number"] = line->old_lineno;
 	result["offset"] = line->content_offset;
-	
+
 	godot::GitAPI::get_singleton()->diff_contents.push_back(result);
-	
+
 	return 0;
 }

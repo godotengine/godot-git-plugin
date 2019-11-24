@@ -272,7 +272,7 @@ bool GitAPI::_initialize(const String p_project_root_path) {
 		WARN_PRINT("Multiple libgit2 instances are running");
 	}
 
-	if (is_initialized) {
+	if (repo) {
 
 		return true;
 	}
