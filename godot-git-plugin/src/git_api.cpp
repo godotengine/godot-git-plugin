@@ -9,7 +9,7 @@ void GitAPI::_register_methods() {
 	register_method("_process", &GitAPI::_process);
 
 	register_method("_commit", &GitAPI::_commit);
-	register_method("_get_is_vcs_intialized", &GitAPI::_get_is_vcs_intialized);
+	register_method("_is_vcs_initialized", &GitAPI::_is_vcs_initialized);
 	register_method("_get_modified_files_data", &GitAPI::_get_modified_files_data);
 	register_method("_get_file_diff", &GitAPI::_get_file_diff);
 	register_method("_get_project_name", &GitAPI::_get_project_name);
@@ -165,7 +165,7 @@ void GitAPI::create_initial_commit() {
 	git_signature_free(sig);
 }
 
-bool GitAPI::_get_is_vcs_intialized() {
+bool GitAPI::_is_vcs_initialized() {
 
 	return is_initialized;
 }

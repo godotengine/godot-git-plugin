@@ -22,6 +22,8 @@ class GitAPI : public EditorVCSInterface {
 
 	static GitAPI *singleton;
 
+	bool is_initialized;
+
 	Array staged_files;
 
 	PanelContainer *init_settings_panel_container;
@@ -30,7 +32,7 @@ class GitAPI : public EditorVCSInterface {
 	git_repository *repo;
 	
 	void _commit(const String p_msg);
-	bool _get_is_vcs_intialized();
+	bool _is_vcs_initialized();
 	Dictionary _get_modified_files_data();
 	Array _get_file_diff(const String file_path);
 	String _get_project_name();
@@ -45,7 +47,6 @@ public:
 
 	static GitAPI *get_singleton() { return singleton; }
 
-	bool is_initialized;
 	Array diff_contents;
 
 	void create_gitignore_and_gitattributes();
