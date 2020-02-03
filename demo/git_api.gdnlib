@@ -7,8 +7,8 @@ reloadable=false
 
 [entry]
 
-Windows.64="res://bin/win64/libgitapi.dll"
-X11.64="res://bin/x11/libgitapi.so"
+Windows.64="res://bin/win64/libgitapi-release.dll"
+X11.64="res://bin/x11/libgitapi-release.so"
 
 [dependencies]
 

@@ -32,7 +32,7 @@
     <CharacterSet>MultiByte</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
-    <ConfigurationType>Application</ConfigurationType>
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
     <PlatformToolset>v142</PlatformToolset>
     <WholeProgramOptimization>true</WholeProgramOptimization>
@@ -45,7 +45,7 @@
     <CharacterSet>MultiByte</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
-    <ConfigurationType>Application</ConfigurationType>
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
     <PlatformToolset>v142</PlatformToolset>
     <WholeProgramOptimization>true</WholeProgramOptimization>
@@ -75,7 +75,15 @@
     <SourcePath>.\src\;$(VC_SourcePath);</SourcePath>
     <OutDir>$(SolutionDir)..\demo\bin\win64\</OutDir>
     <IntDir>$(SolutionDir)..\demo\bin\win64\intermediate\</IntDir>
-    <TargetName>libgitapi</TargetName>
+    <TargetName>libgitapi-debug</TargetName>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <IncludePath>D:\CPP Projects\godot-git-plugin\godot-git-plugin\thirdparty\libgit2\include;.\src\;..\godot-cpp\godot_headers\;..\godot-cpp\include\gen;..\godot-cpp\include\core\;..\godot-cpp\include\;$(IncludePath)</IncludePath>
+    <LibraryPath>D:\CPP Projects\godot-git-plugin\demo\bin\win64;..\godot-cpp\bin;$(LibraryPath)</LibraryPath>
+    <SourcePath>.\src\;$(VC_SourcePath);</SourcePath>
+    <TargetName>libgitapi-release</TargetName>
+    <IntDir>$(SolutionDir)..\demo\bin\win64\intermediate\</IntDir>
+    <OutDir>$(SolutionDir)..\demo\bin\win64\</OutDir>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
@@ -124,6 +132,7 @@
     <Link>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
+      <AdditionalDependencies>libgodot-cpp.windows.release.64.lib;git2.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
