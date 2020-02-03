@@ -24,6 +24,6 @@ jobs:
     steps:
     - uses: actions/checkout@v1
     - name: windows-release
-      run: ./build_libs_release.bat && scons platform=windows target=release
+      run: ./build_libs_release.bat & scons platform=windows target=release
     - name: windows-debug
-      run: ./build_libs_debug.bat && scons platform=windows target=debug
+      run: ./build_libs_debug.bat & scons platform=windows target=debug
