@@ -1,6 +1,11 @@
 # GDNative Based Git Plugin for Godot Version Control Editor Plugin
 Implements the proxy end-points for the `EditorVCSInterface` API in the Godot Engine Editor. Uses [libgit2](https://libgit2.org) at its backend to simulate Git in code.
 
+## Installation Instructions
+
+ 1. Plugin binary releases for Linux & Windows are here: <https://github.com/godotengine/godot-git-plugin/releases>
+ 2. Installation instructions are here: <https://godotengine.org/article/gsoc-2019-progress-report-3#vcs-integration>
+
 ## Build Instructions
 
 ### Windows
