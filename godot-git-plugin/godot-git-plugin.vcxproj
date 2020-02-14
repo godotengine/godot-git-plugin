@@ -73,17 +73,17 @@
     <IncludePath>D:\CPP Projects\godot-git-plugin\godot-git-plugin\thirdparty\libgit2\include;.\src\;..\godot-cpp\godot_headers\;..\godot-cpp\include\gen;..\godot-cpp\include\core\;..\godot-cpp\include\;$(IncludePath)</IncludePath>
     <LibraryPath>D:\CPP Projects\godot-git-plugin\demo\bin\win64;..\godot-cpp\bin;$(LibraryPath)</LibraryPath>
     <SourcePath>.\src\;$(VC_SourcePath);</SourcePath>
-    <OutDir>$(SolutionDir)..\demo\bin\win64\</OutDir>
+    <OutDir>$(SolutionDir)..\demo\bin\win64\debug\</OutDir>
     <IntDir>$(SolutionDir)..\demo\bin\win64\intermediate\</IntDir>
-    <TargetName>libgitapi-debug</TargetName>
+    <TargetName>libgitapi</TargetName>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <IncludePath>D:\CPP Projects\godot-git-plugin\godot-git-plugin\thirdparty\libgit2\include;.\src\;..\godot-cpp\godot_headers\;..\godot-cpp\include\gen;..\godot-cpp\include\core\;..\godot-cpp\include\;$(IncludePath)</IncludePath>
     <LibraryPath>D:\CPP Projects\godot-git-plugin\demo\bin\win64;..\godot-cpp\bin;$(LibraryPath)</LibraryPath>
     <SourcePath>.\src\;$(VC_SourcePath);</SourcePath>
-    <TargetName>libgitapi-release</TargetName>
+    <TargetName>libgitapi</TargetName>
     <IntDir>$(SolutionDir)..\demo\bin\win64\intermediate\</IntDir>
-    <OutDir>$(SolutionDir)..\demo\bin\win64\</OutDir>
+    <OutDir>$(SolutionDir)..\demo\bin\win64\release\</OutDir>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
@@ -103,7 +103,7 @@
     <Link>
       <AdditionalDependencies>libgodot-cpp.windows.debug.64.lib;git2.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <SubSystem>Console</SubSystem>
-      <OutputFile>$(SolutionDir)..\demo\bin\win64\libgitapi.dll</OutputFile>
+      <OutputFile>$(OutDir)$(TargetName)$(TargetExt)</OutputFile>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">

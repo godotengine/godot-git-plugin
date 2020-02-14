@@ -22,6 +22,12 @@ void GitAPI::_register_methods() {
 
 void GitAPI::_commit(const String p_msg) {
 
+	if (!can_commit) {
+
+		godot::Godot::print("Git API cannot commit. Check previous errors.");
+		return;
+	}
+
 	git_signature *default_sign;
 	git_oid tree_id, parent_commit_id, new_commit_id;
 	git_tree *tree;
@@ -50,19 +56,19 @@ void GitAPI::_commit(const String p_msg) {
 	GIT2_CALL(git_commit_lookup(&parent_commit, repo, &parent_commit_id), "Could not lookup parent commit data", NULL);
 
 	GIT2_CALL(
-		git_commit_create_v(
-			&new_commit_id,
-			repo,
-			"HEAD",
-			default_sign,
-			default_sign,
-			"UTF-8",
-			p_msg.alloc_c_string(),
-			tree,
-			1,
-			parent_commit),
-		"Could not create commit",
-		NULL);
+			git_commit_create_v(
+					&new_commit_id,
+					repo,
+					"HEAD",
+					default_sign,
+					default_sign,
+					"UTF-8",
+					p_msg.alloc_c_string(),
+					tree,
+					1,
+					parent_commit),
+			"Could not create commit",
+			NULL);
 
 	staged_files.clear();
 
@@ -96,14 +102,13 @@ void GitAPI::create_gitignore_and_gitattributes() {
 
 		file->open("res://.gitignore", File::ModeFlags::WRITE);
 		file->store_string(
-			"# Import cache\n"
-			".import/\n\n"
+				"# Import cache\n"
+				".import/\n\n"
 
-			"# Binaries\n"
-			"bin/\n"
-			"build/\n"
-			"lib/\n"
-		);
+				"# Binaries\n"
+				"bin/\n"
+				"build/\n"
+				"lib/\n");
 		file->close();
 	}
 
@@ -111,58 +116,63 @@ void GitAPI::create_gitignore_and_gitattributes() {
 
 		file->open("res://.gitattributes", File::ModeFlags::WRITE);
 		file->store_string(
-			"# Set the default behavior, in case people don't have core.autocrlf set.\n"
-			"* text=auto\n\n"
+				"# Set the default behavior, in case people don't have core.autocrlf set.\n"
+				"* text=auto\n\n"
 
-			"# Explicitly declare text files you want to always be normalized and converted\n"
-			"# to native line endings on checkout.\n"
-			"*.cpp text\n"
-			"*.c text\n"
-			"*.h text\n"
-			"*.gd text\n"
-			"*.cs text\n\n"
+				"# Explicitly declare text files you want to always be normalized and converted\n"
+				"# to native line endings on checkout.\n"
+				"*.cpp text\n"
+				"*.c text\n"
+				"*.h text\n"
+				"*.gd text\n"
+				"*.cs text\n\n"
 
-			"# Declare files that will always have CRLF line endings on checkout.\n"
-			"*.sln text eol=crlf\n\n"
+				"# Declare files that will always have CRLF line endings on checkout.\n"
+				"*.sln text eol=crlf\n\n"
 
-			"# Denote all files that are truly binary and should not be modified.\n"
-			"*.png binary\n"
-			"*.jpg binary\n");
+				"# Denote all files that are truly binary and should not be modified.\n"
+				"*.png binary\n"
+				"*.jpg binary\n");
 		file->close();
 	}
 }
 
-void GitAPI::create_initial_commit() {
+bool GitAPI::create_initial_commit() {
 
 	git_signature *sig;
 	git_oid tree_id, commit_id;
 	git_index *repo_index;
 	git_tree *tree;
 
-	GIT2_CALL(git_signature_default(&sig, repo), "Unable to create a commit signature. Perhaps 'user.name' and 'user.email' are not set", NULL);
+	if (git_signature_default(&sig, repo) != 0) {
+
+		godot::Godot::print_error("Unable to create a commit signature. Perhaps 'user.name' and 'user.email' are not set. Set default user name and user email by `git config` and intialize again", __func__, __FILE__, __LINE__);
+		return false;
+	}
 	GIT2_CALL(git_repository_index(&repo_index, repo), "Could not get repository index", NULL);
 	GIT2_CALL(git_index_write_tree(&tree_id, repo_index), "Could not create intial commit", NULL);
 
 	GIT2_CALL(git_tree_lookup(&tree, repo, &tree_id), "Could not create intial commit", NULL);
 	GIT2_CALL(
-		git_commit_create_v(
-			&commit_id,
-			repo,
-			"HEAD",
-			sig,
-			sig,
-			NULL,
-			"Initial commit",
-			tree,
-			0
-		),
-		"Could not create the initial commit",
-		NULL);
+			git_commit_create_v(
+					&commit_id,
+					repo,
+					"HEAD",
+					sig,
+					sig,
+					NULL,
+					"Initial commit",
+					tree,
+					0),
+			"Could not create the initial commit",
+			NULL);
 
 	GIT2_CALL(git_index_write(repo_index), "Could not write index to disk", NULL);
 	git_index_free(repo_index);
 	git_tree_free(tree);
 	git_signature_free(sig);
+
+	return true;
 }
 
 bool GitAPI::_is_vcs_initialized() {
@@ -277,11 +287,16 @@ bool GitAPI::_initialize(const String p_project_root_path) {
 		return true;
 	}
 
+	can_commit = true;
 	GIT2_CALL(git_repository_init(&repo, p_project_root_path.alloc_c_string(), 0), "Could not initialize repository", NULL);
 	if (git_repository_head_unborn(repo) == 1) {
 
 		create_gitignore_and_gitattributes();
-		create_initial_commit();
+		if (!create_initial_commit()) {
+
+			godot::Godot::print_error("Initial commit could not be created. Commit functionality will not work.", __func__, __FILE__, __LINE__);
+			can_commit = false;
+		}
 	}
 
 	GIT2_CALL(git_repository_open(&repo, p_project_root_path.alloc_c_string()), "Could not open repository", NULL);

@@ -23,6 +23,7 @@ class GitAPI : public EditorVCSInterface {
 	static GitAPI *singleton;
 
 	bool is_initialized;
+	bool can_commit;
 
 	Array staged_files;
 
@@ -50,7 +51,7 @@ public:
 	Array diff_contents;
 
 	void create_gitignore_and_gitattributes();
-	void create_initial_commit();
+	bool create_initial_commit();
 
 	void _init();
 	void _process();
