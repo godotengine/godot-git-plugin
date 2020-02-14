@@ -1,15 +1,11 @@
 language: cpp
-os:
-  - windows
-  - linux
 
-jobs:
+matrix:
   include:
-    - name: linux-debug
-      script: ./build_libs_debug.sh && scons platform=x11 target=debug -j6
-    - name: linux-release
-      script: ./build_libs_release.sh && scons platform=x11 target=release -j6
-    - name: windows-debug
-      script: ./build_libs_debug.bat & scons platform=windows target=debug -j6
-    - name: windows-release
-      script: ./build_libs_release.bat & scons platform=windows target=release -j6
+    - os: linux
+      script:
+      - "./build_libs_debug.sh && scons platform=x11 target=debug"
+
+    - os: windows
+      script:
+        - "./build_libs_debug.bat & scons platform=windows target=debug"
