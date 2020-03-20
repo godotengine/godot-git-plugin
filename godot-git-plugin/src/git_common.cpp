@@ -1,5 +1,5 @@
+#include <git.h>
 #include <git_common.h>
-#include <git_api.h>
 
 void check_git2_errors(int error, const char *message, const char *extra) {
 
@@ -19,10 +19,10 @@ void check_git2_errors(int error, const char *message, const char *extra) {
 
 	if (extra) {
 
-		printf("Git API: %s '%s' [%d]%s%s\n", message, extra, error, lg2spacer, lg2msg);
+		printf("Git: %s '%s' [%d]%s%s\n", message, extra, error, lg2spacer, lg2msg);
 	} else {
 
-		printf("Git API: %s [%d]%s%s\n", message, error, lg2spacer, lg2msg);
+		printf("Git: %s [%d]%s%s\n", message, error, lg2spacer, lg2msg);
 	}
 }
 
@@ -39,11 +39,13 @@ extern "C" int diff_line_callback_function(const git_diff_delta *delta, const gi
 
 		case GIT_DIFF_LINE_DEL_EOFNL:
 		case GIT_DIFF_LINE_DELETION:
-			prefix = "-"; break;
+			prefix = "-";
+			break;
 
 		case GIT_DIFF_LINE_ADD_EOFNL:
 		case GIT_DIFF_LINE_ADDITION:
-			prefix = "+"; break;
+			prefix = "+";
+			break;
 	}
 
 	godot::String content_str = content;
@@ -56,7 +58,7 @@ extern "C" int diff_line_callback_function(const git_diff_delta *delta, const gi
 	result["old_line_number"] = line->old_lineno;
 	result["offset"] = line->content_offset;
 
-	godot::GitAPI::get_singleton()->diff_contents.push_back(result);
+	godot::Git::get_singleton()->diff_contents.push_back(result);
 
 	return 0;
 }
