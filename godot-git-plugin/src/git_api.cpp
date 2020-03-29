@@ -37,7 +37,7 @@ void GitAPI::_commit(const String p_msg) {
 	GIT2_CALL(git_repository_index(&repo_index, repo), "Could not get repository index", NULL);
 	for (int i = 0; i < staged_files.size(); i++) {
 
-		String file_path = ((String)(staged_files[i]));
+		String file_path = staged_files[i];
 		File *file = File::_new();
 		if (file->file_exists(file_path)) {
 
