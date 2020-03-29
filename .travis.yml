@@ -11,7 +11,7 @@ matrix:
 
     - os: windows
       script:	
-        - "./build_libs_debug.bat Release"
+        - "./build_libs.bat Release"
         - "scons platform=windows target=release"
-        - "./build_libs_debug.bat Debug"
+        - "./build_libs.bat Debug"
         - "scons platform=windows target=debug"

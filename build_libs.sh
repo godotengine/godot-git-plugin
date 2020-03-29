@@ -10,8 +10,9 @@ rm CMakeCache.txt
 cmake ..
 cmake --build .
 cd ../../../../
-copy godot-git-plugin/thirdparty/libgit2/build/$1/libgit2.a demo/bin/x11/libgit2.a
+mv godot-git-plugin/thirdparty/libgit2/build/$1/libgit2.a demo/bin/x11/libgit2.a
 
 cd godot-cpp/;
+apt-get install scons
 scons platform=linux target=$1 generate_bindings=yes bits=64;
 cd ..
