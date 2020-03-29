@@ -1,0 +1,17 @@
+language: cpp	
+
+matrix:	
+  include:	
+    - os: linux	
+      script:	
+      - "./build_libs.sh Release"
+      - "scons platform=x11 target=release"
+      - "./build_libs.sh Debug"
+      - "scons platform=x11 target=debug"	
+
+    - os: windows
+      script:	
+        - "./build_libs_debug.bat Release"
+        - "scons platform=windows target=release"
+        - "./build_libs_debug.bat Debug"
+        - "scons platform=windows target=debug"
