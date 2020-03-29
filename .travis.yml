@@ -4,6 +4,7 @@ matrix:
   include:	
     - os: linux	
       script:	
+      - "sudo apt-get install scons"
       - "./build_libs.sh Release"
       - "scons platform=x11 target=release"
       - "./build_libs.sh Debug"
