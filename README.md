@@ -8,18 +8,18 @@ Implements the proxy end-points for the `EditorVCSInterface` API in the Godot En
 
 ## Build Instructions
 
+> Replace `Release` with `Debug` for a debug build.
+
 ### Windows
-1. Open `build_libs_release.bat` as text.
+1. Open `build_libs.bat` as text.
 2. Edit the relative paths to the Godot binary and from the Godot binary directory to this repository's directory in line 1 and line 2.
-3. Run `build_libs_release.bat`.
-4. Run `cd ..` because the build file leaves you one level deeper in the repository.
-5. Load the x64 command prompt: `x64 Native Tools Command Prompt for VS 2017`.
-6. Run `scons platform=windows target=release`
+3. Load the x64 command prompt: `x64 Native Tools Command Prompt for VS 20XX`.
+4. Run `build_libs.bat Release`.
+5. Run `scons platform=windows target=release`
 
 ### Linux
-1. Open `build_libs_release.sh` as text.
+1. Open `build_libs.sh` as text.
 2. Edit the relative paths to the Godot binary and from the Godot binary directory to this repository's directory in line 1 and line 2.
-3. Prepare script for execution: `chmod 755 build_libs_release.sh`
-4. Run ```. ./build_libs_release.sh```.
-5. Run `cd ..` because the build file leaves you one level deeper in the repository.
-6. Run `scons platform=x11 target=release`.
+3. Prepare script for execution: `chmod 755 build_libs.sh`
+4. Run ```. ./build_libs.sh Release```.
+5. Run `scons platform=x11 target=release`.
