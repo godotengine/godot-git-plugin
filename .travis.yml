@@ -60,12 +60,12 @@ install:
   - if [[ "$TRAVIS_OS_NAME" == "windows" ]]; then
       curl -LO https://downloads.sourceforge.net/project/scons/scons-local/3.0.5/scons-local-3.0.5.zip;
       unzip scons-local-3.0.5.zip;
+      choco install visualstudio2017-workload-vctools -y
     fi
 
 script:
   - if [[ "$TRAVIS_OS_NAME" == "windows" ]]; then
       export SCONS="./scons.bat";
-      /c/Program\ Files\ \(x86\)/Microsoft\ Visual\ Studio/2017/BuildTools/Common7/Tools/VsDevCmd.bat;
       ./build_libs.bat $TARGET;
     else
       export SCONS="scons";

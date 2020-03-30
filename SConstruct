@@ -81,6 +81,7 @@ else:
     cpp_library += '.release'
     env['target_path'] += 'release/'
 
+env.Append(CXXFLAGS = '-std=c++17')
 cpp_library += '.' + str(bits)
 
 # make sure our binding library properly includes
