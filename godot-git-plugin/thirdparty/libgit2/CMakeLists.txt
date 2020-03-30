@@ -42,6 +42,7 @@ INCLUDE(EnableWarnings)
 
 # Build options
 #
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fpic")
 OPTION(SONAME				"Set the (SO)VERSION of the target"			 ON)
 OPTION(BUILD_SHARED_LIBS		"Build Shared Library (OFF for Static)"			 OFF)
 OPTION(THREADSAFE			"Build libgit2 as threadsafe"				 ON)
