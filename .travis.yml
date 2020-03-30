@@ -60,7 +60,7 @@ install:
   - if [[ "$TRAVIS_OS_NAME" == "windows" ]]; then
       curl -LO https://downloads.sourceforge.net/project/scons/scons-local/3.0.5/scons-local-3.0.5.zip;
       unzip scons-local-3.0.5.zip;
-      choco install visualstudio2017-workload-vctools -y
+      choco install visualstudio2017-workload-vctools -y;
     fi
 
 script:

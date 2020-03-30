@@ -48,7 +48,7 @@ if env['platform'] == "osx":
         env.Append(CCFLAGS = ['-g','-O2', '-arch', 'x86_64'])
         env.Append(LINKFLAGS = ['-arch', 'x86_64'])
     else:
-        env.Append(CCFLAGS = ['-g','-O3', '-arch', 'x86_64'])
+        env.Append(CCFLAGS = ['-g','-O3', '-arch', 'x86_64', '-std=c++17'])
         env.Append(LINKFLAGS = ['-arch', 'x86_64'])
 
 elif env['platform'] in ('x11', 'linux'):
@@ -81,7 +81,6 @@ else:
     cpp_library += '.release'
     env['target_path'] += 'release/'
 
-env.Append(CXXFLAGS = '-std=c++17')
 cpp_library += '.' + str(bits)
 
 # make sure our binding library properly includes
