@@ -66,7 +66,7 @@ install:
 script:
   - if [[ "$TRAVIS_OS_NAME" == "windows" ]]; then
       export SCONS=".\scons.bat";
-      .\build_libs.bat $TARGET;
+      ./build_libs.bat $TARGET;
     else
       export SCONS="scons";
       ./build_libs.sh $TARGET;
