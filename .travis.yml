@@ -13,10 +13,10 @@ cache:
 
 matrix:
   include:
-    - name: Linux Debug + Static Checks
+    - name: Linux Debug
       os: linux
       compiler: gcc
-      env: TARGET=debug STATIC_CHECKS=yes PLATFORM=x11
+      env: TARGET=debug PLATFORM=x11
       addons:
         apt:
           sources:
@@ -65,6 +65,7 @@ install:
 script:
   - if [[ "$TRAVIS_OS_NAME" == "windows" ]]; then
       export SCONS="./scons.bat";
+      /c/Program\ Files\ \(x86\)/Microsoft\ Visual\ Studio/2017/BuildTools/Common7/Tools/VsDevCmd.bat;
       ./build_libs.bat $TARGET;
     else
       export SCONS="scons";
