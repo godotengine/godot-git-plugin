@@ -16,7 +16,7 @@ matrix:
     - name: Linux Debug + Static Checks
       os: linux
       compiler: gcc
-      env: TARGET=debug STATIC_CHECKS=yes
+      env: TARGET=debug STATIC_CHECKS=yes PLATFORM=x11
       addons:
         apt:
           sources:
@@ -31,25 +31,25 @@ matrix:
         apt:
           packages:
             [scons, pkg-config, build-essential, p7zip-full]
-      env: TARGET=release
+      env: TARGET=release PLATFORM=x11
 
     - name: macOS Debug
       os: osx
       compiler: clang
-      env: TARGET=debug
+      env: TARGET=debug PLATFORM=osx
 
     - name: macOS Release
       os: osx
       compiler: clang
-      env: TARGET=release
+      env: TARGET=release PLATFORM=osx
 
     - name: Windows MSVC Debug
       os: windows
-      env: TARGET=debug
+      env: TARGET=debug PLATFORM=windows
 
     - name: Windows MSVC Release
       os: windows
-      env: TARGET=release
+      env: TARGET=release PLATFORM=windows
 
 install:
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then
@@ -71,4 +71,4 @@ script:
       ./build_libs.sh $TARGET;
     fi
 
-  - $SCONS target=$TARGET $SCONS_FLAGS;
+  - $SCONS platform=$PLATFORM target=$TARGET $SCONS_FLAGS;
