@@ -22,7 +22,7 @@ matrix:
           sources:
             - llvm-toolchain-xenial-6.0
           packages:
-            [scons, pkg-config, build-essential, p7zip-full, clang-format-6.0]
+            [scons, pkg-config, build-essential, p7zip-full]
 
     - name: Linux Release
       os: linux
@@ -71,8 +71,4 @@ script:
       ./build_libs.sh $TARGET;
     fi
 
-  - $SCONS target="$TARGET" bits=64 $SCONS_FLAGS;
-
-  - if [[ "$STATIC_CHECKS" == "yes" ]]; then
-      sh ./misc/travis/clang-format.sh;
-    fi
+  - $SCONS target=$TARGET $SCONS_FLAGS;
