@@ -1,5 +1,3 @@
-GODOT_PATH_RELATIVE_TO_PLUGIN="../godot/bin";
-GIT_PLUGIN_RELATIVE_TO_GODOT="../../godot-git-plugin/";
 git submodule init;
 git submodule update --init --recursive;
 

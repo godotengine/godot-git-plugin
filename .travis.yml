@@ -1,21 +1,78 @@
-language: cpp	
+language: cpp
+dist: xenial
+osx_image: xcode10.1
 
-matrix:	
-  include:	
-    - os: linux	
-      script:	
-      - "sudo apt-get install scons gcc-7"
-      - "sudo apt-get update && sudo apt-get upgrade"
-      - "./build_libs.sh Release"
-      - "scons platform=x11 target=release"
-      - "./build_libs.sh Debug"
-      - "scons platform=x11 target=debug"
-    
-    - os: windows
-      script:
-      - curl -LO https://downloads.sourceforge.net/project/scons/scons-local/3.0.5/scons-local-3.0.5.zip;
-      - unzip scons-local-3.0.5.zip;
-      - "./build_libs.bat Release"
-      - "./scons.bat platform=windows target=release"
-      - "./build_libs.bat Debug"
-      - "./scons.bat platform=windows target=debug"
+env:
+  global:
+    - SCONS_CACHE="$HOME/.scons_cache"
+    - SCONS_CACHE_LIMIT=1024
+
+cache:
+  directories:
+    - $SCONS_CACHE
+
+matrix:
+  include:
+    - name: Linux Debug + Static Checks
+      os: linux
+      compiler: gcc
+      env: TARGET=debug STATIC_CHECKS=yes
+      addons:
+        apt:
+          sources:
+            - llvm-toolchain-xenial-6.0
+          packages:
+            [scons, pkg-config, build-essential, p7zip-full, clang-format-6.0]
+
+    - name: Linux Release
+      os: linux
+      compiler: gcc
+      addons:
+        apt:
+          packages:
+            [scons, pkg-config, build-essential, p7zip-full]
+      env: TARGET=release
+
+    - name: macOS Debug
+      os: osx
+      compiler: clang
+      env: TARGET=debug
+
+    - name: macOS Release
+      os: osx
+      compiler: clang
+      env: TARGET=release
+
+    - name: Windows MSVC Debug
+      os: windows
+      env: TARGET=debug
+
+    - name: Windows MSVC Release
+      os: windows
+      env: TARGET=release
+
+install:
+  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then
+      brew update;
+      brew install scons p7zip;
+    fi
+
+  - if [[ "$TRAVIS_OS_NAME" == "windows" ]]; then
+      curl -LO https://downloads.sourceforge.net/project/scons/scons-local/3.0.5/scons-local-3.0.5.zip;
+      unzip scons-local-3.0.5.zip;
+    fi
+
+script:
+  - if [[ "$TRAVIS_OS_NAME" == "windows" ]]; then
+      export SCONS="./scons.bat";
+      ./build_libs.bat $TARGET;
+    else
+      export SCONS="scons";
+      ./build_libs.sh $TARGET;
+    fi
+
+  - $SCONS target="$TARGET" bits=64 $SCONS_FLAGS;
+
+  - if [[ "$STATIC_CHECKS" == "yes" ]]; then
+      sh ./misc/travis/clang-format.sh;
+    fi
