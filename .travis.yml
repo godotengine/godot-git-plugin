@@ -4,9 +4,18 @@ matrix:
   include:	
     - os: linux	
       script:	
-      - "sudo apt-get install scons"
+      - "sudo apt-get install scons gcc-7"
       - "sudo apt-get update && sudo apt-get upgrade"
       - "./build_libs.sh Release"
       - "scons platform=x11 target=release"
       - "./build_libs.sh Debug"
       - "scons platform=x11 target=debug"
+    
+    - os: windows
+      script:
+      - curl -LO https://downloads.sourceforge.net/project/scons/scons-local/3.0.5/scons-local-3.0.5.zip;
+      - unzip scons-local-3.0.5.zip;
+      - "./build_libs.bat Release"
+      - "./scons.bat platform=windows target=release"
+      - "./build_libs.bat Debug"
+      - "./scons.bat platform=windows target=debug"
