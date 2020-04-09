@@ -69,6 +69,7 @@ elif env['platform'] == "windows":
     env.Append(ENV = os.environ)
 
     env.Append(CCFLAGS = ['-DWIN32', '-D_WIN32', '-D_WINDOWS', '-W3', '-GR', '-D_CRT_SECURE_NO_WARNINGS'])
+    env.Append(LIBS=['Advapi32'])
     if env['target'] in ('debug', 'd'):
         env.Append(CCFLAGS = ['-EHsc', '-D_DEBUG', '-MDd'])
     else:
