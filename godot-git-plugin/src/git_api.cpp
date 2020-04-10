@@ -146,7 +146,7 @@ bool GitAPI::create_initial_commit() {
 
 	if (git_signature_default(&sig, repo) != 0) {
 
-		godot::Godot::print_error("Unable to create a commit signature. Perhaps 'user.name' and 'user.email' are not set. Set default user name and user email by `git config` and intialize again", __func__, __FILE__, __LINE__);
+		godot::Godot::print_error("Unable to create a commit signature. Perhaps 'user.name' and 'user.email' are not set. Set default user name and user email by `git config` and initialize again", __func__, __FILE__, __LINE__);
 		return false;
 	}
 	GIT2_CALL(git_repository_index(&repo_index, repo), "Could not get repository index", NULL);
