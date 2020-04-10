@@ -6,8 +6,8 @@ environment:
 os: Visual Studio 2017
 
 configuration:
-  - Release
-  - Debug
+  - release
+  - debug
 
 platform:
   - x64
@@ -17,4 +17,4 @@ install:
   - curl -LO https://downloads.sourceforge.net/project/scons/scons-local/3.0.5/scons-local-3.0.5.zip
   - unzip scons-local-3.0.5.zip
   - ./build_libs.bat %configuration%
-  - scons platform=windows target=%configuration%
+  - scons platform=windows target=%configuration% -j6
