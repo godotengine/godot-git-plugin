@@ -33,7 +33,7 @@ typedef int GIT_SOCKET;
 # define st_atime_nsec st_atim.tv_nsec
 # define st_mtime_nsec st_mtim.tv_nsec
 # define st_ctime_nsec st_ctim.tv_nsec
-#elif !defined(GIT_USE_STAT_MTIME_NSEC) && defined(GIT_USE_NEC)
+#elif !defined(GIT_USE_STAT_MTIME_NSEC) && defined(GIT_USE_NSEC)
 # error GIT_USE_NSEC defined but unknown struct stat nanosecond type
 #endif
 
@@ -59,7 +59,7 @@ GIT_INLINE(int) p_fsync(int fd)
 #define p_strcasecmp(s1, s2) strcasecmp(s1, s2)
 #define p_strncasecmp(s1, s2, c) strncasecmp(s1, s2, c)
 #define p_vsnprintf(b, c, f, a) vsnprintf(b, c, f, a)
-#define p_snprintf(b, c, ...) snprintf(b, c, __VA_ARGS__)
+#define p_snprintf snprintf
 #define p_mkstemp(p) mkstemp(p)
 #define p_chdir(p) chdir(p)
 #define p_chmod(p,m) chmod(p, m)

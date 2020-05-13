@@ -20,6 +20,7 @@
 #include "message.h"
 #include "refs.h"
 #include "object.h"
+#include "array.h"
 #include "oidarray.h"
 
 void git_commit__free(void *_commit)
@@ -80,8 +81,8 @@ on_error:
 }
 
 static int validate_tree_and_parents(git_array_oid_t *parents, git_repository *repo, const git_oid *tree,
-				     git_commit_parent_callback parent_cb, void *parent_payload,
-				     const git_oid *current_id, bool validate)
+	git_commit_parent_callback parent_cb, void *parent_payload,
+	const git_oid *current_id, bool validate)
 {
 	size_t i;
 	int error;
@@ -152,8 +153,8 @@ static int git_commit__create_internal(
 		goto cleanup;
 
 	error = git_commit__create_buffer_internal(&buf, author, committer,
-						   message_encoding, message, tree,
-						   &parents);
+		message_encoding, message, tree,
+		&parents);
 
 	if (error < 0)
 		goto cleanup;
@@ -383,14 +384,15 @@ int git_commit_amend(
 	return error;
 }
 
-int git_commit__parse_raw(void *_commit, const char *data, size_t size)
+static int commit_parse(git_commit *commit, const char *data, size_t size, unsigned int flags)
 {
-	git_commit *commit = _commit;
 	const char *buffer_start = data, *buffer;
 	const char *buffer_end = buffer_start + size;
 	git_oid parent_id;
 	size_t header_len;
 	git_signature dummy_sig;
+
+	assert(commit && data);
 
 	buffer = buffer_start;
 
@@ -399,8 +401,15 @@ int git_commit__parse_raw(void *_commit, const char *data, size_t size)
 	GIT_ERROR_CHECK_ARRAY(commit->parent_ids);
 
 	/* The tree is always the first field */
-	if (git_oid__parse(&commit->tree_id, &buffer, buffer_end, "tree ") < 0)
-		goto bad_buffer;
+	if (!(flags & GIT_COMMIT_PARSE_QUICK)) {
+	    if (git_oid__parse(&commit->tree_id, &buffer, buffer_end, "tree ") < 0)
+			goto bad_buffer;
+	} else {
+		size_t tree_len = strlen("tree ") + GIT_OID_HEXSZ + 1;
+		if (buffer + tree_len > buffer_end)
+			goto bad_buffer;
+		buffer += tree_len;
+	}
 
 	/*
 	 * TODO: commit grafts!
@@ -413,11 +422,13 @@ int git_commit__parse_raw(void *_commit, const char *data, size_t size)
 		git_oid_cpy(new_id, &parent_id);
 	}
 
-	commit->author = git__malloc(sizeof(git_signature));
-	GIT_ERROR_CHECK_ALLOC(commit->author);
+	if (!(flags & GIT_COMMIT_PARSE_QUICK)) {
+		commit->author = git__malloc(sizeof(git_signature));
+		GIT_ERROR_CHECK_ALLOC(commit->author);
 
-	if (git_signature__parse(commit->author, &buffer, buffer_end, "author ", '\n') < 0)
-		return -1;
+		if (git_signature__parse(commit->author, &buffer, buffer_end, "author ", '\n') < 0)
+			return -1;
+	}
 
 	/* Some tools create multiple author fields, ignore the extra ones */
 	while (!git__prefixncmp(buffer, buffer_end - buffer, "author ")) {
@@ -434,6 +445,9 @@ int git_commit__parse_raw(void *_commit, const char *data, size_t size)
 
 	if (git_signature__parse(commit->committer, &buffer, buffer_end, "committer ", '\n') < 0)
 		return -1;
+
+	if (flags & GIT_COMMIT_PARSE_QUICK)
+		return 0;
 
 	/* Parse add'l header entries */
 	while (buffer < buffer_end) {
@@ -477,11 +491,19 @@ bad_buffer:
 	return -1;
 }
 
+int git_commit__parse_raw(void *commit, const char *data, size_t size)
+{
+	return commit_parse(commit, data, size, 0);
+}
+
+int git_commit__parse_ext(git_commit *commit, git_odb_object *odb_obj, unsigned int flags)
+{
+	return commit_parse(commit, git_odb_object_data(odb_obj), git_odb_object_size(odb_obj), flags);
+}
+
 int git_commit__parse(void *_commit, git_odb_object *odb_obj)
 {
-	return git_commit__parse_raw(_commit,
-		git_odb_object_data(odb_obj),
-		git_odb_object_size(odb_obj));
+	return git_commit__parse_ext(_commit, odb_obj, 0);
 }
 
 #define GIT_COMMIT_GETTER(_rvalue, _name, _return) \
@@ -582,7 +604,7 @@ const char *git_commit_body(git_commit *commit)
 				break;
 
 		if (*msg)
-			    commit->body = git__strndup(msg, end - msg + 1);
+			commit->body = git__strndup(msg, end - msg + 1);
 	}
 
 	return commit->body;
@@ -731,7 +753,7 @@ int git_commit_extract_signature(git_buf *signature, git_buf *signed_data, git_r
 		return error;
 
 	if (obj->cached.type != GIT_OBJECT_COMMIT) {
-		git_error_set(GIT_ERROR_INVALID, "the requested type does not match the type in ODB");
+		git_error_set(GIT_ERROR_INVALID, "the requested type does not match the type in the ODB");
 		error = GIT_ENOTFOUND;
 		goto cleanup;
 	}
@@ -856,6 +878,14 @@ static void format_header_field(git_buf *out, const char *field, const char *con
 	git_buf_putc(out, '\n');
 }
 
+static const git_oid *commit_parent_from_commit(size_t n, void *payload)
+{
+	const git_commit *commit = (const git_commit *) payload;
+
+	return git_array_get(commit->parent_ids, n);
+
+}
+
 int git_commit_create_with_signature(
 	git_oid *out,
 	git_repository *repo,
@@ -868,20 +898,37 @@ int git_commit_create_with_signature(
 	const char *field;
 	const char *header_end;
 	git_buf commit = GIT_BUF_INIT;
+	git_commit *parsed;
+	git_array_oid_t parents = GIT_ARRAY_INIT;
 
-	/* We start by identifying the end of the commit header */
+	/* The first step is to verify that all the tree and parents exist */
+	parsed = git__calloc(1, sizeof(git_commit));
+	GIT_ERROR_CHECK_ALLOC(parsed);
+	if ((error = commit_parse(parsed, commit_content, strlen(commit_content), 0)) < 0)
+		goto cleanup;
+
+	if ((error = validate_tree_and_parents(&parents, repo, &parsed->tree_id, commit_parent_from_commit, parsed, NULL, true)) < 0)
+		goto cleanup;
+
+	git_array_clear(parents);
+
+	/* Then we start appending by identifying the end of the commit header */
 	header_end = strstr(commit_content, "\n\n");
 	if (!header_end) {
 		git_error_set(GIT_ERROR_INVALID, "malformed commit contents");
-		return -1;
+		error = -1;
+		goto cleanup;
 	}
-
-	field = signature_field ? signature_field : "gpgsig";
 
 	/* The header ends after the first LF */
 	header_end++;
 	git_buf_put(&commit, commit_content, header_end - commit_content);
-	format_header_field(&commit, field, signature);
+
+	if (signature != NULL) {
+		field = signature_field ? signature_field : "gpgsig";
+		format_header_field(&commit, field, signature);
+	}
+
 	git_buf_puts(&commit, header_end);
 
 	if (git_buf_oom(&commit))
@@ -894,6 +941,7 @@ int git_commit_create_with_signature(
 		goto cleanup;
 
 cleanup:
+	git_commit__free(parsed);
 	git_buf_dispose(&commit);
 	return error;
 }

@@ -156,7 +156,7 @@ static void openssl_locking_function(
 	lock = mode & CRYPTO_LOCK;
 
 	if (lock) {
-		git_mutex_lock(&openssl_locks[n]);
+		(void)git_mutex_lock(&openssl_locks[n]);
 	} else {
 		git_mutex_unlock(&openssl_locks[n]);
 	}
@@ -196,14 +196,67 @@ static void shutdown_ssl(void)
 	}
 }
 
+#ifdef VALGRIND
+#ifdef OPENSSL_LEGACY_API
+static void *git_openssl_malloc(size_t bytes)
+{
+	return git__calloc(1, bytes);
+}
+
+static void *git_openssl_realloc(void *mem, size_t size)
+{
+	return git__realloc(mem, size);
+}
+
+static void git_openssl_free(void *mem)
+{
+	return git__free(mem);
+}
+#else
+static void *git_openssl_malloc(size_t bytes, const char *file, int line)
+{
+	GIT_UNUSED(file);
+	GIT_UNUSED(line);
+	return git__calloc(1, bytes);
+}
+
+static void *git_openssl_realloc(void *mem, size_t size, const char *file, int line)
+{
+	GIT_UNUSED(file);
+	GIT_UNUSED(line);
+	return git__realloc(mem, size);
+}
+
+static void git_openssl_free(void *mem, const char *file, int line)
+{
+	GIT_UNUSED(file);
+	GIT_UNUSED(line);
+	return git__free(mem);
+}
+#endif
+#endif
+
 int git_openssl_stream_global_init(void)
 {
 	long ssl_opts = SSL_OP_NO_SSLv2 | SSL_OP_NO_SSLv3;
 	const char *ciphers = git_libgit2__ssl_ciphers();
+#ifdef VALGRIND
+	static bool allocators_initialized = false;
+#endif
 
 	/* Older OpenSSL and MacOS OpenSSL doesn't have this */
 #ifdef SSL_OP_NO_COMPRESSION
 	ssl_opts |= SSL_OP_NO_COMPRESSION;
+#endif
+
+#ifdef VALGRIND
+	/* Swap in our own allocator functions that initialize allocated memory */
+	if (!allocators_initialized &&
+	    CRYPTO_set_mem_functions(git_openssl_malloc,
+				     git_openssl_realloc,
+				     git_openssl_free) != 1)
+		goto error;
+	allocators_initialized = true;
 #endif
 
 	OPENSSL_init_ssl(0, NULL);
@@ -310,7 +363,6 @@ static int bio_read(BIO *b, char *buf, int len)
 static int bio_write(BIO *b, const char *buf, int len)
 {
 	git_stream *io = (git_stream *) BIO_get_data(b);
-
 	return (int) git_stream_write(io, buf, len, 0);
 }
 

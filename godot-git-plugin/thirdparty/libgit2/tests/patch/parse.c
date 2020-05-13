@@ -148,3 +148,72 @@ void test_patch_parse__lifetime_of_patch_does_not_depend_on_buffer(void)
 
 	git_patch_free(patch);
 }
+
+void test_patch_parse__binary_file_with_missing_paths(void)
+{
+	git_patch *patch;
+	cl_git_fail(git_patch_from_buffer(&patch, PATCH_BINARY_FILE_WITH_MISSING_PATHS,
+					  strlen(PATCH_BINARY_FILE_WITH_MISSING_PATHS), NULL));
+}
+
+void test_patch_parse__binary_file_with_whitespace_paths(void)
+{
+	git_patch *patch;
+	cl_git_fail(git_patch_from_buffer(&patch, PATCH_BINARY_FILE_WITH_WHITESPACE_PATHS,
+					  strlen(PATCH_BINARY_FILE_WITH_WHITESPACE_PATHS), NULL));
+}
+
+void test_patch_parse__binary_file_with_empty_quoted_paths(void)
+{
+	git_patch *patch;
+	cl_git_fail(git_patch_from_buffer(&patch, PATCH_BINARY_FILE_WITH_QUOTED_EMPTY_PATHS,
+					  strlen(PATCH_BINARY_FILE_WITH_QUOTED_EMPTY_PATHS), NULL));
+}
+
+void test_patch_parse__binary_file_path_with_spaces(void)
+{
+	git_patch *patch;
+	cl_git_fail(git_patch_from_buffer(&patch, PATCH_BINARY_FILE_PATH_WITH_SPACES,
+					  strlen(PATCH_BINARY_FILE_PATH_WITH_SPACES), NULL));
+}
+
+void test_patch_parse__binary_file_path_without_body_paths(void)
+{
+	git_patch *patch;
+	cl_git_fail(git_patch_from_buffer(&patch, PATCH_BINARY_FILE_PATH_WITHOUT_BODY_PATHS,
+					  strlen(PATCH_BINARY_FILE_PATH_WITHOUT_BODY_PATHS), NULL));
+}
+
+void test_patch_parse__binary_file_with_truncated_delta(void)
+{
+	git_patch *patch;
+	cl_git_fail(git_patch_from_buffer(&patch, PATCH_BINARY_FILE_WITH_TRUNCATED_DELTA,
+					  strlen(PATCH_BINARY_FILE_WITH_TRUNCATED_DELTA), NULL));
+	cl_assert_equal_s(git_error_last()->message, "truncated binary data at line 5");
+}
+
+void test_patch_parse__memory_leak_on_multiple_paths(void)
+{
+	git_patch *patch;
+	cl_git_fail(git_patch_from_buffer(&patch, PATCH_MULTIPLE_OLD_PATHS, strlen(PATCH_MULTIPLE_OLD_PATHS), NULL));
+}
+
+void test_patch_parse__truncated_no_newline_at_end_of_file(void)
+{
+	size_t len = strlen(PATCH_APPEND_NO_NL) - strlen("at end of file\n");
+	const git_diff_line *line;
+	git_patch *patch;
+
+	cl_git_pass(git_patch_from_buffer(&patch, PATCH_APPEND_NO_NL, len, NULL));
+	cl_git_pass(git_patch_get_line_in_hunk(&line, patch, 0, 4));
+	cl_assert_equal_s(line->content, "\\ No newline ");
+
+	git_patch_free(patch);
+}
+
+void test_patch_parse__line_number_overflow(void)
+{
+	git_patch *patch;
+	cl_git_fail(git_patch_from_buffer(&patch, PATCH_INTMAX_NEW_LINES, strlen(PATCH_INTMAX_NEW_LINES), NULL));
+	git_patch_free(patch);
+}

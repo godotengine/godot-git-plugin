@@ -14,13 +14,36 @@
 #include "win32/w32_buffer.h"
 #include "win32/w32_util.h"
 #include "win32/version.h"
+#include <aclapi.h>
 #else
 #include <dirent.h>
 #endif
 #include <stdio.h>
 #include <ctype.h>
 
-#define LOOKS_LIKE_DRIVE_PREFIX(S) (git__isalpha((S)[0]) && (S)[1] == ':')
+static int dos_drive_prefix_length(const char *path)
+{
+	int i;
+
+	/*
+	 * Does it start with an ASCII letter (i.e. highest bit not set),
+	 * followed by a colon?
+	 */
+	if (!(0x80 & (unsigned char)*path))
+		return *path && path[1] == ':' ? 2 : 0;
+
+	/*
+	 * While drive letters must be letters of the English alphabet, it is
+	 * possible to assign virtually _any_ Unicode character via `subst` as
+	 * a drive letter to "virtual drives". Even `1`, or `ä`. Or fun stuff
+	 * like this:
+	 *
+	 *	subst ֍: %USERPROFILE%\Desktop
+	 */
+	for (i = 1; i < 4 && (0x80 & (unsigned char)path[i]); i++)
+		; /* skip first UTF-8 character */
+	return path[i] == ':' ? i + 1 : 0;
+}
 
 #ifdef GIT_WIN32
 static bool looks_like_network_computer_name(const char *path, int pos)
@@ -122,11 +145,11 @@ static int win32_prefix_length(const char *path, int len)
 	GIT_UNUSED(len);
 #else
 	/*
-	 * Mimic unix behavior where '/.git' returns '/': 'C:/.git' will return
-	 * 'C:/' here
+	 * Mimic unix behavior where '/.git' returns '/': 'C:/.git'
+	 * will return 'C:/' here
 	 */
-	if (len == 2 && LOOKS_LIKE_DRIVE_PREFIX(path))
-		return 2;
+	if (dos_drive_prefix_length(path) == len)
+		return len;
 
 	/*
 	 * Similarly checks if we're dealing with a network computer name
@@ -271,11 +294,11 @@ const char *git_path_topdir(const char *path)
 
 int git_path_root(const char *path)
 {
-	int offset = 0;
+	int offset = 0, prefix_len;
 
 	/* Does the root of the path look like a windows drive ? */
-	if (LOOKS_LIKE_DRIVE_PREFIX(path))
-		offset += 2;
+	if ((prefix_len = dos_drive_prefix_length(path)))
+		offset += prefix_len;
 
 #ifdef GIT_WIN32
 	/* Are we dealing with a windows network path? */
@@ -1623,8 +1646,12 @@ GIT_INLINE(bool) verify_dotgit_ntfs(git_repository *repo, const char *path, size
 	if (!start)
 		return true;
 
-	/* Reject paths like ".git\" */
-	if (path[start] == '\\')
+	/*
+	 * Reject paths that start with Windows-style directory separators
+	 * (".git\") or NTFS alternate streams (".git:") and could be used
+	 * to write to the ".git" directory on Windows platforms.
+	 */
+	if (path[start] == '\\' || path[start] == ':')
 		return false;
 
 	/* Reject paths like '.git ' or '.git.' */
@@ -1636,12 +1663,21 @@ GIT_INLINE(bool) verify_dotgit_ntfs(git_repository *repo, const char *path, size
 	return false;
 }
 
-GIT_INLINE(bool) only_spaces_and_dots(const char *path)
+/*
+ * Windows paths that end with spaces and/or dots are elided to the
+ * path without them for backward compatibility.  That is to say
+ * that opening file "foo ", "foo." or even "foo . . ." will all
+ * map to a filename of "foo".  This function identifies spaces and
+ * dots at the end of a filename, whether the proper end of the
+ * filename (end of string) or a colon (which would indicate a
+ * Windows alternate data stream.)
+ */
+GIT_INLINE(bool) ntfs_end_of_filename(const char *path)
 {
 	const char *c = path;
 
 	for (;; c++) {
-		if (*c == '\0')
+		if (*c == '\0' || *c == ':')
 			return true;
 		if (*c != ' ' && *c != '.')
 			return false;
@@ -1656,13 +1692,13 @@ GIT_INLINE(bool) verify_dotgit_ntfs_generic(const char *name, size_t len, const 
 
 	if (name[0] == '.' && len >= dotgit_len &&
 	    !strncasecmp(name + 1, dotgit_name, dotgit_len)) {
-		return !only_spaces_and_dots(name + dotgit_len + 1);
+		return !ntfs_end_of_filename(name + dotgit_len + 1);
 	}
 
 	/* Detect the basic NTFS shortname with the first six chars */
 	if (!strncasecmp(name, dotgit_name, 6) && name[6] == '~' &&
 	    name[7] >= '1' && name[7] <= '4')
-		return !only_spaces_and_dots(name + 8);
+		return !ntfs_end_of_filename(name + 8);
 
 	/* Catch fallback names */
 	for (i = 0, saw_tilde = 0; i < 8; i++) {
@@ -1684,7 +1720,7 @@ GIT_INLINE(bool) verify_dotgit_ntfs_generic(const char *name, size_t len, const 
 		}
 	}
 
-	return !only_spaces_and_dots(name + i);
+	return !ntfs_end_of_filename(name + i);
 }
 
 GIT_INLINE(bool) verify_char(unsigned char c, unsigned int flags)
@@ -1818,7 +1854,7 @@ GIT_INLINE(unsigned int) dotgit_flags(
 	git_repository *repo,
 	unsigned int flags)
 {
-	int protectHFS = 0, protectNTFS = 0;
+	int protectHFS = 0, protectNTFS = 1;
 	int error = 0;
 
 	flags |= GIT_PATH_REJECT_DOT_GIT_LITERAL;
@@ -1827,16 +1863,12 @@ GIT_INLINE(unsigned int) dotgit_flags(
 	protectHFS = 1;
 #endif
 
-#ifdef GIT_WIN32
-	protectNTFS = 1;
-#endif
-
 	if (repo && !protectHFS)
 		error = git_repository__configmap_lookup(&protectHFS, repo, GIT_CONFIGMAP_PROTECTHFS);
 	if (!error && protectHFS)
 		flags |= GIT_PATH_REJECT_DOT_GIT_HFS;
 
-	if (repo && !protectNTFS)
+	if (repo)
 		error = git_repository__configmap_lookup(&protectNTFS, repo, GIT_CONFIGMAP_PROTECTNTFS);
 	if (!error && protectNTFS)
 		flags |= GIT_PATH_REJECT_DOT_GIT_NTFS;
@@ -1945,4 +1977,80 @@ done:
 		(void)p_unlink(path.ptr);
 	git_buf_dispose(&path);
 	return supported;
+}
+
+int git_path_validate_system_file_ownership(const char *path)
+{
+#ifndef GIT_WIN32
+	GIT_UNUSED(path);
+	return GIT_OK;
+#else
+	git_win32_path buf;
+	PSID owner_sid;
+	PSECURITY_DESCRIPTOR descriptor = NULL;
+	HANDLE token;
+	TOKEN_USER *info = NULL;
+	DWORD err, len;
+	int ret;
+
+	if (git_win32_path_from_utf8(buf, path) < 0)
+		return -1;
+
+	err = GetNamedSecurityInfoW(buf, SE_FILE_OBJECT,
+				    OWNER_SECURITY_INFORMATION |
+					    DACL_SECURITY_INFORMATION,
+				    &owner_sid, NULL, NULL, NULL, &descriptor);
+
+	if (err == ERROR_FILE_NOT_FOUND || err == ERROR_PATH_NOT_FOUND) {
+		ret = GIT_ENOTFOUND;
+		goto cleanup;
+	}
+
+	if (err != ERROR_SUCCESS) {
+		git_error_set(GIT_ERROR_OS, "failed to get security information");
+		ret = GIT_ERROR;
+		goto cleanup;
+	}
+
+	if (!IsValidSid(owner_sid)) {
+		git_error_set(GIT_ERROR_INVALID, "programdata configuration file owner is unknown");
+		ret = GIT_ERROR;
+		goto cleanup;
+	}
+
+	if (IsWellKnownSid(owner_sid, WinBuiltinAdministratorsSid) ||
+	    IsWellKnownSid(owner_sid, WinLocalSystemSid)) {
+		ret = GIT_OK;
+		goto cleanup;
+	}
+
+	/* Obtain current user's SID */
+	if (OpenProcessToken(GetCurrentProcess(), TOKEN_QUERY, &token) &&
+	    !GetTokenInformation(token, TokenUser, NULL, 0, &len)) {
+		info = git__malloc(len);
+		GIT_ERROR_CHECK_ALLOC(info);
+		if (!GetTokenInformation(token, TokenUser, info, len, &len)) {
+			git__free(info);
+			info = NULL;
+		}
+	}
+
+	/*
+	 * If the file is owned by the same account that is running the current
+	 * process, it's okay to read from that file.
+	 */
+	if (info && EqualSid(owner_sid, info->User.Sid))
+		ret = GIT_OK;
+	else {
+		git_error_set(GIT_ERROR_INVALID, "programdata configuration file owner is not valid");
+		ret = GIT_ERROR;
+	}
+	free(info);
+
+cleanup:
+	if (descriptor)
+		LocalFree(descriptor);
+
+	return ret;
+#endif
 }

@@ -1,8 +1,7 @@
-#include "clar_libgit2.h"
 #include "clar_libgit2_trace.h"
+#include "clar_libgit2.h"
 #include "clar_libgit2_timer.h"
 #include "trace.h"
-
 
 struct method {
 	const char *name;
@@ -10,26 +9,41 @@ struct method {
 	void (*close)(void);
 };
 
+static const char *message_prefix(git_trace_level_t level)
+{
+	switch (level) {
+	case GIT_TRACE_NONE:
+		return "[NONE]:  ";
+	case GIT_TRACE_FATAL:
+		return "[FATAL]: ";
+	case GIT_TRACE_ERROR:
+		return "[ERROR]: ";
+	case GIT_TRACE_WARN:
+		return "[WARN]:  ";
+	case GIT_TRACE_INFO:
+		return "[INFO]:  ";
+	case GIT_TRACE_DEBUG:
+		return "[DEBUG]: ";
+	case GIT_TRACE_TRACE:
+		return "[TRACE]: ";
+	default:
+		return "[?????]: ";
+	}
+}
 
-#if defined(GIT_TRACE)
 static void _git_trace_cb__printf(git_trace_level_t level, const char *msg)
 {
-	/* TODO Use level to print a per-message prefix. */
-	GIT_UNUSED(level);
-
-	printf("%s\n", msg);
+	printf("%s%s\n", message_prefix(level), msg);
 }
 
 #if defined(GIT_WIN32)
 static void _git_trace_cb__debug(git_trace_level_t level, const char *msg)
 {
-	/* TODO Use level to print a per-message prefix. */
-	GIT_UNUSED(level);
-
+	OutputDebugString(message_prefix(level));
 	OutputDebugString(msg);
 	OutputDebugString("\n");
 
-	printf("%s\n", msg);
+	printf("%s%s\n", message_prefix(level), msg);
 }
 #else
 #define _git_trace_cb__debug _git_trace_cb__printf
@@ -55,7 +69,7 @@ static struct method s_methods[] = {
 static int s_trace_loaded = 0;
 static int s_trace_level = GIT_TRACE_NONE;
 static struct method *s_trace_method = NULL;
-
+static int s_trace_tests = 0;
 
 static int set_method(const char *name)
 {
@@ -101,6 +115,7 @@ static void _load_trace_params(void)
 {
 	char *sz_level;
 	char *sz_method;
+	char *sz_tests;
 
 	s_trace_loaded = 1;
 
@@ -117,6 +132,10 @@ static void _load_trace_params(void)
 	sz_method = cl_getenv("CLAR_TRACE_METHOD");
 	if (set_method(sz_method) < 0)
 		set_method(NULL);
+
+	sz_tests = cl_getenv("CLAR_TRACE_TESTS");
+	if (sz_tests != NULL)
+		s_trace_tests = 1;
 }
 
 #define HR "================================================================"
@@ -138,6 +157,9 @@ void _cl_trace_cb__event_handler(
 	void *payload)
 {
 	GIT_UNUSED(payload);
+
+	if (!s_trace_tests)
+		return;
 
 	switch (ev) {
 	case CL_TRACE__SUITE_BEGIN:
@@ -201,15 +223,11 @@ void _cl_trace_cb__event_handler(
 	}
 }
 
-#endif /*GIT_TRACE*/
-
 /**
  * Setup/Enable git_trace() based upon settings user's environment.
- *
  */
 void cl_global_trace_register(void)
 {
-#if defined(GIT_TRACE)
 	if (!s_trace_loaded)
 		_load_trace_params();
 
@@ -222,7 +240,6 @@ void cl_global_trace_register(void)
 
 	git_trace_set(s_trace_level, s_trace_method->git_trace_cb);
 	cl_trace_register(_cl_trace_cb__event_handler, NULL);
-#endif
 }
 
 /**
@@ -234,7 +251,6 @@ void cl_global_trace_register(void)
  */
 void cl_global_trace_disable(void)
 {
-#if defined(GIT_TRACE)
 	cl_trace_register(NULL, NULL);
 	git_trace_set(GIT_TRACE_NONE, NULL);
 	if (s_trace_method && s_trace_method->close)
@@ -244,5 +260,4 @@ void cl_global_trace_disable(void)
 	 * since we only want to hit the environment variables
 	 * once.
 	 */
-#endif
 }

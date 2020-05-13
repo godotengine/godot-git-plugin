@@ -49,9 +49,17 @@ void git_error_set_oom(void)
 	GIT_GLOBAL->last_error = &g_git_oom_error;
 }
 
-void git_error_set(int error_class, const char *string, ...)
+void git_error_set(int error_class, const char *fmt, ...)
 {
-	va_list arglist;
+	va_list ap;
+
+	va_start(ap, fmt);
+	git_error_vset(error_class, fmt, ap);
+	va_end(ap);
+}
+
+void git_error_vset(int error_class, const char *fmt, va_list ap)
+{
 #ifdef GIT_WIN32
 	DWORD win32_error_code = (error_class == GIT_ERROR_OS) ? GetLastError() : 0;
 #endif
@@ -59,11 +67,8 @@ void git_error_set(int error_class, const char *string, ...)
 	git_buf *buf = &GIT_GLOBAL->error_buf;
 
 	git_buf_clear(buf);
-	if (string) {
-		va_start(arglist, string);
-		git_buf_vprintf(buf, string, arglist);
-		va_end(arglist);
-
+	if (fmt) {
+		git_buf_vprintf(buf, fmt, ap);
 		if (error_class == GIT_ERROR_OS)
 			git_buf_PUTS(buf, ": ");
 	}
@@ -90,34 +95,25 @@ void git_error_set(int error_class, const char *string, ...)
 		set_error_from_buffer(error_class);
 }
 
-void git_error_set_str(int error_class, const char *string)
+int git_error_set_str(int error_class, const char *string)
 {
 	git_buf *buf = &GIT_GLOBAL->error_buf;
 
 	assert(string);
 
-	if (!string)
-		return;
+	if (!string) {
+		git_error_set(GIT_ERROR_INVALID, "unspecified caller error");
+		return -1;
+	}
 
 	git_buf_clear(buf);
 	git_buf_puts(buf, string);
-	if (!git_buf_oom(buf))
-		set_error_from_buffer(error_class);
-}
 
-int git_error_set_regex(const p_regex_t *regex, int error_code)
-{
-	char error_buf[1024];
+	if (git_buf_oom(buf))
+		return -1;
 
-	assert(error_code);
-
-	p_regerror(error_code, regex, error_buf, sizeof(error_buf));
-	git_error_set_str(GIT_ERROR_REGEX, error_buf);
-
-	if (error_code == P_REG_NOMATCH)
-		return GIT_ENOTFOUND;
-
-	return GIT_EINVALIDSPEC;
+	set_error_from_buffer(error_class);
+	return 0;
 }
 
 void git_error_clear(void)

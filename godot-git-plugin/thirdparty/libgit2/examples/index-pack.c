@@ -1,21 +1,5 @@
 #include "common.h"
 
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <fcntl.h>
-#ifdef _WIN32
-# include <io.h>
-# include <Windows.h>
-
-# define open _open
-# define read _read
-# define close _close
-
-#define ssize_t int
-#else
-# include <unistd.h>
-#endif
-
 /*
  * This could be run in the main loop whilst the application waits for
  * the indexing to finish in a worker thread
@@ -23,7 +7,7 @@
 static int index_cb(const git_indexer_progress *stats, void *data)
 {
 	(void)data;
-	printf("\rProcessing %d of %d", stats->indexed_objects, stats->total_objects);
+	printf("\rProcessing %u of %u", stats->indexed_objects, stats->total_objects);
 
 	return 0;
 }
@@ -75,7 +59,7 @@ int lg2_index_pack(git_repository *repo, int argc, char **argv)
 	if ((error = git_indexer_commit(idx, &stats)) < 0)
 		goto cleanup;
 
-	printf("\rIndexing %d of %d\n", stats.indexed_objects, stats.total_objects);
+	printf("\rIndexing %u of %u\n", stats.indexed_objects, stats.total_objects);
 
 	git_oid_fmt(hash, git_indexer_hash(idx));
 	puts(hash);
