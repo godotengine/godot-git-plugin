@@ -1,7 +1,6 @@
-
-# environment:
-#   matrix:
-#     - vs_version: 16
+environment:
+  matrix:
+    - vs_version: 16
 
 os: Visual Studio 2019
 
@@ -13,8 +12,9 @@ platform:
   - x64
 
 install:
-  - call "C:\Program Files (x86)\Microsoft Visual Studio\2017\Community\VC\Auxiliary\Build\vcvars64.bat"
-  - curl -LO https://downloads.sourceforge.net/project/scons/scons-local/3.0.5/scons-local-3.0.5.zip
-  - unzip scons-local-3.0.5.zip
-  - ./build_libs.bat %configuration%
-  - scons platform=windows target=%configuration% -j6
+  - call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\VC\Auxiliary\Build\vcvars64.bat"
+  - curl -LO https://downloads.sourceforge.net/project/scons/scons-local/3.1.2/scons-local-3.1.2.zip
+  - unzip scons-local-3.1.2.zip
+  - .\build_libs.bat %configuration%
+  - dir
+  - scons platform=windows target=%configuration% -j2
