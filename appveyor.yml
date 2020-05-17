@@ -17,4 +17,4 @@ install:
   - unzip scons-local-3.1.2.zip
   - .\build_libs.bat %configuration%
   - cd ..
-  - ..\scons.bat platform=windows target=%configuration% -j2
+  - .\scons.bat platform=windows target=%configuration% -j2
