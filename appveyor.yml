@@ -4,6 +4,8 @@ environment:
 
 os: Visual Studio 2019
 
+build: off
+
 configuration:
   - release
   - debug
