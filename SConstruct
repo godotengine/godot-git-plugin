@@ -55,6 +55,8 @@ elif env['platform'] in ('x11', 'linux'):
     env['target_path'] += 'x11/'
     cpp_library += '.linux'
     libgit2_lib_path += 'x11/'
+    env.Append(LIBS=['ssl', 'crypto', 'ssh2'])
+
     if env['target'] in ('debug', 'd'):
         env.Append(CCFLAGS = ['-fPIC', '-g3','-Og', '-std=c++17'])
     else:
