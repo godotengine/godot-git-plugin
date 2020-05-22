@@ -87,7 +87,7 @@ cpp_library += '.' + str(bits)
 # make sure our binding library properly includes
 env.Append(CPPPATH=['.', godot_headers_path, cpp_bindings_path + 'include/', cpp_bindings_path + 'include/core/', cpp_bindings_path + 'include/gen/'])
 env.Append(LIBPATH=[cpp_bindings_path + 'bin/', libgit2_lib_path])
-env.Append(LIBS=[cpp_library, 'git2'])
+env.Append(LIBS=[cpp_library, 'ssl', 'crypto', 'ssh2', 'git2'])
 
 # tweak this if you want to use different folders, or more folders, to store your source code in.
 env.Append(CPPPATH=['godot-git-plugin/src/', libgit2_include_path])

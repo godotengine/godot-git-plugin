@@ -41,9 +41,9 @@ INCLUDE(IdeSplitSources)
 INCLUDE(FeatureSummary)
 INCLUDE(EnableWarnings)
 
-# Build options
-#
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
+
+# Build options
 OPTION(SONAME				"Set the (SO)VERSION of the target"			 ON)
 OPTION(BUILD_SHARED_LIBS		"Build Shared Library (OFF for Static)"			 ON)
 OPTION(THREADSAFE			"Build libgit2 as threadsafe"				 ON)
