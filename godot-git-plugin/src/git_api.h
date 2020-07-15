@@ -36,14 +36,13 @@ class GitAPI : public EditorVCSInterface {
 	git_remote_callbacks remote_cbs;
 
 	bool has_merge = false;
-	Array diff_contents;
 	git_oid pull_merge_oid;
 	Credentials creds;
 
 	void _commit(const String p_msg);
 	bool _is_vcs_initialized();
 	Dictionary _get_modified_files_data();
-	Array _get_file_diff(const String file_path);
+	Array _get_file_diff(const String file_path, int area);
 	String _get_project_name();
 	String _get_vcs_name();
 	bool _initialize(const String p_project_root_path);
@@ -60,6 +59,7 @@ class GitAPI : public EditorVCSInterface {
 	void _push();
 	const char *_get_current_branch_name(bool full_ref);
 	void _set_up_credentials(String p_username, String p_password);
+	Array _parse_diff(git_diff *diff);
 
 public:
 	static void _register_methods();
