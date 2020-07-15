@@ -10,7 +10,6 @@ struct Credentials {
 	char *password;
 };
 
-extern "C" int diff_line_callback_function(const git_diff_delta *delta, const git_diff_hunk *hunk, const git_diff_line *line, void *payload);
 extern "C" int progress_cb(const char *str, int len, void *data);
 extern "C" int update_cb(const char *refname, const git_oid *a, const git_oid *b, void *data);
 extern "C" int transfer_progress_cb(const git_indexer_progress *stats, void *payload);

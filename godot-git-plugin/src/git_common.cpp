@@ -22,44 +22,6 @@ bool check_git2_errors(int error, godot::String message, godot::String function,
 	return true;
 }
 
-extern "C" int diff_line_callback_function(const git_diff_delta *delta, const git_diff_hunk *hunk, const git_diff_line *line, void *payload) {
-
-	// First we NULL terminate the line text incoming
-	char *content = new char[line->content_len + 1];
-	memcpy(content, line->content, line->content_len);
-	static int i = 0;
-	content[line->content_len] = '\0';
-
-	godot::String prefix = "";
-	switch (line->origin) {
-
-		case GIT_DIFF_LINE_DEL_EOFNL:
-		case GIT_DIFF_LINE_DELETION:
-			prefix = "-";
-			break;
-
-		case GIT_DIFF_LINE_ADD_EOFNL:
-		case GIT_DIFF_LINE_ADDITION:
-			prefix = "+";
-			break;
-	}
-
-	godot::String content_str = content;
-
-	godot::Dictionary result;
-	result["content"] = prefix + content_str;
-	result["status"] = prefix;
-	result["new_line_number"] = line->new_lineno;
-	result["line_count"] = line->num_lines;
-	result["old_line_number"] = line->old_lineno;
-	result["offset"] = line->content_offset;
-
-	godot::Array *diff_contents = (godot::Array *)payload;
-	diff_contents->push_back(result);
-
-	return 0;
-}
-
 extern "C" int progress_cb(const char *str, int len, void *data) {
 	(void)data;
 	godot::Godot::print("remote: " + godot::String(str).strip_edges());
