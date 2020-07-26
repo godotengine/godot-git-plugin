@@ -29,7 +29,7 @@ extern "C" int progress_cb(const char *str, int len, void *data) {
 }
 
 extern "C" int update_cb(const char *refname, const git_oid *a, const git_oid *b, void *data) {
-	int short_commit_length = 8;
+	constexpr int short_commit_length = 8;
 	char a_str[short_commit_length + 1], b_str[short_commit_length + 1];
 	(void)data;
 
