@@ -17,6 +17,7 @@ extern "C" int fetchhead_foreach_cb(const char *ref_name, const char *remote_url
 extern "C" int credentials_cb(git_cred **out, const char *url, const char *username_from_url, unsigned int allowed_types, void *payload);
 extern "C" int push_transfer_progress_cb(unsigned int current, unsigned int total, size_t bytes, void *payload);
 extern "C" int push_update_reference_cb(const char *refname, const char *status, void *data);
+extern "C" int diff_hunk_cb(const git_diff_delta *delta, const git_diff_hunk *range, void *payload);
 
 bool check_git2_errors(int error, godot::String message, godot::String function, godot::String file, int line);
 
