@@ -87,3 +87,15 @@ extern "C" int credentials_cb(git_cred **out, const char *url, const char *usern
 
 	return git_cred_userpass_plaintext_new(out, creds->username, creds->password);
 }
+
+extern "C" int diff_hunk_cb(const git_diff_delta *delta, const git_diff_hunk *range, void *payload){
+	godot::Array *diff_hunks = (godot::Array *)payload;
+	godot::Dictionary hunk;
+	hunk["old_start"] = range->old_start;
+	hunk["old_lines"] = range->old_lines;
+	hunk["new_start"] = range->new_start;
+	hunk["new_lines"] = range->new_lines;
+	diff_hunks->push_back(hunk);
+
+	return 1;
+}

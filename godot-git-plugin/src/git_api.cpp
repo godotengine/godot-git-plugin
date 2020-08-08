@@ -24,6 +24,7 @@ void GitAPI::_register_methods() {
 	register_method("_pull", &GitAPI::_pull);
 	register_method("_push", &GitAPI::_push);
 	register_method("_set_up_credentials", &GitAPI::_set_up_credentials);
+	register_method("_get_line_diff", &GitAPI::_get_line_diff);
 }
 
 void GitAPI::_discard_file(String p_file_path) {
@@ -36,7 +37,7 @@ void GitAPI::_discard_file(String p_file_path) {
 }
 
 void GitAPI::_commit(const String p_msg) {
-	
+
 	if (!can_commit) {
 		godot::Godot::print("Git API: Cannot commit. Check previous errors.");
 		return;
@@ -95,7 +96,7 @@ void GitAPI::_commit(const String p_msg) {
 		git_commit_free(fetchhead_commit);
 		git_repository_state_cleanup(repo);
 	}
-	
+
 	git_index_free(repo_index);
 	git_signature_free(default_sign);
 	git_commit_free(parent_commit);
@@ -292,6 +293,42 @@ Array GitAPI::_get_branch_list() {
 	git_branch_iterator_free(it);
 
 	return branch_names;
+}
+
+Array GitAPI::_get_line_diff(String p_file_path, String p_text) {
+	//get blob
+	git_index *index;
+	git_blob *blob;
+	git_reference *head;
+
+	git_diff_options opts = GIT_DIFF_OPTIONS_INIT;
+	git_diff *diff;
+	Array diff_contents;
+
+	opts.context_lines = 0;
+	opts.flags = GIT_DIFF_DISABLE_PATHSPEC_MATCH | GIT_DIFF_INCLUDE_UNTRACKED;
+
+	GIT2_CALL_R(git_repository_index(&index, repo), "Failed to get repository index", diff_contents);
+	GIT2_CALL_R(git_index_read(index, 0), "Failed to read index", diff_contents);
+
+	const git_index_entry *entry = git_index_get_bypath(index, p_file_path.alloc_c_string(), GIT_INDEX_STAGE_NORMAL);
+	
+	if (entry == NULL) {
+		git_index_free(index);
+		return diff_contents;
+	}
+
+	const git_oid *blobSha = &entry->id;
+	GIT2_CALL_R(git_repository_head(&head, repo), "Faild to load repository head", diff_contents);
+	GIT2_CALL_R(git_blob_lookup(&blob, repo, blobSha), "Faild to load head blob", diff_contents);
+	GIT2_CALL_R(git_diff_blob_to_buffer(blob, NULL, p_text.alloc_c_string(), p_text.length(), NULL, &opts, NULL, NULL, diff_hunk_cb, NULL, &diff_contents), "Failed to make diff", diff_contents);
+
+	git_index_free(index);
+	git_blob_free(blob);
+	git_reference_free(head);
+	git_diff_free(diff);
+
+	return diff_contents;
 }
 
 const char *GitAPI::_get_current_branch_name(bool full_ref) {
@@ -494,7 +531,7 @@ Array GitAPI::_get_file_diff(const String identifier, int area) {
 			GIT2_CALL_R(git_revparse_single(&obj, repo, "HEAD^{tree}"), "", diff_contents);
 			GIT2_CALL_R(git_tree_lookup(&tree, repo, git_object_id(obj)), "", diff_contents);
 			GIT2_CALL_R(git_diff_tree_to_index(&diff, repo, tree, NULL, &opts), "Could not create diff for tree from index directory", diff_contents);
-			
+
 			git_tree_free(tree);
 			git_object_free(obj);
 		} break;
@@ -503,14 +540,14 @@ Array GitAPI::_get_file_diff(const String identifier, int area) {
 			git_object *obj = nullptr;
 			git_commit *commit = nullptr, *parent = nullptr;
 			git_tree *commit_tree = nullptr, *parent_tree = nullptr;
-			
+
 			GIT2_CALL_R(git_revparse_single(&obj, repo, pathspec), "", diff_contents);
 			GIT2_CALL_R(git_commit_lookup(&commit, repo, git_object_id(obj)), "", diff_contents);
 			GIT2_CALL_R(git_commit_parent(&parent, commit, 0), "", diff_contents);
 			GIT2_CALL_R(git_commit_tree(&commit_tree, commit), "", diff_contents);
 			GIT2_CALL_R(git_commit_tree(&parent_tree, parent), "", diff_contents);
 			GIT2_CALL_R(git_diff_tree_to_tree(&diff, repo, parent_tree, commit_tree, &opts), "", diff_contents);
-			
+
 			git_object_free(obj);
 			git_commit_free(commit);
 			git_commit_free(parent);

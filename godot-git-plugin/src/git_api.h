@@ -60,6 +60,7 @@ class GitAPI : public EditorVCSInterface {
 	const char *_get_current_branch_name(bool full_ref);
 	void _set_up_credentials(String p_username, String p_password);
 	Array _parse_diff(git_diff *diff);
+	Array _get_line_diff(String p_file_path, String p_text);
 
 public:
 	static void _register_methods();
