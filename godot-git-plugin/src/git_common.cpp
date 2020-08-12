@@ -29,17 +29,17 @@ extern "C" int progress_cb(const char *str, int len, void *data) {
 }
 
 extern "C" int update_cb(const char *refname, const git_oid *a, const git_oid *b, void *data) {
-	int short_commit_lenght = 8;
-	char a_str[short_commit_lenght + 1], b_str[short_commit_lenght + 1];
+	int short_commit_length = 8;
+	char a_str[short_commit_length + 1], b_str[short_commit_length + 1];
 	(void)data;
 
-	git_oid_tostr(b_str, short_commit_lenght - 1, b);
-	b_str[short_commit_lenght] = '\0';
+	git_oid_tostr(b_str, short_commit_length - 1, b);
+	b_str[short_commit_length] = '\0';
 	if (git_oid_is_zero(a)) {
 		godot::Godot::print("* [new] " + godot::String(b_str) + " " + godot::String(refname));
 	} else {
-		git_oid_nfmt(a_str, short_commit_lenght - 1, a);
-		a_str[short_commit_lenght] = '\0';
+		git_oid_nfmt(a_str, short_commit_length - 1, a);
+		a_str[short_commit_length] = '\0';
 		godot::Godot::print("[updated] " + godot::String(a_str) + "..." + godot::String(b_str) + " " + godot::String(refname));
 	}
 
