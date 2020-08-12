@@ -41,7 +41,7 @@ class GitAPI : public EditorVCSInterface {
 
 	void _commit(const String p_msg);
 	bool _is_vcs_initialized();
-	Dictionary _get_modified_files_data();
+	Array _get_modified_files_data();
 	Array _get_file_diff(const String file_path, int area);
 	String _get_project_name();
 	String _get_vcs_name();

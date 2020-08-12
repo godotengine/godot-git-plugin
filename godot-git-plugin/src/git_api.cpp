@@ -206,13 +206,9 @@ bool GitAPI::_is_vcs_initialized() {
 	return is_initialized;
 }
 
-Dictionary GitAPI::_get_modified_files_data() {
+Array GitAPI::_get_modified_files_data() {
 
-	Dictionary diff;
-	Dictionary index; // Schema is <file_path, status>
-	Dictionary wt; // Schema is <file_path, status>
-	diff[TREE_AREA_STAGED] = index;
-	diff[TREE_AREA_UNSTAGED] = wt;
+	Array stats_files;
 
 	git_status_options opts = GIT_STATUS_OPTIONS_INIT;
 	opts.show = GIT_STATUS_SHOW_INDEX_AND_WORKDIR;
@@ -220,19 +216,16 @@ Dictionary GitAPI::_get_modified_files_data() {
 	opts.flags |= GIT_STATUS_OPT_INCLUDE_UNTRACKED | GIT_STATUS_OPT_RENAMES_HEAD_TO_INDEX | GIT_STATUS_OPT_SORT_CASE_SENSITIVELY | GIT_STATUS_OPT_RECURSE_UNTRACKED_DIRS;
 
 	git_status_list *statuses = NULL;
-	GIT2_CALL_R(git_status_list_new(&statuses, repo, &opts), "Could not get status information from repository", diff);
+	GIT2_CALL_R(git_status_list_new(&statuses, repo, &opts), "Could not get status information from repository", stats_files);
 
 	size_t count = git_status_list_entrycount(statuses);
-
 	for (size_t i = 0; i < count; ++i) {
 
 		const git_status_entry *entry = git_status_byindex(statuses, i);
 		String path;
 		if (entry->index_to_workdir) {
-
 			path = entry->index_to_workdir->new_file.path;
 		} else {
-
 			path = entry->head_to_index->new_file.path;
 		}
 
@@ -251,24 +244,25 @@ Dictionary GitAPI::_get_modified_files_data() {
 
 		const static int git_status_wt = GIT_STATUS_WT_NEW | GIT_STATUS_WT_MODIFIED | GIT_STATUS_WT_DELETED | GIT_STATUS_WT_TYPECHANGE | GIT_STATUS_WT_RENAMED | GIT_STATUS_CONFLICTED;
 		const static int git_status_index = GIT_STATUS_INDEX_NEW | GIT_STATUS_INDEX_MODIFIED | GIT_STATUS_INDEX_DELETED | GIT_STATUS_INDEX_RENAMED | GIT_STATUS_INDEX_TYPECHANGE;
-
+		
 		if (entry->status & git_status_wt) {
-			wt[path] = map_changes[entry->status & git_status_wt];
+			stats_files.push_back(_create_status_file(path, map_changes[entry->status & git_status_wt], TREE_AREA_UNSTAGED));
 		}
-
+		
 		if (entry->status & git_status_index) {
 			if (entry->status == GIT_STATUS_INDEX_RENAMED) {
 				String old_path = entry->head_to_index->old_file.path;
-				index[old_path] = map_changes[GIT_STATUS_INDEX_DELETED];
-				index[path] = map_changes[GIT_STATUS_INDEX_NEW];
-				continue;
+				stats_files.push_back(_create_status_file(old_path, map_changes[GIT_STATUS_INDEX_DELETED], TREE_AREA_STAGED));			
+				stats_files.push_back(_create_status_file(path, map_changes[GIT_STATUS_INDEX_NEW], TREE_AREA_STAGED));
 			}
-			index[path] = map_changes[entry->status & git_status_index];
+			else{
+				stats_files.push_back(_create_status_file(path, map_changes[entry->status & git_status_index], TREE_AREA_STAGED));
+			}
 		}
 	}
 
 	git_status_list_free(statuses);
-	return diff;
+	return stats_files;
 }
 
 Array GitAPI::_get_branch_list() {
@@ -319,8 +313,8 @@ Array GitAPI::_get_line_diff(String p_file_path, String p_text) {
 	}
 
 	const git_oid *blobSha = &entry->id;
-	GIT2_CALL_R(git_repository_head(&head, repo), "Faild to load repository head", diff_contents);
-	GIT2_CALL_R(git_blob_lookup(&blob, repo, blobSha), "Faild to load head blob", diff_contents);
+	GIT2_CALL_R(git_repository_head(&head, repo), "Failed to load repository head", diff_contents);
+	GIT2_CALL_R(git_blob_lookup(&blob, repo, blobSha), "Failed to load head blob", diff_contents);
 	GIT2_CALL_R(git_diff_blob_to_buffer(blob, NULL, p_text.alloc_c_string(), p_text.length(), NULL, &opts, NULL, NULL, diff_hunk_cb, NULL, &diff_contents), "Failed to make diff", diff_contents);
 
 	git_index_free(index);
@@ -361,16 +355,14 @@ Array GitAPI::_get_previous_commits() {
 	git_revwalk_push_head(walker);
 
 	for (int i = 0; !git_revwalk_next(&oid, walker) && i <= max_commit_fetch; i++) {
-
 		GIT2_CALL_R(git_commit_lookup(&commit, repo, &oid), "Failed to lookup the commit", commits);
-
 		sig = git_commit_author(commit);
 		git_oid_tostr(commit_id, GIT_OID_HEXSZ + 1, git_commit_id(commit));
-		Dictionary commit_info;
-		commit_info["message"] = String(git_commit_message(commit));
-		commit_info["author"] = String(sig->name);
-		commit_info["when"] = (int64_t)sig->when.time + (int64_t)(sig->when.offset * 60); // Epoch time in seconds
-		commit_info["id"] = String(commit_id);
+		String msg = git_commit_message(commit);
+		String author = sig->name;
+		int64_t when = (int64_t)sig->when.time + (int64_t)(sig->when.offset * 60);
+		String hex_id = commit_id;
+		Dictionary commit_info = _create_commit(msg, author, hex_id, when);
 		commits.push_back(commit_info);
 		git_commit_free(commit);
 	}
@@ -437,7 +429,7 @@ void GitAPI::_pull() {
 
 		git_reference_free(target_ref);
 		git_reference_free(new_target_ref);
-		Godot::print("Git API: Fast Forwrded");
+		Godot::print("Git API: Fast Forwarded");
 		git_repository_state_cleanup(repo);
 	} else if (merge_analysis & GIT_MERGE_ANALYSIS_NORMAL) {
 		git_merge_options merge_opts = GIT_MERGE_OPTIONS_INIT;
@@ -446,7 +438,7 @@ void GitAPI::_pull() {
 		merge_opts.file_favor = GIT_MERGE_FILE_FAVOR_NORMAL;
 		merge_opts.file_flags = (GIT_MERGE_FILE_STYLE_DIFF3 | GIT_MERGE_FILE_DIFF_MINIMAL);
 		checkout_opts.checkout_strategy = (GIT_CHECKOUT_SAFE | GIT_CHECKOUT_ALLOW_CONFLICTS | GIT_CHECKOUT_CONFLICT_STYLE_DIFF3);
-		GIT2_CALL(git_merge(repo, merge_heads, 1, &merge_opts, &checkout_opts), "Merge Faild");
+		GIT2_CALL(git_merge(repo, merge_heads, 1, &merge_opts, &checkout_opts), "Merge Failed");
 
 		git_index *index;
 		git_repository_index(&index, repo);
@@ -482,7 +474,7 @@ void GitAPI::_push() {
 	char *ref[] = { branch_name.alloc_c_string() };
 	git_strarray refspecs = { ref, 1 };
 
-	GIT2_CALL(git_remote_upload(remote, &refspecs, &push_opts), "Faild to push");
+	GIT2_CALL(git_remote_upload(remote, &refspecs, &push_opts), "Failed to push");
 }
 
 void GitAPI::_set_up_credentials(String p_username, String p_password) {
@@ -564,30 +556,6 @@ Array GitAPI::_get_file_diff(const String identifier, int area) {
 
 Array GitAPI::_parse_diff(git_diff *diff) {
 
-	/*
-	diff_files: [
-		{
-			String new_file_path:
-			String old_file_path:
-			hunks:[
-				{
-					int old_start:
-					int old_lines:
-					int new_start:
-					int new_lines:
-					diff_lines: [
-						{
-							int old_line_no:
-							int new_line_no:
-							String content:
-							String status:
-						}
-					]
-				}
-			]
-		}
-	]
-	*/
 	Array diff_contents;
 	for (int i = 0; i < git_diff_num_deltas(diff); i++) {
 		git_patch *patch;
@@ -601,21 +569,15 @@ Array GitAPI::_parse_diff(git_diff *diff) {
 		if (delta->status == GIT_DELTA_UNMODIFIED || delta->status == GIT_DELTA_IGNORED || delta->status == GIT_DELTA_UNTRACKED) {
 			continue;
 		}
-		Dictionary file_diff;
-		file_diff["new_file"] = String(delta->new_file.path);
-		file_diff["old_file"] = String(delta->old_file.path);
+		Dictionary diff_file = _create_diff_file(delta->new_file.path, delta->old_file.path);
 
-		Array hunks;
+		Array diff_hunks;
 		for (int j = 0; j < git_patch_num_hunks(patch); j++) {
 			const git_diff_hunk *git_hunk;
 			size_t line_count;
 			git_patch_get_hunk(&git_hunk, &line_count, patch, j);
 
-			Dictionary hunk;
-			hunk["old_start"] = git_hunk->old_start;
-			hunk["new_start"] = git_hunk->new_start;
-			hunk["old_lines"] = git_hunk->old_lines;
-			hunk["new_lines"] = git_hunk->new_lines;
+			Dictionary diff_hunk = _create_diff_hunk(git_hunk->old_start, git_hunk->new_start, git_hunk->old_lines, git_hunk->new_lines);
 
 			Array diff_lines;
 			for (int k = 0; k < line_count; k++) {
@@ -625,20 +587,16 @@ Array GitAPI::_parse_diff(git_diff *diff) {
 				memcpy(content, git_diff_line->content, git_diff_line->content_len);
 				content[git_diff_line->content_len] = '\0';
 
-				Dictionary diff_line;
-				diff_line["old_line_no"] = git_diff_line->old_lineno;
-				diff_line["new_line_no"] = git_diff_line->new_lineno;
-				diff_line["content"] = String(content);
-				diff_line["status"] = String(git_diff_line->origin);
-
+				Dictionary diff_line = _create_diff_line(git_diff_line->new_lineno, git_diff_line->old_lineno, String(content), String(git_diff_line->origin));
 				diff_lines.push_back(diff_line);
 			}
 
-			hunk["diff_lines"] = diff_lines;
-			hunks.push_back(hunk);
+			diff_hunk = _add_line_diffs_into_diff_hunk(diff_hunk, diff_lines);
+			diff_hunks.push_back(diff_hunk);
 		}
-		file_diff["hunks"] = hunks;
-		diff_contents.push_back(file_diff);
+		diff_file = _add_diff_hunks_into_diff_file(diff_file, diff_hunks);
+		diff_contents.push_back(diff_file);
+		
 		git_patch_free(patch);
 	}
 	return diff_contents;
