@@ -1,27 +1,6 @@
 #include <git_api.h>
 #include <git_common.h>
 
-bool check_git2_errors(int error, godot::String message, godot::String function, godot::String file, int line) {
-
-	const git_error *lg2err;
-	godot::String lg2msg = "", lg2spacer = "";
-
-	if (!error) {
-
-		return false;
-	}
-
-	if ((lg2err = git_error_last()) != NULL && lg2err->message != NULL) {
-
-		lg2msg = godot::String(lg2err->message);
-		lg2spacer = " - ";
-	}
-
-	godot::Godot::print_error("Git API: " + message + " [" + godot::String::num_int64(error) + "] " + lg2spacer + lg2msg, function, file, line);
-
-	return true;
-}
-
 extern "C" int progress_cb(const char *str, int len, void *data) {
 	(void)data;
 	godot::Godot::print("remote: " + godot::String(str).strip_edges());

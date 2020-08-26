@@ -19,13 +19,5 @@ extern "C" int push_transfer_progress_cb(unsigned int current, unsigned int tota
 extern "C" int push_update_reference_cb(const char *refname, const char *status, void *data);
 extern "C" int diff_hunk_cb(const git_diff_delta *delta, const git_diff_hunk *range, void *payload);
 
-bool check_git2_errors(int error, godot::String message, godot::String function, godot::String file, int line);
-
-#define GIT2_CALL(function_call, m_error_msg)                                            \
-	if (check_git2_errors(function_call, m_error_msg, __FUNCTION__, __FILE__, __LINE__)) \
-		return;
-
-#define GIT2_CALL_R(function_call, m_error_msg, return_t)                                \
-	if (check_git2_errors(function_call, m_error_msg, __FUNCTION__, __FILE__, __LINE__)) \
-		return return_t;
 #endif // !GIT_COMMON_H
+

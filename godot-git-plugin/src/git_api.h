@@ -62,6 +62,8 @@ class GitAPI : public EditorVCSInterface {
 	Array _parse_diff(git_diff *diff);
 	Array _get_line_diff(String p_file_path, String p_text);
 
+	bool check_errors(int error, String message, String function, String file, int line);
+
 public:
 	static void _register_methods();
 

@@ -1,5 +1,13 @@
 #include "git_api.h"
 
+#define GIT2_CALL(function_call, m_error_msg)                                            \
+	if (check_errors(function_call, m_error_msg, __FUNCTION__, __FILE__, __LINE__)) \
+		return;
+
+#define GIT2_CALL_R(function_call, m_error_msg, m_return)                                \
+	if (check_errors(function_call, m_error_msg, __FUNCTION__, __FILE__, __LINE__)) \
+		return m_return;
+
 namespace godot {
 
 void GitAPI::_register_methods() {
@@ -26,6 +34,25 @@ void GitAPI::_register_methods() {
 	register_method("_set_up_credentials", &GitAPI::_set_up_credentials);
 	register_method("_get_line_diff", &GitAPI::_get_line_diff);
 }
+
+bool GitAPI::check_errors(int error, String message, String function, String file, int line) {
+
+	const git_error *lg2err;
+
+	if (!error) {
+
+		return false;
+	}
+
+	if ((lg2err = git_error_last()) != NULL && lg2err->message != NULL) {
+		message += " [" + String::num_int64(error) + "]; ";
+		message += String(lg2err->message);
+	}
+	Godot::print_error("Git API: " + message, function, file, line);
+	_popup_error(message);
+	return true;
+}
+
 
 void GitAPI::_discard_file(String p_file_path) {
 
@@ -375,17 +402,17 @@ Array GitAPI::_get_previous_commits() {
 void GitAPI::_fetch() {
 
 	Godot::print("Git API: Performing fetch...");
-	GIT2_CALL(git_remote_connect(remote, GIT_DIRECTION_FETCH, &remote_cbs, NULL, NULL), "Can not connect to remote \"" + String(remote_name) + "\"");
+	GIT2_CALL(git_remote_connect(remote, GIT_DIRECTION_FETCH, &remote_cbs, NULL, NULL), "Could not connect to remote \"" + String(remote_name) + "\"");
 
 	git_fetch_options opts = GIT_FETCH_OPTIONS_INIT;
 	opts.callbacks = remote_cbs;
-	GIT2_CALL(git_remote_fetch(remote, NULL, &opts, "fetch"), "Can not fetch data from remote");
+	GIT2_CALL(git_remote_fetch(remote, NULL, &opts, "fetch"), "Could not fetch data from remote");
 }
 
 void GitAPI::_pull() {
 	Godot::print("Git API: Performing pull...");
 
-	GIT2_CALL(git_remote_connect(remote, GIT_DIRECTION_FETCH, &remote_cbs, NULL, NULL), "Can not connect to remote \"" + String(remote_name) + "\"");
+	GIT2_CALL(git_remote_connect(remote, GIT_DIRECTION_FETCH, &remote_cbs, NULL, NULL), "Could not connect to remote \"" + String(remote_name) + "\"");
 
 	git_fetch_options fetch_opts = GIT_FETCH_OPTIONS_INIT;
 	fetch_opts.callbacks = remote_cbs;
@@ -396,15 +423,15 @@ void GitAPI::_pull() {
 	char *ref[] = { ref_name.alloc_c_string() };
 	git_strarray refspec = { ref, 1 };
 
-	GIT2_CALL(git_remote_fetch(remote, &refspec, &fetch_opts, "pull"), "Can not fetch data from remote");
-	GIT2_CALL(git_repository_fetchhead_foreach(repo, fetchhead_foreach_cb, &pull_merge_oid), "Can not read \"FETCH_HEAD\" file");
+	GIT2_CALL(git_remote_fetch(remote, &refspec, &fetch_opts, "pull"), "Could not fetch data from remote");
+	GIT2_CALL(git_repository_fetchhead_foreach(repo, fetchhead_foreach_cb, &pull_merge_oid), "Could not read \"FETCH_HEAD\" file");
 
 	if (!&pull_merge_oid) {
 		return;
 	}
 
 	git_annotated_commit *fetchhead_annotated_commit;
-	GIT2_CALL(git_annotated_commit_lookup(&fetchhead_annotated_commit, repo, &pull_merge_oid), "Can not get merge commit");
+	GIT2_CALL(git_annotated_commit_lookup(&fetchhead_annotated_commit, repo, &pull_merge_oid), "Could not get merge commit");
 
 	const git_annotated_commit *merge_heads[] = { fetchhead_annotated_commit };
 
@@ -420,7 +447,7 @@ void GitAPI::_pull() {
 		int err = 0;
 
 		GIT2_CALL(git_repository_head(&target_ref, repo), "Failed to get HEAD reference");
-		GIT2_CALL(git_object_lookup(&target, repo, &pull_merge_oid, GIT_OBJECT_COMMIT), "failed to lookup OID " + String(git_oid_tostr_s(&pull_merge_oid)));
+		GIT2_CALL(git_object_lookup(&target, repo, &pull_merge_oid, GIT_OBJECT_COMMIT), "Failed to lookup OID " + String(git_oid_tostr_s(&pull_merge_oid)));
 
 		ff_checkout_options.checkout_strategy = GIT_CHECKOUT_SAFE;
 		GIT2_CALL(git_checkout_tree(repo, target, &ff_checkout_options), "Failed to checkout HEAD reference");
@@ -465,7 +492,7 @@ void GitAPI::_pull() {
 void GitAPI::_push() {
 	Godot::print("Git API: Performing push...");
 
-	GIT2_CALL(git_remote_connect(remote, GIT_DIRECTION_PUSH, &remote_cbs, NULL, NULL), "Can not connect to remote \"" + String(remote_name) + "\"");
+	GIT2_CALL(git_remote_connect(remote, GIT_DIRECTION_PUSH, &remote_cbs, NULL, NULL), "Could not connect to remote \"" + String(remote_name) + "\"");
 
 	git_push_options push_opts = GIT_PUSH_OPTIONS_INIT;
 	push_opts.callbacks = remote_cbs;
@@ -488,13 +515,16 @@ bool GitAPI::_checkout_branch(String p_branch_name) {
 	git_reference *ref, *branch;
 	git_object *treeish;
 
-	GIT2_CALL_R(git_branch_lookup(&branch, repo, p_branch_name.alloc_c_string(), GIT_BRANCH_LOCAL), "", false);
+	GIT2_CALL_R(git_branch_lookup(&branch, repo, p_branch_name.alloc_c_string(), GIT_BRANCH_LOCAL), "Could not find branch", false);
 	const char *branch_ref_name = git_reference_name(branch);
 
-	GIT2_CALL_R(git_revparse_single(&treeish, repo, p_branch_name.alloc_c_string()), "", false);
-	GIT2_CALL_R(git_checkout_tree(repo, treeish, &opts), "", false);
-	GIT2_CALL_R(git_repository_set_head(repo, branch_ref_name), "", false);
+	GIT2_CALL_R(git_revparse_single(&treeish, repo, p_branch_name.alloc_c_string()), "Could not find branch head", false);
+	GIT2_CALL_R(git_checkout_tree(repo, treeish, &opts), "Could not checkout", false);
+	GIT2_CALL_R(git_repository_set_head(repo, branch_ref_name), "Could not set head", false);
 
+	git_object_free(treeish);
+	git_reference_free(ref);
+	git_reference_free(branch);
 	return true;
 }
 
