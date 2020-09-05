@@ -1,26 +1,27 @@
-#include "git_api.h"
+#include "git.h"
 
 namespace godot {
 
-GitAPI *GitAPI::singleton = NULL;
+Git *Git::singleton = NULL;
 
-void GitAPI::_register_methods() {
+void Git::_register_methods() {
 
-	register_method("_process", &GitAPI::_process);
+	register_method("_process", &Git::_process);
 
-	register_method("_commit", &GitAPI::_commit);
-	register_method("_is_vcs_initialized", &GitAPI::_is_vcs_initialized);
-	register_method("_get_modified_files_data", &GitAPI::_get_modified_files_data);
-	register_method("_get_file_diff", &GitAPI::_get_file_diff);
-	register_method("_get_project_name", &GitAPI::_get_project_name);
-	register_method("_get_vcs_name", &GitAPI::_get_vcs_name);
-	register_method("_initialize", &GitAPI::_initialize);
-	register_method("_shut_down", &GitAPI::_shut_down);
-	register_method("_stage_file", &GitAPI::_stage_file);
-	register_method("_unstage_file", &GitAPI::_unstage_file);
+	register_method("_commit", &Git::_commit);
+	register_method("_is_vcs_initialized", &Git::_is_vcs_initialized);
+	register_method("_get_modified_files_data", &Git::_get_modified_files_data);
+	register_method("_get_file_diff", &Git::_get_file_diff);
+	register_method("_get_project_name", &Git::_get_project_name);
+	register_method("_get_vcs_name", &Git::_get_vcs_name);
+	register_method("_initialize", &Git::_initialize);
+	register_method("_shut_down", &Git::_shut_down);
+	register_method("_stage_file", &Git::_stage_file);
+	register_method("_unstage_file", &Git::_unstage_file);
+
 }
 
-void GitAPI::_commit(const String p_msg) {
+void Git::_commit(const String p_msg) {
 
 	if (!can_commit) {
 
@@ -78,7 +79,7 @@ void GitAPI::_commit(const String p_msg) {
 	git_tree_free(tree);
 }
 
-void GitAPI::_stage_file(const String p_file_path) {
+void Git::_stage_file(const String p_file_path) {
 
 	if (staged_files.find(p_file_path) == -1) {
 
@@ -86,7 +87,7 @@ void GitAPI::_stage_file(const String p_file_path) {
 	}
 }
 
-void GitAPI::_unstage_file(const String p_file_path) {
+void Git::_unstage_file(const String p_file_path) {
 
 	if (staged_files.find(p_file_path) != -1) {
 
@@ -94,7 +95,7 @@ void GitAPI::_unstage_file(const String p_file_path) {
 	}
 }
 
-void GitAPI::create_gitignore_and_gitattributes() {
+void Git::create_gitignore_and_gitattributes() {
 
 	File *file = File::_new();
 
@@ -137,7 +138,7 @@ void GitAPI::create_gitignore_and_gitattributes() {
 	}
 }
 
-bool GitAPI::create_initial_commit() {
+bool Git::create_initial_commit() {
 
 	git_signature *sig;
 	git_oid tree_id, commit_id;
@@ -175,12 +176,12 @@ bool GitAPI::create_initial_commit() {
 	return true;
 }
 
-bool GitAPI::_is_vcs_initialized() {
+bool Git::_is_vcs_initialized() {
 
 	return is_initialized;
 }
 
-Dictionary GitAPI::_get_modified_files_data() {
+Dictionary Git::_get_modified_files_data() {
 
 	git_status_options opts = GIT_STATUS_OPTIONS_INIT;
 	opts.show = GIT_STATUS_SHOW_INDEX_AND_WORKDIR;
@@ -238,7 +239,7 @@ Dictionary GitAPI::_get_modified_files_data() {
 	return diff;
 }
 
-Array GitAPI::_get_file_diff(const String file_path) {
+Array Git::_get_file_diff(const String file_path) {
 
 	git_diff_options opts = GIT_DIFF_OPTIONS_INIT;
 	git_diff *diff;
@@ -260,17 +261,17 @@ Array GitAPI::_get_file_diff(const String file_path) {
 	return diff_contents;
 }
 
-String GitAPI::_get_project_name() {
+String Git::_get_project_name() {
 
 	return String("project");
 }
 
-String GitAPI::_get_vcs_name() {
+String Git::_get_vcs_name() {
 
 	return "Git";
 }
 
-bool GitAPI::_initialize(const String p_project_root_path) {
+bool Git::_initialize(const String p_project_root_path) {
 
 	ERR_FAIL_COND_V(p_project_root_path == "", false);
 
@@ -305,7 +306,7 @@ bool GitAPI::_initialize(const String p_project_root_path) {
 	return is_initialized;
 }
 
-bool GitAPI::_shut_down() {
+bool Git::_shut_down() {
 
 	git_repository_free(repo);
 
@@ -314,16 +315,16 @@ bool GitAPI::_shut_down() {
 	return true;
 }
 
-void GitAPI::_init() {
+void Git::_init() {
 }
 
-void GitAPI::_process() {
+void Git::_process() {
 }
 
-GitAPI::GitAPI() {
+Git::Git() {
 }
 
-GitAPI::~GitAPI() {
+Git::~Git() {
 }
 
 } // namespace godot

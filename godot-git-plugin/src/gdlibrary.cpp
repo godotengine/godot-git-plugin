@@ -1,4 +1,4 @@
-#include "git_api.h"
+#include "git.h"
 
 #include <Godot.hpp>
 
@@ -19,5 +19,5 @@ extern "C" void GDN_EXPORT godot_nativescript_init(void *handle) {
 
 	godot::Godot::nativescript_init(handle);
 
-	godot::register_tool_class<godot::GitAPI>();
+	godot::register_tool_class<godot::Git>();
 }

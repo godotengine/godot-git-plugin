@@ -16,11 +16,11 @@
 
 namespace godot {
 
-class GitAPI : public EditorVCSInterface {
+class Git : public EditorVCSInterface {
 
-	GODOT_CLASS(GitAPI, EditorVCSInterface)
+	GODOT_CLASS(Git, EditorVCSInterface)
 
-	static GitAPI *singleton;
+	static Git *singleton;
 
 	bool is_initialized;
 	bool can_commit;
@@ -46,7 +46,7 @@ class GitAPI : public EditorVCSInterface {
 public:
 	static void _register_methods();
 
-	static GitAPI *get_singleton() { return singleton; }
+	static Git *get_singleton() { return singleton; }
 
 	Array diff_contents;
 
@@ -56,8 +56,8 @@ public:
 	void _init();
 	void _process();
 
-	GitAPI();
-	~GitAPI();
+	Git();
+	~Git();
 };
 
 } // namespace godot
