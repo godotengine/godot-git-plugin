@@ -10,7 +10,7 @@ cmake --build . --config $1
 cd ../../../../
 GIT2=$(find . -name "libgit2.a")
 echo $GIT2
-mv "$GIT2" demo/bin/x11/
+mv "$GIT2" "demo/bin/x11/libgit2.a"
 
 if [ -z "$CI" ]
 then
