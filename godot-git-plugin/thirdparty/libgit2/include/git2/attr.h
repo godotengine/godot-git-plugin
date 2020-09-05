@@ -119,13 +119,20 @@ GIT_EXTERN(git_attr_value_t) git_attr_value(const char *attr);
 #define GIT_ATTR_CHECK_INDEX_ONLY		2
 
 /**
- * Check attribute flags: Using the system attributes file.
+ * Check attribute flags: controlling extended attribute behavior.
  *
  * Normally, attribute checks include looking in the /etc (or system
  * equivalent) directory for a `gitattributes` file.  Passing this
  * flag will cause attribute checks to ignore that file.
+ * equivalent) directory for a `gitattributes` file.  Passing the
+ * `GIT_ATTR_CHECK_NO_SYSTEM` flag will cause attribute checks to
+ * ignore that file.
+ *
+ * Passing the `GIT_ATTR_CHECK_INCLUDE_HEAD` flag will use attributes
+ * from a `.gitattributes` file in the repository at the HEAD revision.
  */
-#define GIT_ATTR_CHECK_NO_SYSTEM		(1 << 2)
+#define GIT_ATTR_CHECK_NO_SYSTEM        (1 << 2)
+#define GIT_ATTR_CHECK_INCLUDE_HEAD     (1 << 3)
 
 /**
  * Look up the value of one git attribute for path.
@@ -231,8 +238,11 @@ GIT_EXTERN(int) git_attr_foreach(
  * disk no longer match the cached contents of memory.  This will cause
  * the attributes files to be reloaded the next time that an attribute
  * access function is called.
+ *
+ * @param repo The repository containing the gitattributes cache
+ * @return 0 on success, or an error code
  */
-GIT_EXTERN(void) git_attr_cache_flush(
+GIT_EXTERN(int) git_attr_cache_flush(
 	git_repository *repo);
 
 /**

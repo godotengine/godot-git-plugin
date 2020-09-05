@@ -210,7 +210,7 @@ on_error:
  * We now take a "git_off_t" rather than "long" because
  * files may be longer than 2Gb.
  */
-int p_ftruncate(int fd, git_off_t size)
+int p_ftruncate(int fd, off64_t size)
 {
 	if (size < 0) {
 		errno = EINVAL;
@@ -439,8 +439,15 @@ int p_symlink(const char *target, const char *path)
 	git_win32_path target_w, path_w;
 	DWORD dwFlags;
 
+	/*
+	 * Convert both target and path to Windows-style paths. Note that we do
+	 * not want to use `git_win32_path_from_utf8` for converting the target,
+	 * as that function will automatically pre-pend the current working
+	 * directory in case the path is not absolute. As Git will instead use
+	 * relative symlinks, this is not someting we want.
+	 */
 	if (git_win32_path_from_utf8(path_w, path) < 0 ||
-	    git__utf8_to_16(target_w, MAX_PATH, target) < 0)
+	    git_win32_path_relative_from_utf8(target_w, target) < 0)
 		return -1;
 
 	dwFlags = SYMBOLIC_LINK_FLAG_ALLOW_UNPRIVILEGED_CREATE;

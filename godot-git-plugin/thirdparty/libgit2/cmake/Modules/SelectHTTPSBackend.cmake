@@ -1,5 +1,7 @@
 # Select the backend to use
 
+INCLUDE(SanitizeBool)
+
 # We try to find any packages our backends might use
 FIND_PACKAGE(OpenSSL)
 FIND_PACKAGE(mbedTLS)
@@ -9,13 +11,13 @@ IF (CMAKE_SYSTEM_NAME MATCHES "Darwin")
 ENDIF()
 
 # Auto-select TLS backend
+SanitizeBool(USE_HTTPS)
 IF (USE_HTTPS STREQUAL ON)
-	message(ON)
 	IF (SECURITY_FOUND)
 		IF (SECURITY_HAS_SSLCREATECONTEXT)
 			SET(HTTPS_BACKEND "SecureTransport")
 		ELSE()
-			MESSAGE("-- Security framework is too old, falling back to OpenSSL")
+			MESSAGE(STATUS "Security framework is too old, falling back to OpenSSL")
 			SET(HTTPS_BACKEND "OpenSSL")
 		ENDIF()
 	ELSEIF (WINHTTP)
@@ -29,7 +31,6 @@ IF (USE_HTTPS STREQUAL ON)
 			"Please pass the backend name explicitly (-DUSE_HTTPS=backend)")
 	ENDIF()
 ELSEIF(USE_HTTPS)
-	message(expl)
 	# HTTPS backend was explicitly set
 	SET(HTTPS_BACKEND ${USE_HTTPS})
 ELSE()
@@ -51,7 +52,7 @@ IF(HTTPS_BACKEND)
 
 		SET(GIT_SECURE_TRANSPORT 1)
 		LIST(APPEND LIBGIT2_SYSTEM_INCLUDES ${SECURITY_INCLUDE_DIR})
-		LIST(APPEND LIBGIT2_LIBS ${COREFOUNDATION_LIBRARIES} ${SECURITY_LIBRARIES})
+		LIST(APPEND LIBGIT2_LIBS ${COREFOUNDATION_LDFLAGS} ${SECURITY_LDFLAGS})
 		LIST(APPEND LIBGIT2_PC_LIBS ${COREFOUNDATION_LDFLAGS} ${SECURITY_LDFLAGS})
 	ELSEIF (HTTPS_BACKEND STREQUAL "OpenSSL")
 		IF (NOT OPENSSL_FOUND)
@@ -69,7 +70,7 @@ IF(HTTPS_BACKEND)
 		ENDIF()
 
 		IF(NOT CERT_LOCATION)
-			MESSAGE("Auto-detecting default certificates location")
+			MESSAGE(STATUS "Auto-detecting default certificates location")
 			IF(CMAKE_SYSTEM_NAME MATCHES Darwin)
 				# Check for an Homebrew installation
 				SET(OPENSSL_CMD "/usr/local/opt/openssl/bin/openssl")
@@ -93,7 +94,7 @@ IF(HTTPS_BACKEND)
 					ENDIF()
 				ENDFOREACH()
 			ELSE()
-				MESSAGE("Unable to find OpenSSL executable. Please provide default certificate location via CERT_LOCATION")
+				MESSAGE(FATAL_ERROR "Unable to find OpenSSL executable. Please provide default certificate location via CERT_LOCATION")
 			ENDIF()
 		ENDIF()
 

@@ -33,6 +33,18 @@ typedef struct {
 	char *old_prefix, *new_prefix;
 } git_patch_parsed;
 
+static int git_parse_err(const char *fmt, ...) GIT_FORMAT_PRINTF(1, 2);
+static int git_parse_err(const char *fmt, ...)
+{
+	va_list ap;
+
+	va_start(ap, fmt);
+	git_error_vset(GIT_ERROR_PATCH, fmt, ap);
+	va_end(ap);
+
+	return -1;
+}
+
 static size_t header_path_len(git_patch_parse_ctx *ctx)
 {
 	bool inquote = 0;
@@ -58,31 +70,36 @@ static int parse_header_path_buf(git_buf *path, git_patch_parse_ctx *ctx, size_t
 	int error;
 
 	if ((error = git_buf_put(path, ctx->parse_ctx.line, path_len)) < 0)
-		goto done;
+		return error;
 
 	git_parse_advance_chars(&ctx->parse_ctx, path_len);
 
 	git_buf_rtrim(path);
 
-	if (path->size > 0 && path->ptr[0] == '"')
-		error = git_buf_unquote(path);
-
-	if (error < 0)
-		goto done;
+	if (path->size > 0 && path->ptr[0] == '"' &&
+	    (error = git_buf_unquote(path)) < 0)
+		return error;
 
 	git_path_squash_slashes(path);
 
-done:
-	return error;
+	if (!path->size)
+		return git_parse_err("patch contains empty path at line %"PRIuZ,
+				     ctx->parse_ctx.line_num);
+
+	return 0;
 }
 
 static int parse_header_path(char **out, git_patch_parse_ctx *ctx)
 {
 	git_buf path = GIT_BUF_INIT;
-	int error = parse_header_path_buf(&path, ctx, header_path_len(ctx));
+	int error;
 
+	if ((error = parse_header_path_buf(&path, ctx, header_path_len(ctx))) < 0)
+		goto out;
 	*out = git_buf_detach(&path);
 
+out:
+	git_buf_dispose(&path);
 	return error;
 }
 
@@ -91,6 +108,12 @@ static int parse_header_git_oldpath(
 {
 	git_buf old_path = GIT_BUF_INIT;
 	int error;
+
+	if (patch->old_path) {
+		error = git_parse_err("patch contains duplicate old path at line %"PRIuZ,
+				      ctx->parse_ctx.line_num);
+		goto out;
+	}
 
 	if ((error = parse_header_path_buf(&old_path, ctx, ctx->parse_ctx.line_len - 1)) <  0)
 		goto out;
@@ -108,9 +131,14 @@ static int parse_header_git_newpath(
 	git_buf new_path = GIT_BUF_INIT;
 	int error;
 
+	if (patch->new_path) {
+		error = git_parse_err("patch contains duplicate new path at line %"PRIuZ,
+				      ctx->parse_ctx.line_num);
+		goto out;
+	}
+
 	if ((error = parse_header_path_buf(&new_path, ctx, ctx->parse_ctx.line_len - 1)) <  0)
 		goto out;
-
 	patch->new_path = git_buf_detach(&new_path);
 
 out:
@@ -203,9 +231,9 @@ static int parse_header_git_deletedfilemode(
 	git_patch_parsed *patch,
 	git_patch_parse_ctx *ctx)
 {
-	git__free((char *)patch->base.delta->old_file.path);
+	git__free((char *)patch->base.delta->new_file.path);
 
-	patch->base.delta->old_file.path = NULL;
+	patch->base.delta->new_file.path = NULL;
 	patch->base.delta->status = GIT_DELTA_DELETED;
 	patch->base.delta->nfiles = 1;
 
@@ -216,9 +244,9 @@ static int parse_header_git_newfilemode(
 	git_patch_parsed *patch,
 	git_patch_parse_ctx *ctx)
 {
-	git__free((char *)patch->base.delta->new_file.path);
+	git__free((char *)patch->base.delta->old_file.path);
 
-	patch->base.delta->new_file.path = NULL;
+	patch->base.delta->old_file.path = NULL;
 	patch->base.delta->status = GIT_DELTA_ADDED;
 	patch->base.delta->nfiles = 1;
 
@@ -377,6 +405,7 @@ static const parse_header_transition transitions[] = {
 	{ "index "              , STATE_DIFF,       STATE_INDEX,      parse_header_git_index },
 	{ "index "              , STATE_END,        STATE_INDEX,      parse_header_git_index },
 
+	{ "--- "                , STATE_DIFF,       STATE_PATH,       parse_header_git_oldpath },
 	{ "--- "                , STATE_INDEX,      STATE_PATH,       parse_header_git_oldpath },
 	{ "+++ "                , STATE_PATH,       STATE_END,        parse_header_git_newpath },
 	{ "GIT binary patch"    , STATE_INDEX,      STATE_END,        NULL },
@@ -394,6 +423,7 @@ static const parse_header_transition transitions[] = {
 	/* Next patch */
 	{ "diff --git "         , STATE_END,        0,                NULL },
 	{ "@@ -"                , STATE_END,        0,                NULL },
+	{ "-- "                 , STATE_INDEX,      0,                NULL },
 	{ "-- "                 , STATE_END,        0,                NULL },
 };
 
@@ -461,7 +491,7 @@ done:
 
 static int parse_int(int *out, git_patch_parse_ctx *ctx)
 {
-	git_off_t num;
+	int64_t num;
 
 	if (git_parse_advance_digit(&num, &ctx->parse_ctx, 10) < 0 || !git__is_int(num))
 		return -1;
@@ -550,11 +580,17 @@ static int parse_hunk_body(
 		!git_parse_ctx_contains_s(&ctx->parse_ctx, "@@ -");
 		git_parse_advance_line(&ctx->parse_ctx)) {
 
+		int old_lineno, new_lineno, origin, prefix = 1;
 		char c;
-		int origin;
-		int prefix = 1;
-		int old_lineno = hunk->hunk.old_start + (hunk->hunk.old_lines - oldlines);
-		int new_lineno = hunk->hunk.new_start + (hunk->hunk.new_lines - newlines);
+
+		if (git__add_int_overflow(&old_lineno, hunk->hunk.old_start, hunk->hunk.old_lines) ||
+		    git__sub_int_overflow(&old_lineno, old_lineno, oldlines) ||
+		    git__add_int_overflow(&new_lineno, hunk->hunk.new_start, hunk->hunk.new_lines) ||
+		    git__sub_int_overflow(&new_lineno, new_lineno, newlines)) {
+			error = git_parse_err("unrepresentable line count at line %"PRIuZ,
+					      ctx->parse_ctx.line_num);
+			goto done;
+		}
 
 		if (ctx->parse_ctx.line_len == 0 || ctx->parse_ctx.line[ctx->parse_ctx.line_len - 1] != '\n') {
 			error = git_parse_err("invalid patch instruction at line %"PRIuZ,
@@ -614,6 +650,7 @@ static int parse_hunk_body(
 
 		line->content_len = ctx->parse_ctx.line_len - prefix;
 		line->content = git__strndup(ctx->parse_ctx.line + prefix, line->content_len);
+		GIT_ERROR_CHECK_ALLOC(line->content);
 		line->content_offset = ctx->parse_ctx.content_len - ctx->parse_ctx.remain_len;
 		line->origin = origin;
 		line->num_lines = 1;
@@ -653,8 +690,9 @@ static int parse_hunk_body(
 
 		memset(line, 0x0, sizeof(git_diff_line));
 
-		line->content = git__strdup(ctx->parse_ctx.line);
 		line->content_len = ctx->parse_ctx.line_len;
+		line->content = git__strndup(ctx->parse_ctx.line, line->content_len);
+		GIT_ERROR_CHECK_ALLOC(line->content);
 		line->content_offset = ctx->parse_ctx.content_len - ctx->parse_ctx.remain_len;
 		line->origin = eof_for_origin(last_origin);
 		line->num_lines = 1;
@@ -727,7 +765,7 @@ static int parse_patch_binary_side(
 {
 	git_diff_binary_t type = GIT_DIFF_BINARY_NONE;
 	git_buf base85 = GIT_BUF_INIT, decoded = GIT_BUF_INIT;
-	git_off_t len;
+	int64_t len;
 	int error = 0;
 
 	if (git_parse_ctx_contains_s(&ctx->parse_ctx, "literal ")) {
@@ -770,7 +808,7 @@ static int parse_patch_binary_side(
 
 		encoded_len = ((decoded_len / 4) + !!(decoded_len % 4)) * 5;
 
-		if (encoded_len > ctx->parse_ctx.line_len - 1) {
+		if (!encoded_len || !ctx->parse_ctx.line_len || encoded_len > ctx->parse_ctx.line_len - 1) {
 			error = git_parse_err("truncated binary data at line %"PRIuZ, ctx->parse_ctx.line_num);
 			goto done;
 		}
@@ -840,12 +878,23 @@ static int parse_patch_binary_nodata(
 	git_patch_parsed *patch,
 	git_patch_parse_ctx *ctx)
 {
+	const char *old = patch->old_path ? patch->old_path : patch->header_old_path;
+	const char *new = patch->new_path ? patch->new_path : patch->header_new_path;
+
+	if (!old || !new)
+		return git_parse_err("corrupt binary data without paths at line %"PRIuZ, ctx->parse_ctx.line_num);
+
+	if (patch->base.delta->status == GIT_DELTA_ADDED)
+		old = "/dev/null";
+	else if (patch->base.delta->status == GIT_DELTA_DELETED)
+		new = "/dev/null";
+
 	if (git_parse_advance_expected_str(&ctx->parse_ctx, "Binary files ") < 0 ||
-		git_parse_advance_expected_str(&ctx->parse_ctx, patch->header_old_path) < 0 ||
-		git_parse_advance_expected_str(&ctx->parse_ctx, " and ") < 0 ||
-		git_parse_advance_expected_str(&ctx->parse_ctx, patch->header_new_path) < 0 ||
-		git_parse_advance_expected_str(&ctx->parse_ctx, " differ") < 0 ||
-		git_parse_advance_nl(&ctx->parse_ctx) < 0)
+	    git_parse_advance_expected_str(&ctx->parse_ctx, old) < 0 ||
+	    git_parse_advance_expected_str(&ctx->parse_ctx, " and ") < 0 ||
+	    git_parse_advance_expected_str(&ctx->parse_ctx, new) < 0 ||
+	    git_parse_advance_expected_str(&ctx->parse_ctx, " differ") < 0 ||
+	    git_parse_advance_nl(&ctx->parse_ctx) < 0)
 		return git_parse_err("corrupt git binary header at line %"PRIuZ, ctx->parse_ctx.line_num);
 
 	patch->base.binary.contains_data = 0;
@@ -976,13 +1025,17 @@ static int check_filenames(git_patch_parsed *patch)
 	/* Prefer the rename filenames as they are unambiguous and unprefixed */
 	if (patch->rename_old_path)
 		patch->base.delta->old_file.path = patch->rename_old_path;
-	else
+	else if (prefixed_old)
 		patch->base.delta->old_file.path = prefixed_old + old_prefixlen;
+	else
+		patch->base.delta->old_file.path = NULL;
 
 	if (patch->rename_new_path)
 		patch->base.delta->new_file.path = patch->rename_new_path;
-	else
+	else if (prefixed_new)
 		patch->base.delta->new_file.path = prefixed_new + new_prefixlen;
+	else
+		patch->base.delta->new_file.path = NULL;
 
 	if (!patch->base.delta->old_file.path &&
 	    !patch->base.delta->new_file.path)

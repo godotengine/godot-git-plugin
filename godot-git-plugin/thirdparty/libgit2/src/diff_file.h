@@ -20,8 +20,8 @@ typedef struct {
 	git_diff_driver *driver;
 	uint32_t flags;
 	uint32_t opts_flags;
-	git_off_t opts_max_size;
-	git_iterator_type_t src;
+	git_object_size_t opts_max_size;
+	git_iterator_t src;
 	const git_blob *blob;
 	git_map map;
 } git_diff_file_content;

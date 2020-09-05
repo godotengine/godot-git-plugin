@@ -12,12 +12,13 @@
  * <http://creativecommons.org/publicdomain/zero/1.0/>.
  */
 
-#include <assert.h>
-#include <stdio.h>
-#include <string.h>
-#include <errno.h>
 
 #include "common.h"
+
+#ifndef _WIN32
+# include <unistd.h>
+#endif
+#include <errno.h>
 
 void check_lg2(int error, const char *message, const char *extra)
 {
@@ -50,174 +51,6 @@ void fatal(const char *message, const char *extra)
 		fprintf(stderr, "%s\n", message);
 
 	exit(1);
-}
-
-size_t is_prefixed(const char *str, const char *pfx)
-{
-	size_t len = strlen(pfx);
-	return strncmp(str, pfx, len) ? 0 : len;
-}
-
-int optional_str_arg(
-	const char **out, struct args_info *args, const char *opt, const char *def)
-{
-	const char *found = args->argv[args->pos];
-	size_t len = is_prefixed(found, opt);
-
-	if (!len)
-		return 0;
-
-	if (!found[len]) {
-		if (args->pos + 1 == args->argc) {
-			*out = def;
-			return 1;
-		}
-		args->pos += 1;
-		*out = args->argv[args->pos];
-		return 1;
-	}
-
-	if (found[len] == '=') {
-		*out = found + len + 1;
-		return 1;
-	}
-
-	return 0;
-}
-
-int match_str_arg(
-	const char **out, struct args_info *args, const char *opt)
-{
-	const char *found = args->argv[args->pos];
-	size_t len = is_prefixed(found, opt);
-
-	if (!len)
-		return 0;
-
-	if (!found[len]) {
-		if (args->pos + 1 == args->argc)
-			fatal("expected value following argument", opt);
-		args->pos += 1;
-		*out = args->argv[args->pos];
-		return 1;
-	}
-
-	if (found[len] == '=') {
-		*out = found + len + 1;
-		return 1;
-	}
-
-	return 0;
-}
-
-static const char *match_numeric_arg(struct args_info *args, const char *opt)
-{
-	const char *found = args->argv[args->pos];
-	size_t len = is_prefixed(found, opt);
-
-	if (!len)
-		return NULL;
-
-	if (!found[len]) {
-		if (args->pos + 1 == args->argc)
-			fatal("expected numeric value following argument", opt);
-		args->pos += 1;
-		found = args->argv[args->pos];
-	} else {
-		found = found + len;
-		if (*found == '=')
-			found++;
-	}
-
-	return found;
-}
-
-int match_uint16_arg(
-	uint16_t *out, struct args_info *args, const char *opt)
-{
-	const char *found = match_numeric_arg(args, opt);
-	uint16_t val;
-	char *endptr = NULL;
-
-	if (!found)
-		return 0;
-
-	val = (uint16_t)strtoul(found, &endptr, 0);
-	if (!endptr || *endptr != '\0')
-		fatal("expected number after argument", opt);
-
-	if (out)
-		*out = val;
-	return 1;
-}
-
-int match_uint32_arg(
-	uint32_t *out, struct args_info *args, const char *opt)
-{
-	const char *found = match_numeric_arg(args, opt);
-	uint16_t val;
-	char *endptr = NULL;
-
-	if (!found)
-		return 0;
-
-	val = (uint32_t)strtoul(found, &endptr, 0);
-	if (!endptr || *endptr != '\0')
-		fatal("expected number after argument", opt);
-
-	if (out)
-		*out = val;
-	return 1;
-}
-
-static int match_int_internal(
-	int *out, const char *str, int allow_negative, const char *opt)
-{
-	char *endptr = NULL;
-	int	  val = (int)strtol(str, &endptr, 10);
-
-	if (!endptr || *endptr != '\0')
-		fatal("expected number", opt);
-	else if (val < 0 && !allow_negative)
-		fatal("negative values are not allowed", opt);
-
-	if (out)
-		*out = val;
-
-	return 1;
-}
-
-int match_bool_arg(int *out, struct args_info *args, const char *opt)
-{
-	const char *found = args->argv[args->pos];
-
-	if (!strcmp(found, opt)) {
-		*out = 1;
-		return 1;
-	}
-
-	if (!strncmp(found, "--no-", strlen("--no-")) &&
-	    !strcmp(found + strlen("--no-"), opt + 2)) {
-		*out = 0;
-		return 1;
-	}
-
-	*out = -1;
-	return 0;
-}
-
-int is_integer(int *out, const char *str, int allow_negative)
-{
-	return match_int_internal(out, str, allow_negative, NULL);
-}
-
-int match_int_arg(
-	int *out, struct args_info *args, const char *opt, int allow_negative)
-{
-	const char *found = match_numeric_arg(args, opt);
-	if (!found)
-		return 0;
-	return match_int_internal(out, found, allow_negative, opt);
 }
 
 int diff_output(
@@ -343,7 +176,7 @@ static int ask(char **out, const char *prompt, char optional)
 	return 0;
 }
 
-int cred_acquire_cb(git_cred **out,
+int cred_acquire_cb(git_credential **out,
 		const char *url,
 		const char *username_from_url,
 		unsigned int allowed_types,
@@ -362,7 +195,7 @@ int cred_acquire_cb(git_cred **out,
 		goto out;
 	}
 
-	if (allowed_types & GIT_CREDTYPE_SSH_KEY) {
+	if (allowed_types & GIT_CREDENTIAL_SSH_KEY) {
 		int n;
 
 		if ((error = ask(&privkey, "SSH Key:", 0)) < 0 ||
@@ -374,14 +207,14 @@ int cred_acquire_cb(git_cred **out,
 		    (n = snprintf(pubkey, n + 1, "%s.pub", privkey)) < 0)
 			goto out;
 
-		error = git_cred_ssh_key_new(out, username, pubkey, privkey, password);
-	} else if (allowed_types & GIT_CREDTYPE_USERPASS_PLAINTEXT) {
+		error = git_credential_ssh_key_new(out, username, pubkey, privkey, password);
+	} else if (allowed_types & GIT_CREDENTIAL_USERPASS_PLAINTEXT) {
 		if ((error = ask(&password, "Password:", 1)) < 0)
 			goto out;
 
-		error = git_cred_userpass_plaintext_new(out, username, password);
-	} else if (allowed_types & GIT_CREDTYPE_USERNAME) {
-		error = git_cred_username_new(out, username);
+		error = git_credential_userpass_plaintext_new(out, username, password);
+	} else if (allowed_types & GIT_CREDENTIAL_USERNAME) {
+		error = git_credential_username_new(out, username);
 	}
 
 out:
@@ -391,3 +224,37 @@ out:
 	free(pubkey);
 	return error;
 }
+
+char *read_file(const char *path)
+{
+	ssize_t total = 0;
+	char *buf = NULL;
+	struct stat st;
+	int fd = -1;
+
+	if ((fd = open(path, O_RDONLY)) < 0 || fstat(fd, &st) < 0)
+		goto out;
+
+	if ((buf = malloc(st.st_size + 1)) == NULL)
+		goto out;
+
+	while (total < st.st_size) {
+		ssize_t bytes = read(fd, buf + total, st.st_size - total);
+		if (bytes <= 0) {
+			if (errno == EAGAIN || errno == EINTR)
+				 continue;
+			free(buf);
+			buf = NULL;
+			goto out;
+		}
+		total += bytes;
+	}
+
+	buf[total] = '\0';
+
+out:
+	if (fd >= 0)
+		close(fd);
+	return buf;
+}
+

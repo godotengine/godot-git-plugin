@@ -28,9 +28,6 @@ typedef struct {
 int git_parse_ctx_init(git_parse_ctx *ctx, const char *content, size_t content_len);
 void git_parse_ctx_clear(git_parse_ctx *ctx);
 
-#define git_parse_err(...) \
-	( git_error_set(GIT_ERROR_PATCH, __VA_ARGS__), -1 )
-
 #define git_parse_ctx_contains_s(ctx, str) \
 	git_parse_ctx_contains(ctx, str, sizeof(str) - 1)
 
@@ -53,6 +50,7 @@ int git_parse_advance_expected(
 int git_parse_advance_ws(git_parse_ctx *ctx);
 int git_parse_advance_nl(git_parse_ctx *ctx);
 int git_parse_advance_digit(int64_t *out, git_parse_ctx *ctx, int base);
+int git_parse_advance_oid(git_oid *out, git_parse_ctx *ctx);
 
 enum GIT_PARSE_PEEK_FLAGS {
 	GIT_PARSE_PEEK_SKIP_WHITESPACE = (1 << 0)

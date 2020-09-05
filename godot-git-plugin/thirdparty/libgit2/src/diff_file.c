@@ -50,8 +50,8 @@ static int diff_file_content_init_common(
 		fc->opts_max_size = opts->max_size ?
 			opts->max_size : DIFF_MAX_FILESIZE;
 
-	if (fc->src == GIT_ITERATOR_TYPE_EMPTY)
-		fc->src = GIT_ITERATOR_TYPE_TREE;
+	if (fc->src == GIT_ITERATOR_EMPTY)
+		fc->src = GIT_ITERATOR_TREE;
 
 	if (!fc->driver &&
 		git_diff_driver_lookup(&fc->driver, fc->repo,
@@ -62,7 +62,7 @@ static int diff_file_content_init_common(
 	git_diff_driver_update_options(&fc->opts_flags, fc->driver);
 
 	/* make sure file is conceivable mmap-able */
-	if ((git_off_t)((size_t)fc->file->size) != fc->file->size)
+	if ((size_t)fc->file->size != fc->file->size)
 		fc->file->flags |= GIT_DIFF_FLAG_BINARY;
 	/* check if user is forcing text diff the file */
 	else if (fc->opts_flags & GIT_DIFF_FORCE_TEXT) {
@@ -330,8 +330,10 @@ static int diff_file_content_load_workdir_file(
 	if (fd < 0)
 		return fd;
 
-	if (!fc->file->size &&
-		!(fc->file->size = git_futils_filesize(fd)))
+	if (!fc->file->size)
+	    error = git_futils_filesize(&fc->file->size, fd);
+
+	if (error < 0 || !fc->file->size)
 		goto cleanup;
 
 	if ((diff_opts->flags & GIT_DIFF_SHOW_BINARY) == 0 &&
@@ -423,7 +425,7 @@ int git_diff_file_content__load(
 		(diff_opts->flags & GIT_DIFF_SHOW_BINARY) == 0)
 		return 0;
 
-	if (fc->src == GIT_ITERATOR_TYPE_WORKDIR)
+	if (fc->src == GIT_ITERATOR_WORKDIR)
 		error = diff_file_content_load_workdir(fc, diff_opts);
 	else
 		error = diff_file_content_load_blob(fc, diff_opts);

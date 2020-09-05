@@ -136,35 +136,6 @@ cleanup:
 	return 0;
 }
 
-#if 0
-/* We could export this as a helper */
-static int get_check_cert(int *out, git_repository *repo)
-{
-	git_config *cfg;
-	const char *val;
-	int error = 0;
-
-	assert(out && repo);
-
-	/* By default, we *DO* want to verify the certificate. */
-	*out = 1;
-
-	/* Go through the possible sources for SSL verification settings, from
-	 * most specific to least specific. */
-
-	/* GIT_SSL_NO_VERIFY environment variable */
-	if ((val = p_getenv("GIT_SSL_NO_VERIFY")) != NULL)
-		return git_config_parse_bool(out, val);
-
-	/* http.sslVerify config setting */
-	if ((error = git_repository_config__weakptr(&cfg, repo)) < 0)
-		return error;
-
-	*out = git_config__get_bool_force(cfg, "http.sslverify", 1);
-	return 0;
-}
-#endif
-
 static int canonicalize_url(git_buf *out, const char *in)
 {
 	if (in == NULL || strlen(in) == 0) {
@@ -739,7 +710,7 @@ int git_remote__connect(git_remote *remote, git_direction direction, const git_r
 	int flags = GIT_TRANSPORTFLAGS_NONE;
 	int error;
 	void *payload = NULL;
-	git_cred_acquire_cb credentials = NULL;
+	git_credential_acquire_cb credentials = NULL;
 	git_transport_cb transport = NULL;
 
 	assert(remote);
@@ -1705,20 +1676,24 @@ int git_remote_connected(const git_remote *remote)
 	return remote->transport->is_connected(remote->transport);
 }
 
-void git_remote_stop(git_remote *remote)
+int git_remote_stop(git_remote *remote)
 {
 	assert(remote);
 
 	if (remote->transport && remote->transport->cancel)
 		remote->transport->cancel(remote->transport);
+
+	return 0;
 }
 
-void git_remote_disconnect(git_remote *remote)
+int git_remote_disconnect(git_remote *remote)
 {
 	assert(remote);
 
 	if (git_remote_connected(remote))
 		remote->transport->close(remote->transport);
+
+	return 0;
 }
 
 void git_remote_free(git_remote *remote)

@@ -310,46 +310,55 @@ static int interesting(git_pqueue *list)
 	return 0;
 }
 
-static void clear_commit_marks_1(git_commit_list **plist,
+static int clear_commit_marks_1(git_commit_list **plist,
 		git_commit_list_node *commit, unsigned int mark)
 {
 	while (commit) {
 		unsigned int i;
 
 		if (!(mark & commit->flags))
-			return;
+			return 0;
 
 		commit->flags &= ~mark;
 
 		for (i = 1; i < commit->out_degree; i++) {
 			git_commit_list_node *p = commit->parents[i];
-			git_commit_list_insert(p, plist);
+			if (git_commit_list_insert(p, plist) == NULL)
+				return -1;
 		}
 
 		commit = commit->out_degree ? commit->parents[0] : NULL;
 	}
+
+	return 0;
 }
 
-static void clear_commit_marks_many(git_vector *commits, unsigned int mark)
+static int clear_commit_marks_many(git_vector *commits, unsigned int mark)
 {
 	git_commit_list *list = NULL;
 	git_commit_list_node *c;
 	unsigned int i;
 
 	git_vector_foreach(commits, i, c) {
-		git_commit_list_insert(c, &list);
+		if (git_commit_list_insert(c, &list) == NULL)
+			return -1;
 	}
 
 	while (list)
-		clear_commit_marks_1(&list, git_commit_list_pop(&list), mark);
+		if (clear_commit_marks_1(&list, git_commit_list_pop(&list), mark) < 0)
+			return -1;
+	return 0;
 }
 
-static void clear_commit_marks(git_commit_list_node *commit, unsigned int mark)
+static int clear_commit_marks(git_commit_list_node *commit, unsigned int mark)
 {
 	git_commit_list *list = NULL;
-	git_commit_list_insert(commit, &list);
+	if (git_commit_list_insert(commit, &list) == NULL)
+		return -1;
 	while (list)
-		clear_commit_marks_1(&list, git_commit_list_pop(&list), mark);
+		if (clear_commit_marks_1(&list, git_commit_list_pop(&list), mark) < 0)
+			return -1;
+	return 0;
 }
 
 static int paint_down_to_common(
@@ -466,10 +475,11 @@ static int remove_redundant(git_revwalk *walk, git_vector *commits)
 				redundant[filled_index[j]] = 1;
 		}
 
-		clear_commit_marks(commit, ALL_FLAGS);
-		clear_commit_marks_many(&work, ALL_FLAGS);
-
 		git_commit_list_free(&common);
+
+		if ((error = clear_commit_marks(commit, ALL_FLAGS)) < 0 ||
+		    (error = clear_commit_marks_many(&work, ALL_FLAGS)) < 0)
+				goto done;
 	}
 
 	for (i = 0; i < commits->length; ++i) {
@@ -531,10 +541,9 @@ int git_merge__bases_many(git_commit_list **out, git_revwalk *walk, git_commit_l
 		while (result)
 			git_vector_insert(&redundant, git_commit_list_pop(&result));
 
-		clear_commit_marks(one, ALL_FLAGS);
-		clear_commit_marks_many(twos, ALL_FLAGS);
-
-		if ((error = remove_redundant(walk, &redundant)) < 0) {
+		if ((error = clear_commit_marks(one, ALL_FLAGS)) < 0 ||
+		    (error = clear_commit_marks_many(twos, ALL_FLAGS)) < 0 ||
+		    (error = remove_redundant(walk, &redundant)) < 0) {
 			git_vector_free(&redundant);
 			return error;
 		}
@@ -1015,7 +1024,7 @@ static int index_entry_similarity_calc(
 {
 	git_blob *blob;
 	git_diff_file diff_file = {{{0}}};
-	git_off_t blobsize;
+	git_object_size_t blobsize;
 	int error;
 
 	*out = NULL;
@@ -2422,7 +2431,7 @@ static int write_merge_head(
 	assert(repo && heads);
 
 	if ((error = git_buf_joinpath(&file_path, repo->gitdir, GIT_MERGE_HEAD_FILE)) < 0 ||
-		(error = git_filebuf_open(&file, file_path.ptr, GIT_FILEBUF_FORCE, GIT_MERGE_FILE_MODE)) < 0)
+		(error = git_filebuf_open(&file, file_path.ptr, GIT_FILEBUF_CREATE_LEADING_DIRS, GIT_MERGE_FILE_MODE)) < 0)
 		goto cleanup;
 
 	for (i = 0; i < heads_len; i++) {
@@ -2450,7 +2459,7 @@ static int write_merge_mode(git_repository *repo)
 	assert(repo);
 
 	if ((error = git_buf_joinpath(&file_path, repo->gitdir, GIT_MERGE_MODE_FILE)) < 0 ||
-		(error = git_filebuf_open(&file, file_path.ptr, GIT_FILEBUF_FORCE, GIT_MERGE_FILE_MODE)) < 0)
+		(error = git_filebuf_open(&file, file_path.ptr, GIT_FILEBUF_CREATE_LEADING_DIRS, GIT_MERGE_FILE_MODE)) < 0)
 		goto cleanup;
 
 	if ((error = git_filebuf_write(&file, "no-ff", 5)) < 0)
@@ -2681,7 +2690,7 @@ static int write_merge_msg(
 		entries[i].merge_head = heads[i];
 
 	if ((error = git_buf_joinpath(&file_path, repo->gitdir, GIT_MERGE_MSG_FILE)) < 0 ||
-		(error = git_filebuf_open(&file, file_path.ptr, GIT_FILEBUF_FORCE, GIT_MERGE_FILE_MODE)) < 0 ||
+		(error = git_filebuf_open(&file, file_path.ptr, GIT_FILEBUF_CREATE_LEADING_DIRS, GIT_MERGE_FILE_MODE)) < 0 ||
 		(error = git_filebuf_write(&file, "Merge ", 6)) < 0)
 		goto cleanup;
 

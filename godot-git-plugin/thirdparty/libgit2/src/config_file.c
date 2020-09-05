@@ -7,43 +7,35 @@
 
 #include "config.h"
 
-#include "filebuf.h"
-#include "sysdir.h"
-#include "buffer.h"
-#include "buf_text.h"
 #include "git2/config.h"
 #include "git2/sys/config.h"
-#include "git2/types.h"
-#include "strmap.h"
-#include "array.h"
-#include "config_parse.h"
-#include "config_entries.h"
-#include "wildmatch.h"
 
-#include <ctype.h>
-#include <sys/types.h>
+#include "array.h"
+#include "buffer.h"
+#include "config_backend.h"
+#include "config_entries.h"
+#include "config_parse.h"
+#include "filebuf.h"
+#include "regexp.h"
+#include "sysdir.h"
+#include "wildmatch.h"
 
 /* Max depth for [include] directives */
 #define MAX_INCLUDE_DEPTH 10
 
-typedef struct diskfile {
+typedef struct config_file {
 	git_futils_filestamp stamp;
 	git_oid checksum;
 	char *path;
-	git_array_t(struct diskfile) includes;
-} diskfile;
+	git_array_t(struct config_file) includes;
+} config_file;
 
 typedef struct {
 	git_config_backend parent;
-	/* mutex to coordinate accessing the values */
 	git_mutex values_mutex;
 	git_config_entries *entries;
 	const git_repository *repo;
 	git_config_level_t level;
-} diskfile_header;
-
-typedef struct {
-	diskfile_header header;
 
 	git_array_t(git_config_parser) readers;
 
@@ -51,61 +43,47 @@ typedef struct {
 	git_filebuf locked_buf;
 	git_buf locked_content;
 
-	diskfile file;
-} diskfile_backend;
-
-typedef struct {
-	diskfile_header header;
-
-	diskfile_backend *snapshot_from;
-} diskfile_readonly_backend;
+	config_file file;
+} config_file_backend;
 
 typedef struct {
 	const git_repository *repo;
-	diskfile *file;
+	config_file *file;
 	git_config_entries *entries;
 	git_config_level_t level;
 	unsigned int depth;
-} diskfile_parse_state;
+} config_file_parse_data;
 
-static int config_read(git_config_entries *entries, const git_repository *repo, diskfile *file, git_config_level_t level, int depth);
-static int config_read_buffer(git_config_entries *entries, const git_repository *repo, diskfile *file, git_config_level_t level, int depth, const char *buf, size_t buflen);
-static int config_write(diskfile_backend *cfg, const char *orig_key, const char *key, const p_regex_t *preg, const char *value);
+static int config_file_read(git_config_entries *entries, const git_repository *repo, config_file *file, git_config_level_t level, int depth);
+static int config_file_read_buffer(git_config_entries *entries, const git_repository *repo, config_file *file, git_config_level_t level, int depth, const char *buf, size_t buflen);
+static int config_file_write(config_file_backend *cfg, const char *orig_key, const char *key, const git_regexp *preg, const char *value);
 static char *escape_value(const char *ptr);
-
-static int config_snapshot(git_config_backend **out, git_config_backend *in);
-
-static int config_error_readonly(void)
-{
-	git_error_set(GIT_ERROR_CONFIG, "this backend is read-only");
-	return -1;
-}
 
 /**
  * Take the current values map from the backend and increase its
  * refcount. This is its own function to make sure we use the mutex to
  * avoid the map pointer from changing under us.
  */
-static git_config_entries *diskfile_entries_take(diskfile_header *h)
+static int config_file_entries_take(git_config_entries **out, config_file_backend *b)
 {
-	git_config_entries *entries;
+	int error;
 
-	if (git_mutex_lock(&h->values_mutex) < 0) {
-	    git_error_set(GIT_ERROR_OS, "failed to lock config backend");
-	    return NULL;
+	if ((error = git_mutex_lock(&b->values_mutex)) < 0) {
+		git_error_set(GIT_ERROR_OS, "failed to lock config backend");
+		return error;
 	}
 
-	entries = h->entries;
-	git_config_entries_incref(entries);
+	git_config_entries_incref(b->entries);
+	*out = b->entries;
 
-	git_mutex_unlock(&h->values_mutex);
+	git_mutex_unlock(&b->values_mutex);
 
-	return entries;
+	return 0;
 }
 
-static void config_file_clear(diskfile *file)
+static void config_file_clear(config_file *file)
 {
-	diskfile *include;
+	config_file *include;
 	uint32_t i;
 
 	if (file == NULL)
@@ -119,31 +97,31 @@ static void config_file_clear(diskfile *file)
 	git__free(file->path);
 }
 
-static int config_open(git_config_backend *cfg, git_config_level_t level, const git_repository *repo)
+static int config_file_open(git_config_backend *cfg, git_config_level_t level, const git_repository *repo)
 {
-	diskfile_backend *b = GIT_CONTAINER_OF(cfg, diskfile_backend, header.parent);
+	config_file_backend *b = GIT_CONTAINER_OF(cfg, config_file_backend, parent);
 	int res;
 
-	b->header.level = level;
-	b->header.repo = repo;
+	b->level = level;
+	b->repo = repo;
 
-	if ((res = git_config_entries_new(&b->header.entries)) < 0)
+	if ((res = git_config_entries_new(&b->entries)) < 0)
 		return res;
 
 	if (!git_path_exists(b->file.path))
 		return 0;
 
-	if (res < 0 || (res = config_read(b->header.entries, repo, &b->file, level, 0)) < 0) {
-		git_config_entries_free(b->header.entries);
-		b->header.entries = NULL;
+	if (res < 0 || (res = config_file_read(b->entries, repo, &b->file, level, 0)) < 0) {
+		git_config_entries_free(b->entries);
+		b->entries = NULL;
 	}
 
 	return res;
 }
 
-static int config_is_modified(int *modified, diskfile *file)
+static int config_file_is_modified(int *modified, config_file *file)
 {
-	diskfile *include;
+	config_file *include;
 	git_buf buf = GIT_BUF_INIT;
 	git_oid hash;
 	uint32_t i;
@@ -167,7 +145,7 @@ static int config_is_modified(int *modified, diskfile *file)
 
 check_includes:
 	git_array_foreach(file->includes, i, include) {
-		if ((error = config_is_modified(modified, include)) < 0 || *modified)
+		if ((error = config_file_is_modified(modified, include)) < 0 || *modified)
 			goto out;
 	}
 
@@ -177,46 +155,48 @@ out:
 	return error;
 }
 
-static int config_set_entries(git_config_backend *cfg, git_config_entries *entries)
+static int config_file_set_entries(git_config_backend *cfg, git_config_entries *entries)
 {
-	diskfile_backend *b = GIT_CONTAINER_OF(cfg, diskfile_backend, header.parent);
+	config_file_backend *b = GIT_CONTAINER_OF(cfg, config_file_backend, parent);
 	git_config_entries *old = NULL;
-	diskfile *include;
+	config_file *include;
 	int error;
 	uint32_t i;
 
-	if (b->header.parent.readonly)
-		return config_error_readonly();
+	if (b->parent.readonly) {
+		git_error_set(GIT_ERROR_CONFIG, "this backend is read-only");
+		return -1;
+	}
 
 	git_array_foreach(b->file.includes, i, include)
 		config_file_clear(include);
 	git_array_clear(b->file.includes);
 
-	if ((error = git_mutex_lock(&b->header.values_mutex)) < 0) {
+	if ((error = git_mutex_lock(&b->values_mutex)) < 0) {
 		git_error_set(GIT_ERROR_OS, "failed to lock config backend");
 		goto out;
 	}
 
-	old = b->header.entries;
-	b->header.entries = entries;
+	old = b->entries;
+	b->entries = entries;
 
-	git_mutex_unlock(&b->header.values_mutex);
+	git_mutex_unlock(&b->values_mutex);
 
 out:
 	git_config_entries_free(old);
 	return error;
 }
 
-static int config_refresh_from_buffer(git_config_backend *cfg, const char *buf, size_t buflen)
+static int config_file_refresh_from_buffer(git_config_backend *cfg, const char *buf, size_t buflen)
 {
-	diskfile_backend *b = GIT_CONTAINER_OF(cfg, diskfile_backend, header.parent);
+	config_file_backend *b = GIT_CONTAINER_OF(cfg, config_file_backend, parent);
 	git_config_entries *entries = NULL;
 	int error;
 
 	if ((error = git_config_entries_new(&entries)) < 0 ||
-	    (error = config_read_buffer(entries, b->header.repo, &b->file,
-					b->header.level, 0, buf, buflen)) < 0 ||
-	    (error = config_set_entries(cfg, entries)) < 0)
+	    (error = config_file_read_buffer(entries, b->repo, &b->file,
+					     b->level, 0, buf, buflen)) < 0 ||
+	    (error = config_file_set_entries(cfg, entries)) < 0)
 		goto out;
 
 	entries = NULL;
@@ -225,24 +205,24 @@ out:
 	return error;
 }
 
-static int config_refresh(git_config_backend *cfg)
+static int config_file_refresh(git_config_backend *cfg)
 {
-	diskfile_backend *b = GIT_CONTAINER_OF(cfg, diskfile_backend, header.parent);
+	config_file_backend *b = GIT_CONTAINER_OF(cfg, config_file_backend, parent);
 	git_config_entries *entries = NULL;
 	int error, modified;
 
 	if (cfg->readonly)
 		return 0;
 
-	if ((error = config_is_modified(&modified, &b->file)) < 0 && error != GIT_ENOTFOUND)
+	if ((error = config_file_is_modified(&modified, &b->file)) < 0 && error != GIT_ENOTFOUND)
 		goto out;
 
 	if (!modified)
 		return 0;
 
 	if ((error = git_config_entries_new(&entries)) < 0 ||
-	    (error = config_read(entries, b->header.repo, &b->file, b->header.level, 0)) < 0 ||
-	    (error = config_set_entries(cfg, entries)) < 0)
+	    (error = config_file_read(entries, b->repo, &b->file, b->level, 0)) < 0 ||
+	    (error = config_file_set_entries(cfg, entries)) < 0)
 		goto out;
 
 	entries = NULL;
@@ -252,41 +232,48 @@ out:
 	return (error == GIT_ENOTFOUND) ? 0 : error;
 }
 
-static void backend_free(git_config_backend *_backend)
+static void config_file_free(git_config_backend *_backend)
 {
-	diskfile_backend *backend = GIT_CONTAINER_OF(_backend, diskfile_backend, header.parent);
+	config_file_backend *backend = GIT_CONTAINER_OF(_backend, config_file_backend, parent);
 
 	if (backend == NULL)
 		return;
 
 	config_file_clear(&backend->file);
-	git_config_entries_free(backend->header.entries);
-	git_mutex_free(&backend->header.values_mutex);
+	git_config_entries_free(backend->entries);
+	git_mutex_free(&backend->values_mutex);
 	git__free(backend);
 }
 
-static int config_iterator_new(
+static int config_file_iterator(
 	git_config_iterator **iter,
 	struct git_config_backend *backend)
 {
-	diskfile_header *bh = GIT_CONTAINER_OF(backend, diskfile_header, parent);
-	git_config_entries *entries = NULL;
+	config_file_backend *b = GIT_CONTAINER_OF(backend, config_file_backend, parent);
+	git_config_entries *dupped = NULL, *entries = NULL;
 	int error;
 
-	if ((error = config_refresh(backend)) < 0 ||
-	    (error = git_config_entries_dup(&entries, bh->entries)) < 0 ||
-	    (error = git_config_entries_iterator_new(iter, entries)) < 0)
+	if ((error = config_file_refresh(backend)) < 0 ||
+	    (error = config_file_entries_take(&entries, b)) < 0 ||
+	    (error = git_config_entries_dup(&dupped, entries)) < 0 ||
+	    (error = git_config_entries_iterator_new(iter, dupped)) < 0)
 		goto out;
 
 out:
 	/* Let iterator delete duplicated entries when it's done */
 	git_config_entries_free(entries);
+	git_config_entries_free(dupped);
 	return error;
 }
 
-static int config_set(git_config_backend *cfg, const char *name, const char *value)
+static int config_file_snapshot(git_config_backend **out, git_config_backend *backend)
 {
-	diskfile_backend *b = GIT_CONTAINER_OF(cfg, diskfile_backend, header.parent);
+	return git_config_backend_snapshot(out, backend);
+}
+
+static int config_file_set(git_config_backend *cfg, const char *name, const char *value)
+{
+	config_file_backend *b = GIT_CONTAINER_OF(cfg, config_file_backend, parent);
 	git_config_entries *entries;
 	git_config_entry *existing;
 	char *key, *esc_value = NULL;
@@ -295,8 +282,8 @@ static int config_set(git_config_backend *cfg, const char *name, const char *val
 	if ((error = git_config__normalize_name(name, &key)) < 0)
 		return error;
 
-	if ((entries = diskfile_entries_take(&b->header)) == NULL)
-		return -1;
+	if ((error = config_file_entries_take(&entries, b)) < 0)
+		return error;
 
 	/* Check whether we'd be modifying an included or multivar key */
 	if ((error = git_config_entries_get_unique(&existing, entries, key)) < 0) {
@@ -316,7 +303,7 @@ static int config_set(git_config_backend *cfg, const char *name, const char *val
 		GIT_ERROR_CHECK_ALLOC(esc_value);
 	}
 
-	if ((error = config_write(b, name, key, NULL, esc_value)) < 0)
+	if ((error = config_file_write(b, name, key, NULL, esc_value)) < 0)
 		goto out;
 
 out:
@@ -327,7 +314,7 @@ out:
 }
 
 /* release the map containing the entry as an equivalent to freeing it */
-static void free_diskfile_entry(git_config_entry *entry)
+static void config_file_entry_free(git_config_entry *entry)
 {
 	git_config_entries *entries = (git_config_entries *) entry->payload;
 	git_config_entries_free(entries);
@@ -336,65 +323,61 @@ static void free_diskfile_entry(git_config_entry *entry)
 /*
  * Internal function that actually gets the value in string form
  */
-static int config_get(git_config_backend *cfg, const char *key, git_config_entry **out)
+static int config_file_get(git_config_backend *cfg, const char *key, git_config_entry **out)
 {
-	diskfile_header *h = GIT_CONTAINER_OF(cfg, diskfile_header, parent);
+	config_file_backend *h = GIT_CONTAINER_OF(cfg, config_file_backend, parent);
 	git_config_entries *entries = NULL;
 	git_config_entry *entry;
 	int error = 0;
 
-	if (!h->parent.readonly && ((error = config_refresh(cfg)) < 0))
+	if (!h->parent.readonly && ((error = config_file_refresh(cfg)) < 0))
 		return error;
 
-	if ((entries = diskfile_entries_take(h)) == NULL)
-		return -1;
+	if ((error = config_file_entries_take(&entries, h)) < 0)
+		return error;
 
 	if ((error = (git_config_entries_get(&entry, entries, key))) < 0) {
 		git_config_entries_free(entries);
 		return error;
 	}
 
-	entry->free = free_diskfile_entry;
+	entry->free = config_file_entry_free;
 	entry->payload = entries;
 	*out = entry;
 
 	return 0;
 }
 
-static int config_set_multivar(
+static int config_file_set_multivar(
 	git_config_backend *cfg, const char *name, const char *regexp, const char *value)
 {
-	diskfile_backend *b = GIT_CONTAINER_OF(cfg, diskfile_backend, header.parent);
-	char *key;
-	p_regex_t preg;
+	config_file_backend *b = GIT_CONTAINER_OF(cfg, config_file_backend, parent);
+	git_regexp preg;
 	int result;
+	char *key;
 
 	assert(regexp);
 
 	if ((result = git_config__normalize_name(name, &key)) < 0)
 		return result;
 
-	result = p_regcomp(&preg, regexp, P_REG_EXTENDED);
-	if (result != 0) {
-		git_error_set_regex(&preg, result);
-		result = -1;
+	if ((result = git_regexp_compile(&preg, regexp, 0)) < 0)
 		goto out;
-	}
 
-	/* If we do have it, set call config_write() and reload */
-	if ((result = config_write(b, name, key, &preg, value)) < 0)
+	/* If we do have it, set call config_file_write() and reload */
+	if ((result = config_file_write(b, name, key, &preg, value)) < 0)
 		goto out;
 
 out:
 	git__free(key);
-	p_regfree(&preg);
+	git_regexp_dispose(&preg);
 
 	return result;
 }
 
-static int config_delete(git_config_backend *cfg, const char *name)
+static int config_file_delete(git_config_backend *cfg, const char *name)
 {
-	diskfile_backend *b = GIT_CONTAINER_OF(cfg, diskfile_backend, header.parent);
+	config_file_backend *b = GIT_CONTAINER_OF(cfg, config_file_backend, parent);
 	git_config_entries *entries = NULL;
 	git_config_entry *entry;
 	char *key = NULL;
@@ -403,7 +386,7 @@ static int config_delete(git_config_backend *cfg, const char *name)
 	if ((error = git_config__normalize_name(name, &key)) < 0)
 		goto out;
 
-	if ((entries = diskfile_entries_take(&b->header)) == NULL)
+	if ((error = config_file_entries_take(&entries, b)) < 0)
 		goto out;
 
 	/* Check whether we'd be modifying an included or multivar key */
@@ -413,7 +396,7 @@ static int config_delete(git_config_backend *cfg, const char *name)
 		goto out;
 	}
 
-	if ((error = config_write(b, name, entry->name, NULL, NULL)) < 0)
+	if ((error = config_file_write(b, name, entry->name, NULL, NULL)) < 0)
 		goto out;
 
 out:
@@ -422,22 +405,20 @@ out:
 	return error;
 }
 
-static int config_delete_multivar(git_config_backend *cfg, const char *name, const char *regexp)
+static int config_file_delete_multivar(git_config_backend *cfg, const char *name, const char *regexp)
 {
-	diskfile_backend *b = GIT_CONTAINER_OF(cfg, diskfile_backend, header.parent);
+	config_file_backend *b = GIT_CONTAINER_OF(cfg, config_file_backend, parent);
 	git_config_entries *entries = NULL;
 	git_config_entry *entry = NULL;
-	p_regex_t preg = { 0 };
+	git_regexp preg = GIT_REGEX_INIT;
 	char *key = NULL;
 	int result;
 
 	if ((result = git_config__normalize_name(name, &key)) < 0)
 		goto out;
 
-	if ((entries = diskfile_entries_take(&b->header)) == NULL) {
-		result = -1;
+	if ((result = config_file_entries_take(&entries, b)) < 0)
 		goto out;
-	}
 
 	if ((result = git_config_entries_get(&entry, entries, key)) < 0) {
 		if (result == GIT_ENOTFOUND)
@@ -445,25 +426,22 @@ static int config_delete_multivar(git_config_backend *cfg, const char *name, con
 		goto out;
 	}
 
-	if ((result = p_regcomp(&preg, regexp, P_REG_EXTENDED)) != 0) {
-		git_error_set_regex(&preg, result);
-		result = -1;
+	if ((result = git_regexp_compile(&preg, regexp, 0)) < 0)
 		goto out;
-	}
 
-	if ((result = config_write(b, name, key, &preg, NULL)) < 0)
+	if ((result = config_file_write(b, name, key, &preg, NULL)) < 0)
 		goto out;
 
 out:
 	git_config_entries_free(entries);
 	git__free(key);
-	p_regfree(&preg);
+	git_regexp_dispose(&preg);
 	return result;
 }
 
-static int config_lock(git_config_backend *_cfg)
+static int config_file_lock(git_config_backend *_cfg)
 {
-	diskfile_backend *cfg = GIT_CONTAINER_OF(_cfg, diskfile_backend, header.parent);
+	config_file_backend *cfg = GIT_CONTAINER_OF(_cfg, config_file_backend, parent);
 	int error;
 
 	if ((error = git_filebuf_open(&cfg->locked_buf, cfg->file.path, 0, GIT_CONFIG_FILE_MODE)) < 0)
@@ -480,9 +458,9 @@ static int config_lock(git_config_backend *_cfg)
 
 }
 
-static int config_unlock(git_config_backend *_cfg, int success)
+static int config_file_unlock(git_config_backend *_cfg, int success)
 {
-	diskfile_backend *cfg = GIT_CONTAINER_OF(_cfg, diskfile_backend, header.parent);
+	config_file_backend *cfg = GIT_CONTAINER_OF(_cfg, config_file_backend, parent);
 	int error = 0;
 
 	if (success) {
@@ -499,147 +477,31 @@ static int config_unlock(git_config_backend *_cfg, int success)
 
 int git_config_backend_from_file(git_config_backend **out, const char *path)
 {
-	diskfile_backend *backend;
+	config_file_backend *backend;
 
-	backend = git__calloc(1, sizeof(diskfile_backend));
+	backend = git__calloc(1, sizeof(config_file_backend));
 	GIT_ERROR_CHECK_ALLOC(backend);
 
-	backend->header.parent.version = GIT_CONFIG_BACKEND_VERSION;
-	git_mutex_init(&backend->header.values_mutex);
+	backend->parent.version = GIT_CONFIG_BACKEND_VERSION;
+	git_mutex_init(&backend->values_mutex);
 
 	backend->file.path = git__strdup(path);
 	GIT_ERROR_CHECK_ALLOC(backend->file.path);
 	git_array_init(backend->file.includes);
 
-	backend->header.parent.open = config_open;
-	backend->header.parent.get = config_get;
-	backend->header.parent.set = config_set;
-	backend->header.parent.set_multivar = config_set_multivar;
-	backend->header.parent.del = config_delete;
-	backend->header.parent.del_multivar = config_delete_multivar;
-	backend->header.parent.iterator = config_iterator_new;
-	backend->header.parent.snapshot = config_snapshot;
-	backend->header.parent.lock = config_lock;
-	backend->header.parent.unlock = config_unlock;
-	backend->header.parent.free = backend_free;
+	backend->parent.open = config_file_open;
+	backend->parent.get = config_file_get;
+	backend->parent.set = config_file_set;
+	backend->parent.set_multivar = config_file_set_multivar;
+	backend->parent.del = config_file_delete;
+	backend->parent.del_multivar = config_file_delete_multivar;
+	backend->parent.iterator = config_file_iterator;
+	backend->parent.snapshot = config_file_snapshot;
+	backend->parent.lock = config_file_lock;
+	backend->parent.unlock = config_file_unlock;
+	backend->parent.free = config_file_free;
 
 	*out = (git_config_backend *)backend;
-
-	return 0;
-}
-
-static int config_set_readonly(git_config_backend *cfg, const char *name, const char *value)
-{
-	GIT_UNUSED(cfg);
-	GIT_UNUSED(name);
-	GIT_UNUSED(value);
-
-	return config_error_readonly();
-}
-
-static int config_set_multivar_readonly(
-	git_config_backend *cfg, const char *name, const char *regexp, const char *value)
-{
-	GIT_UNUSED(cfg);
-	GIT_UNUSED(name);
-	GIT_UNUSED(regexp);
-	GIT_UNUSED(value);
-
-	return config_error_readonly();
-}
-
-static int config_delete_multivar_readonly(git_config_backend *cfg, const char *name, const char *regexp)
-{
-	GIT_UNUSED(cfg);
-	GIT_UNUSED(name);
-	GIT_UNUSED(regexp);
-
-	return config_error_readonly();
-}
-
-static int config_delete_readonly(git_config_backend *cfg, const char *name)
-{
-	GIT_UNUSED(cfg);
-	GIT_UNUSED(name);
-
-	return config_error_readonly();
-}
-
-static int config_lock_readonly(git_config_backend *_cfg)
-{
-	GIT_UNUSED(_cfg);
-
-	return config_error_readonly();
-}
-
-static int config_unlock_readonly(git_config_backend *_cfg, int success)
-{
-	GIT_UNUSED(_cfg);
-	GIT_UNUSED(success);
-
-	return config_error_readonly();
-}
-
-static void backend_readonly_free(git_config_backend *_backend)
-{
-	diskfile_backend *backend = GIT_CONTAINER_OF(_backend, diskfile_backend, header.parent);
-
-	if (backend == NULL)
-		return;
-
-	git_config_entries_free(backend->header.entries);
-	git_mutex_free(&backend->header.values_mutex);
-	git__free(backend);
-}
-
-static int config_readonly_open(git_config_backend *cfg, git_config_level_t level, const git_repository *repo)
-{
-	diskfile_readonly_backend *b = GIT_CONTAINER_OF(cfg, diskfile_readonly_backend, header.parent);
-	diskfile_backend *src = b->snapshot_from;
-	diskfile_header *src_header = &src->header;
-	git_config_entries *entries;
-	int error;
-
-	if (!src_header->parent.readonly && (error = config_refresh(&src_header->parent)) < 0)
-		return error;
-
-	/* We're just copying data, don't care about the level or repo*/
-	GIT_UNUSED(level);
-	GIT_UNUSED(repo);
-
-	if ((entries = diskfile_entries_take(src_header)) == NULL)
-		return -1;
-	b->header.entries = entries;
-
-	return 0;
-}
-
-static int config_snapshot(git_config_backend **out, git_config_backend *in)
-{
-	diskfile_readonly_backend *backend;
-
-	backend = git__calloc(1, sizeof(diskfile_readonly_backend));
-	GIT_ERROR_CHECK_ALLOC(backend);
-
-	backend->header.parent.version = GIT_CONFIG_BACKEND_VERSION;
-	git_mutex_init(&backend->header.values_mutex);
-
-	backend->snapshot_from = GIT_CONTAINER_OF(in, diskfile_backend, header.parent);
-
-	backend->header.parent.readonly = 1;
-	backend->header.parent.version = GIT_CONFIG_BACKEND_VERSION;
-	backend->header.parent.open = config_readonly_open;
-	backend->header.parent.get = config_get;
-	backend->header.parent.set = config_set_readonly;
-	backend->header.parent.set_multivar = config_set_multivar_readonly;
-	backend->header.parent.del = config_delete_readonly;
-	backend->header.parent.del_multivar = config_delete_multivar_readonly;
-	backend->header.parent.iterator = config_iterator_new;
-	backend->header.parent.lock = config_lock_readonly;
-	backend->header.parent.unlock = config_unlock_readonly;
-	backend->header.parent.free = backend_readonly_free;
-
-	*out = &backend->header.parent;
 
 	return 0;
 }
@@ -685,9 +547,9 @@ static char *escape_value(const char *ptr)
 	return git_buf_detach(&buf);
 }
 
-static int parse_include(diskfile_parse_state *parse_data, const char *file)
+static int parse_include(config_file_parse_data *parse_data, const char *file)
 {
-	diskfile *include;
+	config_file *include;
 	git_buf path = GIT_BUF_INIT;
 	char *dir;
 	int result;
@@ -711,8 +573,8 @@ static int parse_include(diskfile_parse_state *parse_data, const char *file)
 	git_array_init(include->includes);
 	include->path = git_buf_detach(&path);
 
-	result = config_read(parse_data->entries, parse_data->repo,
-		include, parse_data->level, parse_data->depth+1);
+	result = config_file_read(parse_data->entries, parse_data->repo, include,
+				  parse_data->level, parse_data->depth+1);
 
 	if (result == GIT_ENOTFOUND) {
 		git_error_clear();
@@ -782,15 +644,67 @@ static int conditional_match_gitdir_i(
 	return do_match_gitdir(matches, repo, cfg_file, value, true);
 }
 
+static int conditional_match_onbranch(
+	int *matches,
+	const git_repository *repo,
+	const char *cfg_file,
+	const char *condition)
+{
+	git_buf reference = GIT_BUF_INIT, buf = GIT_BUF_INIT;
+	int error;
+
+	GIT_UNUSED(cfg_file);
+
+	/*
+	 * NOTE: you cannot use `git_repository_head` here. Looking up the
+	 * HEAD reference will create the ODB, which causes us to read the
+	 * repo's config for keys like core.precomposeUnicode. As we're
+	 * just parsing the config right now, though, this would result in
+	 * an endless recursion.
+	 */
+
+	if ((error = git_buf_joinpath(&buf, git_repository_path(repo), GIT_HEAD_FILE)) < 0 ||
+	    (error = git_futils_readbuffer(&reference, buf.ptr)) < 0)
+		goto out;
+	git_buf_rtrim(&reference);
+
+	if (git__strncmp(reference.ptr, GIT_SYMREF, strlen(GIT_SYMREF)))
+		goto out;
+	git_buf_consume(&reference, reference.ptr + strlen(GIT_SYMREF));
+
+	if (git__strncmp(reference.ptr, GIT_REFS_HEADS_DIR, strlen(GIT_REFS_HEADS_DIR)))
+		goto out;
+	git_buf_consume(&reference, reference.ptr + strlen(GIT_REFS_HEADS_DIR));
+
+	/*
+	 * If the condition ends with a '/', then we should treat it as if
+	 * it had '**' appended.
+	 */
+	if ((error = git_buf_sets(&buf, condition)) < 0)
+		goto out;
+	if (git_path_is_dirsep(condition[strlen(condition) - 1]) &&
+	    (error = git_buf_puts(&buf, "**")) < 0)
+		goto out;
+
+	*matches = wildmatch(buf.ptr, reference.ptr, WM_PATHNAME) == WM_MATCH;
+out:
+	git_buf_dispose(&reference);
+	git_buf_dispose(&buf);
+
+	return error;
+
+}
+
 static const struct {
 	const char *prefix;
 	int (*matches)(int *matches, const git_repository *repo, const char *cfg, const char *value);
 } conditions[] = {
 	{ "gitdir:", conditional_match_gitdir },
-	{ "gitdir/i:", conditional_match_gitdir_i }
+	{ "gitdir/i:", conditional_match_gitdir_i },
+	{ "onbranch:", conditional_match_onbranch }
 };
 
-static int parse_conditional_include(diskfile_parse_state *parse_data, const char *section, const char *file)
+static int parse_conditional_include(config_file_parse_data *parse_data, const char *section, const char *file)
 {
 	char *condition;
 	size_t i;
@@ -831,7 +745,7 @@ static int read_on_variable(
 	size_t line_len,
 	void *data)
 {
-	diskfile_parse_state *parse_data = (diskfile_parse_state *)data;
+	config_file_parse_data *parse_data = (config_file_parse_data *)data;
 	git_buf buf = GIT_BUF_INIT;
 	git_config_entry *entry;
 	const char *c;
@@ -878,16 +792,16 @@ static int read_on_variable(
 	return result;
 }
 
-static int config_read_buffer(
+static int config_file_read_buffer(
 	git_config_entries *entries,
 	const git_repository *repo,
-	diskfile *file,
+	config_file *file,
 	git_config_level_t level,
 	int depth,
 	const char *buf,
 	size_t buflen)
 {
-	diskfile_parse_state parse_data;
+	config_file_parse_data parse_data;
 	git_config_parser reader;
 	int error;
 
@@ -918,10 +832,10 @@ out:
 	return error;
 }
 
-static int config_read(
+static int config_file_read(
 	git_config_entries *entries,
 	const git_repository *repo,
-	diskfile *file,
+	config_file *file,
 	git_config_level_t level,
 	int depth)
 {
@@ -941,8 +855,8 @@ static int config_read(
 	if ((error = git_hash_buf(&file->checksum, contents.ptr, contents.size)) < 0)
 		goto out;
 
-	if ((error = config_read_buffer(entries, repo, file, level, depth,
-					contents.ptr, contents.size)) < 0)
+	if ((error = config_file_read_buffer(entries, repo, file, level, depth,
+					     contents.ptr, contents.size)) < 0)
 		goto out;
 
 out:
@@ -1007,7 +921,7 @@ struct write_data {
 	const char *section;
 	const char *orig_name;
 	const char *name;
-	const p_regex_t *preg;
+	const git_regexp *preg;
 	const char *value;
 };
 
@@ -1112,7 +1026,7 @@ static int write_on_variable(
 
 	/* If we have a regex to match the value, see if it matches */
 	if (has_matched && write_data->preg != NULL)
-		has_matched = (p_regexec(write_data->preg, var_value, 0, NULL, 0) == 0);
+		has_matched = (git_regexp_match(write_data->preg, var_value) == 0);
 
 	/* If this isn't the name/value we're looking for, simply dump the
 	 * existing data back out and continue on.
@@ -1173,7 +1087,8 @@ static int write_on_eof(
 /*
  * This is pretty much the parsing, except we write out anything we don't have
  */
-static int config_write(diskfile_backend *cfg, const char *orig_key, const char *key, const p_regex_t *preg, const char* value)
+static int config_file_write(config_file_backend *cfg, const char *orig_key, const char *key, const git_regexp *preg, const char* value)
+
 {
 	char *orig_section = NULL, *section = NULL, *orig_name, *name, *ldot;
 	git_buf buf = GIT_BUF_INIT, contents = GIT_BUF_INIT;
@@ -1233,7 +1148,7 @@ static int config_write(diskfile_backend *cfg, const char *orig_key, const char 
 		if ((error = git_filebuf_commit(&file)) < 0)
 			goto done;
 
-		if ((error = config_refresh_from_buffer(&cfg->header.parent, buf.ptr, buf.size)) < 0)
+		if ((error = config_file_refresh_from_buffer(&cfg->parent, buf.ptr, buf.size)) < 0)
 			goto done;
 	}
 

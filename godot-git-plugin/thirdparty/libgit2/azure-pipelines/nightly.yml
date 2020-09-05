@@ -2,66 +2,74 @@ resources:
 - repo: self
 
 jobs:
-- job: linux_amd64_trusty_gcc_openssl
-  displayName: 'Linux (amd64; Trusty; GCC; OpenSSL)'
+- job: linux_amd64_xenial_gcc_openssl
+  displayName: 'Linux (amd64; Xenial; GCC; OpenSSL)'
   pool:
-    vmImage: 'Ubuntu 16.04'
+    vmImage: 'ubuntu-18.04'
   steps:
   - template: docker.yml
     parameters:
-      imageName: 'libgit2/trusty-amd64:latest'
+      docker:
+        image: xenial
+        base: ubuntu:xenial
       environmentVariables: |
        CC=gcc
-       CMAKE_GENERATOR=Unix Makefiles
+       CMAKE_GENERATOR=Ninja
        CMAKE_OPTIONS=-DUSE_HTTPS=OpenSSL -DREGEX_BACKEND=builtin -DDEPRECATE_HARD=ON -DUSE_LEAK_CHECKER=valgrind
        RUN_INVASIVE_TESTS=true
 
-- job: linux_amd64_trusty_gcc_mbedtls
-  displayName: 'Linux (amd64; Trusty; GCC; mbedTLS)'
+- job: linux_amd64_xenial_gcc_mbedtls
+  displayName: 'Linux (amd64; Xenial; GCC; mbedTLS)'
   pool:
-    vmImage: 'Ubuntu 16.04'
+    vmImage: 'ubuntu-18.04'
   steps:
   - template: docker.yml
     parameters:
-      imageName: 'libgit2/trusty-amd64:latest'
+      docker:
+        image: xenial
+        base: ubuntu:xenial
       environmentVariables: |
        CC=gcc
-       CMAKE_GENERATOR=Unix Makefiles
+       CMAKE_GENERATOR=Ninja
        CMAKE_OPTIONS=-DUSE_HTTPS=mbedTLS -DUSE_SHA1=HTTPS -DDEPRECATE_HARD=ON -DUSE_LEAK_CHECKER=valgrind
        RUN_INVASIVE_TESTS=true
 
-- job: linux_amd64_trusty_clang_openssl
-  displayName: 'Linux (amd64; Trusty; Clang; OpenSSL)'
+- job: linux_amd64_xenial_clang_openssl
+  displayName: 'Linux (amd64; Xenial; Clang; OpenSSL)'
   pool:
-    vmImage: 'Ubuntu 16.04'
+    vmImage: 'ubuntu-18.04'
   steps:
   - template: docker.yml
     parameters:
-      imageName: 'libgit2/trusty-amd64:latest'
+      docker:
+        image: xenial
+        base: ubuntu:xenial
       environmentVariables: |
        CC=clang
-       CMAKE_GENERATOR=Unix Makefiles
+       CMAKE_GENERATOR=Ninja
        CMAKE_OPTIONS=-DUSE_HTTPS=OpenSSL -DDEPRECATE_HARD=ON -DUSE_LEAK_CHECKER=valgrind
        RUN_INVASIVE_TESTS=true
 
-- job: linux_amd64_trusty_clang_mbedtls
-  displayName: 'Linux (amd64; Trusty; Clang; mbedTLS)'
+- job: linux_amd64_xenial_clang_mbedtls
+  displayName: 'Linux (amd64; Xenial; Clang; mbedTLS)'
   pool:
-    vmImage: 'Ubuntu 16.04'
+    vmImage: 'ubuntu-18.04'
   steps:
   - template: docker.yml
     parameters:
-      imageName: 'libgit2/trusty-amd64:latest'
+      docker:
+        image: xenial
+        base: ubuntu:xenial
       environmentVariables: |
        CC=clang
-       CMAKE_GENERATOR=Unix Makefiles
+       CMAKE_GENERATOR=Ninja
        CMAKE_OPTIONS=-DUSE_HTTPS=mbedTLS -DUSE_SHA1=HTTPS -DREGEX_BACKEND=pcre -DDEPRECATE_HARD=ON -DUSE_LEAK_CHECKER=valgrind
        RUN_INVASIVE_TESTS=true
 
 - job: macos
-  displayName: 'macOS'
+  displayName: 'macOS (amd64; 10.15)'
   pool:
-    vmImage: 'macOS 10.13'
+    vmImage: 'macOS-10.15'
   steps:
   - bash: . '$(Build.SourcesDirectory)/azure-pipelines/setup-osx.sh'
     displayName: Setup
@@ -71,37 +79,40 @@ jobs:
         TMPDIR: $(Agent.TempDirectory)
         PKG_CONFIG_PATH: /usr/local/opt/openssl/lib/pkgconfig
         CMAKE_GENERATOR: Ninja
-        CMAKE_OPTIONS: -DREGEX_BACKEND=regcomp_l -DDEPRECATE_HARD=ON -DUSE_LEAK_CHECKER=leaks
+        CMAKE_OPTIONS: -DREGEX_BACKEND=regcomp_l -DDEPRECATE_HARD=ON -DUSE_LEAK_CHECKER=leaks -DUSE_GSSAPI=ON
         RUN_INVASIVE_TESTS: true
         SKIP_SSH_TESTS: true
 
 - job: windows_vs_amd64
   displayName: 'Windows (amd64; Visual Studio)'
-  pool: Hosted
+  pool:
+    vmImage: 'vs2017-win2016'
   steps:
   - template: bash.yml
     parameters:
       environmentVariables:
-        CMAKE_GENERATOR: Visual Studio 12 2013 Win64
-        CMAKE_OPTIONS: -DMSVC_CRTDBG=ON -DDEPRECATE_HARD=ON
+        CMAKE_GENERATOR: Visual Studio 15 2017
+        CMAKE_OPTIONS: -A x64 -DMSVC_CRTDBG=ON -DDEPRECATE_HARD=ON
         RUN_INVASIVE_TESTS: true
         SKIP_SSH_TESTS: true
 
 - job: windows_vs_x86
   displayName: 'Windows (x86; Visual Studio)'
-  pool: Hosted
+  pool:
+    vmImage: 'vs2017-win2016'
   steps:
   - template: bash.yml
     parameters:
       environmentVariables:
-        CMAKE_GENERATOR: Visual Studio 12 2013
-        CMAKE_OPTIONS: -DMSVC_CRTDBG=ON -DDEPRECATE_HARD=ON -DUSE_SHA1=HTTPS
+        CMAKE_GENERATOR: Visual Studio 15 2017
+        CMAKE_OPTIONS: -A Win32 -DMSVC_CRTDBG=ON -DDEPRECATE_HARD=ON -DUSE_SHA1=HTTPS
         RUN_INVASIVE_TESTS: true
         SKIP_SSH_TESTS: true
 
 - job: windows_mingw_amd64
   displayName: 'Windows (amd64; MinGW)'
-  pool: Hosted
+  pool:
+    vmImage: 'vs2017-win2016'
   steps:
   - bash: . '$(Build.SourcesDirectory)\azure-pipelines\setup-mingw.sh'
     displayName: Setup
@@ -119,7 +130,8 @@ jobs:
 
 - job: windows_mingw_x86
   displayName: 'Windows (x86; MinGW)'
-  pool: Hosted
+  pool:
+    vmImage: 'vs2017-win2016'
   steps:
   - bash: . '$(Build.SourcesDirectory)\azure-pipelines\setup-mingw.sh'
     displayName: Setup
@@ -139,45 +151,51 @@ jobs:
 - job: linux_x86_bionic_gcc_openssl
   displayName: 'Linux (x86; Bionic; GCC; OpenSSL)'
   pool:
-    vmImage: 'Ubuntu 16.04'
+    vmImage: 'ubuntu-18.04'
   steps:
   - template: docker.yml
     parameters:
       qemu: 'true'
-      imageName: 'libgit2/bionic-x86:latest'
+      docker:
+        image: bionic
+        base: multiarch/ubuntu-core:x86-bionic
       environmentVariables: |
        CC=gcc
-       CMAKE_GENERATOR=Unix Makefiles
+       CMAKE_GENERATOR=Ninja
        CMAKE_OPTIONS=-DUSE_HTTPS=OpenSSL -DDEPRECATE_HARD=ON -DUSE_LEAK_CHECKER=valgrind
        RUN_INVASIVE_TESTS=true
 
 - job: linux_x86_bionic_clang_openssl
   displayName: 'Linux (x86; Bionic; Clang; OpenSSL)'
   pool:
-    vmImage: 'Ubuntu 16.04'
+    vmImage: 'ubuntu-18.04'
   steps:
   - template: docker.yml
     parameters:
       qemu: 'true'
-      imageName: 'libgit2/bionic-x86:latest'
+      docker:
+        image: bionic
+        base: multiarch/ubuntu-core:x86-bionic
       environmentVariables: |
        CC=clang
-       CMAKE_GENERATOR=Unix Makefiles
+       CMAKE_GENERATOR=Ninja
        CMAKE_OPTIONS=-DUSE_HTTPS=OpenSSL -DDEPRECATE_HARD=ON -DUSE_LEAK_CHECKER=valgrind
        RUN_INVASIVE_TESTS=true
 
 - job: linux_arm32_bionic_gcc_openssl
   displayName: 'Linux (arm32; Bionic; GCC; OpenSSL)'
   pool:
-    vmImage: 'Ubuntu 16.04'
+    vmImage: 'ubuntu-18.04'
   steps:
   - template: docker.yml
     parameters:
       qemu: 'true'
-      imageName: 'libgit2/bionic-arm32:latest'
+      docker:
+        image: bionic
+        base: multiarch/ubuntu-core:armhf-bionic
       environmentVariables: |
        CC=gcc
-       CMAKE_GENERATOR=Unix Makefiles
+       CMAKE_GENERATOR=Ninja
        CMAKE_OPTIONS=-DUSE_HTTPS=OpenSSL -DDEPRECATE_HARD=ON
        RUN_INVASIVE_TESTS=true
        SKIP_PROXY_TESTS=true
@@ -185,15 +203,17 @@ jobs:
 - job: linux_arm64_bionic_gcc_openssl
   displayName: 'Linux (arm64; Bionic; GCC; OpenSSL)'
   pool:
-    vmImage: 'Ubuntu 16.04'
+    vmImage: 'ubuntu-18.04'
   steps:
   - template: docker.yml
     parameters:
       qemu: 'true'
-      imageName: 'libgit2/bionic-arm64:latest'
+      docker:
+        image: bionic
+        base: multiarch/ubuntu-core:arm64-bionic
       environmentVariables: |
        CC=gcc
-       CMAKE_GENERATOR=Unix Makefiles
+       CMAKE_GENERATOR=Ninja
        CMAKE_OPTIONS=-DUSE_HTTPS=OpenSSL -DDEPRECATE_HARD=ON
        RUN_INVASIVE_TESTS=true
        SKIP_PROXY_TESTS=true

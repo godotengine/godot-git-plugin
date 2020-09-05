@@ -18,7 +18,8 @@ char git_buf__initbuf[1];
 char git_buf__oom[1];
 
 #define ENSURE_SIZE(b, d) \
-	if ((d) > (b)->asize && git_buf_grow((b), (d)) < 0)\
+	if ((b)->ptr == git_buf__oom || \
+	    ((d) > (b)->asize && git_buf_grow((b), (d)) < 0))\
 		return -1;
 
 
@@ -58,20 +59,26 @@ int git_buf_try_grow(
 		new_ptr = NULL;
 	} else {
 		new_size = buf->asize;
+		/*
+		 * Grow the allocated buffer by 1.5 to allow
+		 * re-use of memory holes resulting from the
+		 * realloc. If this is still too small, then just
+		 * use the target size.
+		 */
+		if ((new_size = (new_size << 1) - (new_size >> 1)) < target_size)
+			new_size = target_size;
 		new_ptr = buf->ptr;
 	}
-
-	/* grow the buffer size by 1.5, until it's big enough
-	 * to fit our target size */
-	while (new_size < target_size)
-		new_size = (new_size << 1) - (new_size >> 1);
 
 	/* round allocation up to multiple of 8 */
 	new_size = (new_size + 7) & ~7;
 
 	if (new_size < buf->size) {
-		if (mark_oom)
+		if (mark_oom) {
+			if (buf->ptr && buf->ptr != git_buf__initbuf)
+				git__free(buf->ptr);
 			buf->ptr = git_buf__oom;
+		}
 
 		git_error_set_oom();
 		return -1;
@@ -558,6 +565,11 @@ void git_buf_copy_cstr(char *data, size_t datasize, const git_buf *buf)
 		copylen = datasize - 1;
 	memmove(data, buf->ptr, copylen);
 	data[copylen] = '\0';
+}
+
+void git_buf_consume_bytes(git_buf *buf, size_t len)
+{
+	git_buf_consume(buf, buf->ptr + len);
 }
 
 void git_buf_consume(git_buf *buf, const char *end)

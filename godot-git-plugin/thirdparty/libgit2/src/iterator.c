@@ -405,7 +405,7 @@ int git_iterator_for_nothing(
 	iter = git__calloc(1, sizeof(empty_iterator));
 	GIT_ERROR_CHECK_ALLOC(iter);
 
-	iter->base.type = GIT_ITERATOR_TYPE_EMPTY;
+	iter->base.type = GIT_ITERATOR_EMPTY;
 	iter->base.cb = &callbacks;
 	iter->base.flags = options->flags;
 
@@ -543,8 +543,6 @@ static int tree_iterator_frame_init(
 	new_frame = git_array_alloc(iter->frames);
 	GIT_ERROR_CHECK_ALLOC(new_frame);
 
-	memset(new_frame, 0, sizeof(tree_iterator_frame));
-
 	if ((error = git_tree_dup(&dup, tree)) < 0)
 		goto done;
 
@@ -552,19 +550,22 @@ static int tree_iterator_frame_init(
 	new_frame->tree = dup;
 
 	if (frame_entry &&
-		(error = tree_iterator_compute_path(&new_frame->path, frame_entry)) < 0)
+	    (error = tree_iterator_compute_path(&new_frame->path, frame_entry)) < 0)
 		goto done;
 
 	cmp = iterator__ignore_case(&iter->base) ?
 		tree_iterator_entry_sort_icase : NULL;
 
-	if ((error = git_vector_init(
-		&new_frame->entries, dup->entries.size, cmp)) < 0)
+	if ((error = git_vector_init(&new_frame->entries,
+				     dup->entries.size, cmp)) < 0)
 		goto done;
 
 	git_array_foreach(dup->entries, i, tree_entry) {
-		new_entry = git_pool_malloc(&iter->entry_pool, 1);
-		GIT_ERROR_CHECK_ALLOC(new_entry);
+		if ((new_entry = git_pool_malloc(&iter->entry_pool, 1)) == NULL) {
+			git_error_set_oom();
+			error = -1;
+			goto done;
+		}
 
 		new_entry->tree_entry = tree_entry;
 		new_entry->parent_path = new_frame->path.ptr;
@@ -949,7 +950,7 @@ int git_iterator_for_tree(
 	iter = git__calloc(1, sizeof(tree_iterator));
 	GIT_ERROR_CHECK_ALLOC(iter);
 
-	iter->base.type = GIT_ITERATOR_TYPE_TREE;
+	iter->base.type = GIT_ITERATOR_TREE;
 	iter->base.cb = &callbacks;
 
 	if ((error = iterator_init_common(&iter->base,
@@ -973,7 +974,7 @@ int git_iterator_current_tree_entry(
 	tree_iterator_frame *frame;
 	tree_iterator_entry *entry;
 
-	assert(i->type == GIT_ITERATOR_TYPE_TREE);
+	assert(i->type == GIT_ITERATOR_TREE);
 
 	iter = (tree_iterator *)i;
 
@@ -990,7 +991,7 @@ int git_iterator_current_parent_tree(
 	tree_iterator *iter;
 	tree_iterator_frame *frame;
 
-	assert(i->type == GIT_ITERATOR_TYPE_TREE);
+	assert(i->type == GIT_ITERATOR_TREE);
 
 	iter = (tree_iterator *)i;
 
@@ -1270,7 +1271,7 @@ static int filesystem_iterator_entry_hash(
 		return 0;
 	}
 
-	if (iter->base.type == GIT_ITERATOR_TYPE_WORKDIR)
+	if (iter->base.type == GIT_ITERATOR_WORKDIR)
 		return git_repository_hashfile(&entry->id,
 			iter->base.repo, entry->path, GIT_OBJECT_BLOB, NULL);
 
@@ -1667,8 +1668,8 @@ int git_iterator_current_workdir_path(git_buf **out, git_iterator *i)
 	filesystem_iterator *iter = GIT_CONTAINER_OF(i, filesystem_iterator, base);
 	const git_index_entry *entry;
 
-	if (i->type != GIT_ITERATOR_TYPE_FS &&
-		i->type != GIT_ITERATOR_TYPE_WORKDIR) {
+	if (i->type != GIT_ITERATOR_FS &&
+		i->type != GIT_ITERATOR_WORKDIR) {
 		*out = NULL;
 		return 0;
 	}
@@ -1726,7 +1727,7 @@ bool git_iterator_current_is_ignored(git_iterator *i)
 {
 	filesystem_iterator *iter = NULL;
 
-	if (i->type != GIT_ITERATOR_TYPE_WORKDIR)
+	if (i->type != GIT_ITERATOR_WORKDIR)
 		return false;
 
 	iter = GIT_CONTAINER_OF(i, filesystem_iterator, base);
@@ -1739,7 +1740,7 @@ bool git_iterator_current_tree_is_ignored(git_iterator *i)
 	filesystem_iterator *iter = GIT_CONTAINER_OF(i, filesystem_iterator, base);
 	filesystem_iterator_frame *frame;
 
-	if (i->type != GIT_ITERATOR_TYPE_WORKDIR)
+	if (i->type != GIT_ITERATOR_WORKDIR)
 		return false;
 
 	frame = filesystem_iterator_current_frame(iter);
@@ -1893,7 +1894,7 @@ static int iterator_for_filesystem(
 	const char *root,
 	git_index *index,
 	git_tree *tree,
-	git_iterator_type_t type,
+	git_iterator_t type,
 	git_iterator_options *options)
 {
 	filesystem_iterator *iter;
@@ -1970,7 +1971,7 @@ int git_iterator_for_filesystem(
 	git_iterator_options *options)
 {
 	return iterator_for_filesystem(out,
-		NULL, root, NULL, NULL, GIT_ITERATOR_TYPE_FS, options);
+		NULL, root, NULL, NULL, GIT_ITERATOR_FS, options);
 }
 
 int git_iterator_for_workdir_ext(
@@ -1998,7 +1999,7 @@ int git_iterator_for_workdir_ext(
 		GIT_ITERATOR_IGNORE_DOT_GIT;
 
 	return iterator_for_filesystem(out,
-		repo, repo_workdir, index, tree, GIT_ITERATOR_TYPE_WORKDIR, &options);
+		repo, repo_workdir, index, tree, GIT_ITERATOR_WORKDIR, &options);
 }
 
 
@@ -2247,7 +2248,7 @@ int git_iterator_for_index(
 	iter = git__calloc(1, sizeof(index_iterator));
 	GIT_ERROR_CHECK_ALLOC(iter);
 
-	iter->base.type = GIT_ITERATOR_TYPE_INDEX;
+	iter->base.type = GIT_ITERATOR_INDEX;
 	iter->base.cb = &callbacks;
 
 	if ((error = iterator_init_common(&iter->base, repo, index, options)) < 0 ||
