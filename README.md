@@ -2,6 +2,8 @@
 
 Git implementation of the Godot Engine VCS interface in Godot 3.2+. We use [libgit2](https://libgit2.org) as our backend to simulate Git in code.
 
+> Supported in Godot 3.2.x. Look for other branches for support in future Godot releases.
+
 ## Installation Instructions
 
  1. Grab the Linux and/or Windows binaries here: <https://github.com/godotengine/godot-git-plugin/releases>
