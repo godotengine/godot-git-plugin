@@ -1,8 +1,8 @@
 # GDNative Based Git Plugin for Godot Version Control Editor Plugin
 
-Git implementation of the Godot Engine VCS interface in Godot 3.2+. We use [libgit2](https://libgit2.org) as our backend to simulate Git in code.
+Git implementation of the Godot Engine VCS interface in Godot. We use [libgit2](https://libgit2.org) as our backend to simulate Git in code.
 
-> Supported in Godot 3.2.x. Look for other branches for support in future Godot releases.
+> Planned for Godot 4.0 since Godot 3.2+. Look for other branches for support in other Godot releases.
 
 ## Installation Instructions
 
