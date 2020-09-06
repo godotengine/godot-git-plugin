@@ -25,7 +25,3 @@ build/
 *.out
 .import/
 
-# Binaries for distribution
-!/demo/bin/
-!git2.lib
-!libgit.a
