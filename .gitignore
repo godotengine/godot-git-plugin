@@ -10,6 +10,9 @@ api.json
 # VSCode Cache
 .vscode/
 
+# Mac stuff
+.DS_Store
+
 # Binaries
 bin/
 intermediate/
