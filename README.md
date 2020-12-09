@@ -6,7 +6,7 @@ Git implementation of the Godot Engine VCS interface in Godot. We use [libgit2](
 
 ## Installation Instructions
 
- 1. Grab the Linux and/or Windows binaries here: <https://github.com/godotengine/godot-git-plugin/releases>
+ 1. Grab the platform binaries here: <https://github.com/godotengine/godot-git-plugin/releases>
  2. Then read the installation instructions: https://github.com/godotengine/godot-git-plugin/wiki
 
 ## Build Instructions
@@ -33,6 +33,14 @@ Required build tools:
 1. Prepare script for execution: ```chmod 755 build_libs.sh```
 2. Run ```. ./build_libs.sh Release```.
 3. Run ```scons platform=x11 target=release```.
+
+### MacOS
+
+> G++ and Clang++ are our recommended compilers for MacOS
+
+1. Prepare script for execution: ```chmod 755 build_libs_mac.sh```
+2. Run ```. ./build_libs_mac.sh Release```.
+3. Run ```scons platform=osx target=release```.
 
 #### Debug build
 
