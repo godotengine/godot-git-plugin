@@ -54,7 +54,7 @@ jobs:
           scons platform=windows target=release
 
   build-macos-debug:
-    runs-on: macos-latest
+    runs-on: macos-11
     steps:
       - uses: actions/checkout@v2
       - name: macOS Debug
@@ -64,7 +64,7 @@ jobs:
           scons platform=osx target=debug use_llvm=yes
 
   build-macos-release:
-    runs-on: macos-latest
+    runs-on: macos-11
     steps:
       - uses: actions/checkout@v2
       - name: macOS Release
