@@ -1,0 +1,55 @@
+name: C/C++ CI
+
+on: [push, pull_request]
+
+jobs:
+  build-debug-ubuntu:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Debug Ubuntu
+        run: |
+          . ./build_libs.sh Debug
+          scons platform=x11 target=debug
+  build-release-ubuntu:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Release Ubuntu
+        run: |
+          . ./build_libs.sh Release
+          scons platform=x11 target=release
+
+  build-debug-windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Debug Windows
+        run: |
+          ./build_libs.bat Debug
+          scons platform=windows target=debug
+  build-release-windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Release Windows
+        run: |
+          ./build_libs.bat Release
+          scons platform=windows target=release
+
+  build-debug-macos:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Debug macOS
+        run: |
+          . ./build_libs_mac.sh Debug
+          scons platform=osx target=debug
+  build-release-macos:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Release macOS
+        run: |
+          . ./build_libs_mac.sh Release
+          scons platform=osx target=release
