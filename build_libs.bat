@@ -18,5 +18,5 @@ if "%CI%"=="" (
 )
 
 cd godot-cpp\
-scons platform=windows target=%1 generate_bindings=yes bits=64
+scons platform=windows target=%1 generate_bindings=yes bits=64 -j%NUMBER_OF_PROCESSORS%
 cd ..
