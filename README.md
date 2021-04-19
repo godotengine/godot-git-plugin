@@ -4,7 +4,7 @@
 
 Git implementation of the Godot Engine VCS interface in Godot. We use [libgit2](https://libgit2.org) as our backend to simulate Git in code.
 
-> Planned for Godot 4.0 since Godot 3.2+. Look for other branches for support in other Godot releases.
+> Planned for the upcoming version of Godot. Look for other branches for support in other Godot releases.
 
 ## Installation Instructions
 
