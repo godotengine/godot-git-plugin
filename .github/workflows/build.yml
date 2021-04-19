@@ -3,27 +3,27 @@ name: C/C++ CI
 on: [push, pull_request]
 
 jobs:
-  build-debug-ubuntu:
+  build-ubuntu-debug:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
-      - name: Debug Ubuntu
+      - name: Ubuntu Debug
         run: |
           pip3 install --user scons
           . ./build_libs.sh Debug
           scons platform=x11 target=debug
 
-  build-release-ubuntu:
+  build-ubuntu-release:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
-      - name: Release Ubuntu
+      - name: Ubuntu Release
         run: |
           pip3 install --user scons
           . ./build_libs.sh Release
           scons platform=x11 target=release
 
-  build-debug-windows:
+  build-windows-debug:
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v2
@@ -31,13 +31,14 @@ jobs:
         with:
           python-version: '3.x'
           architecture: 'x64'
-      - name: Debug Windows
+      - uses: ilammy/msvc-dev-cmd@v1
+      - name: Windows Debug
         run: |
           pip3 install --user scons
           ./build_libs.bat Debug
           scons platform=windows target=debug
 
-  build-release-windows:
+  build-windows-release:
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v2
@@ -45,27 +46,28 @@ jobs:
         with:
           python-version: '3.x'
           architecture: 'x64'
-      - name: Release Windows
+      - uses: ilammy/msvc-dev-cmd@v1
+      - name: Windows Release
         run: |
           pip3 install --user scons
           ./build_libs.bat Release
           scons platform=windows target=release
 
-  build-debug-macos:
+  build-macos-debug:
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v2
-      - name: Debug macOS
+      - name: macOS Debug
         run: |
           brew install scons
           . ./build_libs_mac.sh Debug
           scons platform=osx target=debug use_llvm=yes
 
-  build-release-macos:
+  build-macos-release:
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v2
-      - name: Release macOS
+      - name: macOS Release
         run: |
           brew install scons
           . ./build_libs_mac.sh Release
