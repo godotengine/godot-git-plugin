@@ -13,12 +13,10 @@ copy godot-git-plugin\thirdparty\libgit2\build\%1\git2.lib demo\bin\win64\
 
 if "%CI%"=="" (
     echo Non-CI build detected
-    set SCONS=scons
 ) else (
     echo CI build detected
-    set SCONS=..\scons.bat
 )
 
 cd godot-cpp\
-%SCONS% platform=windows target=%1 generate_bindings=yes bits=64
+scons platform=windows target=%1 generate_bindings=yes bits=64
 cd ..

@@ -9,14 +9,17 @@ jobs:
       - uses: actions/checkout@v2
       - name: Debug Ubuntu
         run: |
+          pip3 install --user scons
           . ./build_libs.sh Debug
           scons platform=x11 target=debug
+
   build-release-ubuntu:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
       - name: Release Ubuntu
         run: |
+          pip3 install --user scons
           . ./build_libs.sh Release
           scons platform=x11 target=release
 
@@ -24,16 +27,27 @@ jobs:
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v2
+      - uses: actions/setup-python@v2
+        with:
+          python-version: '3.x'
+          architecture: 'x64'
       - name: Debug Windows
         run: |
+          pip3 install --user scons
           ./build_libs.bat Debug
           scons platform=windows target=debug
+
   build-release-windows:
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v2
+      - uses: actions/setup-python@v2
+        with:
+          python-version: '3.x'
+          architecture: 'x64'
       - name: Release Windows
         run: |
+          pip3 install --user scons
           ./build_libs.bat Release
           scons platform=windows target=release
 
@@ -43,13 +57,16 @@ jobs:
       - uses: actions/checkout@v2
       - name: Debug macOS
         run: |
+          brew install scons
           . ./build_libs_mac.sh Debug
           scons platform=osx target=debug
+
   build-release-macos:
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v2
       - name: Release macOS
         run: |
+          brew install scons
           . ./build_libs_mac.sh Release
           scons platform=osx target=release
