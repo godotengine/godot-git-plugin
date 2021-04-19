@@ -1,0 +1,74 @@
+name: C/C++ CI
+
+on: [push, pull_request]
+
+jobs:
+  build-ubuntu-debug:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Ubuntu Debug
+        run: |
+          pip3 install --user scons
+          . ./build_libs.sh Debug
+          scons platform=x11 target=debug
+
+  build-ubuntu-release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Ubuntu Release
+        run: |
+          pip3 install --user scons
+          . ./build_libs.sh Release
+          scons platform=x11 target=release
+
+  build-windows-debug:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-python@v2
+        with:
+          python-version: '3.x'
+          architecture: 'x64'
+      - uses: ilammy/msvc-dev-cmd@v1
+      - name: Windows Debug
+        run: |
+          pip3 install --user scons
+          ./build_libs.bat Debug
+          scons platform=windows target=debug
+
+  build-windows-release:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-python@v2
+        with:
+          python-version: '3.x'
+          architecture: 'x64'
+      - uses: ilammy/msvc-dev-cmd@v1
+      - name: Windows Release
+        run: |
+          pip3 install --user scons
+          ./build_libs.bat Release
+          scons platform=windows target=release
+
+  build-macos-debug:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: macOS Debug
+        run: |
+          brew install scons
+          . ./build_libs_mac.sh Debug
+          scons platform=osx target=debug use_llvm=yes
+
+  build-macos-release:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: macOS Release
+        run: |
+          brew install scons
+          . ./build_libs_mac.sh Release
+          scons platform=osx target=release use_llvm=yes
