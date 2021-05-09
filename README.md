@@ -44,6 +44,8 @@ Required build tools:
 2. Run ```. ./build_libs_mac.sh Release```.
 3. Run ```scons platform=osx target=release```.
 
+**Note:** [Compiling for the Apple Silicon architecture is not supported yet.](https://github.com/godotengine/godot-git-plugin/issues/68)
+
 #### Debug build
 
 Replace `Release` with `Debug` and `release` with `debug` in the above instructions for a debug build. You will also have to do the same in the paths mentioned in `demo/git_api.gdnlib` before opening the demo project in Godot.
