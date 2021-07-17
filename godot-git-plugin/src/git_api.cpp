@@ -688,8 +688,14 @@ bool GitAPI::_initialize(const String p_project_root_path) {
 
 bool GitAPI::_shut_down() {
 
-	git_repository_free(repo);
-	git_remote_free(remote);
+	if (repo)
+	{
+		git_repository_free(repo);
+	}
+	if (remote)
+	{
+		git_remote_free(remote);
+	}
 	GIT2_CALL_R(git_libgit2_shutdown(), "Could not shutdown Git Addon", false);
 
 	return true;

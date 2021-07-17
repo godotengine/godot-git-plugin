@@ -32,7 +32,7 @@ class GitAPI : public EditorVCSInterface {
 	git_repository *repo = nullptr;
 
 	const char *remote_name = "origin";
-	git_remote *remote;
+	git_remote *remote = nullptr;
 	git_remote_callbacks remote_cbs;
 
 	bool has_merge = false;
