@@ -9,7 +9,7 @@
 config_version=4
 
 _global_script_classes=[ {
-"base": "",
+"base": "EditorVCSInterface",
 "class": "GitAPI",
 "language": "NativeScript",
 "path": "res://git_api.gdns"
@@ -31,3 +31,8 @@ singletons=[ "res://git_api.gdnlib" ]
 [rendering]
 
 environment/default_environment="res://default_env.tres"
+
+[version_control]
+
+autoload_on_startup=true
+plugin_name="GitAPI"
