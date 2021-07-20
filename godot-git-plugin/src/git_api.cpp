@@ -49,7 +49,7 @@ bool GitAPI::check_errors(int error, String message, String function, String fil
 		message += String(lg2err->message);
 	}
 	Godot::print_error("Git API: " + message, function, file, line);
-	_popup_error(message);
+	popup_error(message);
 	return true;
 }
 
@@ -273,17 +273,17 @@ Array GitAPI::_get_modified_files_data() {
 		const static int git_status_index = GIT_STATUS_INDEX_NEW | GIT_STATUS_INDEX_MODIFIED | GIT_STATUS_INDEX_DELETED | GIT_STATUS_INDEX_RENAMED | GIT_STATUS_INDEX_TYPECHANGE;
 		
 		if (entry->status & git_status_wt) {
-			stats_files.push_back(_create_status_file(path, map_changes[entry->status & git_status_wt], TREE_AREA_UNSTAGED));
+			stats_files.push_back(create_status_file(path, map_changes[entry->status & git_status_wt], TREE_AREA_UNSTAGED));
 		}
 		
 		if (entry->status & git_status_index) {
 			if (entry->status == GIT_STATUS_INDEX_RENAMED) {
 				String old_path = entry->head_to_index->old_file.path;
-				stats_files.push_back(_create_status_file(old_path, map_changes[GIT_STATUS_INDEX_DELETED], TREE_AREA_STAGED));			
-				stats_files.push_back(_create_status_file(path, map_changes[GIT_STATUS_INDEX_NEW], TREE_AREA_STAGED));
+				stats_files.push_back(create_status_file(old_path, map_changes[GIT_STATUS_INDEX_DELETED], TREE_AREA_STAGED));			
+				stats_files.push_back(create_status_file(path, map_changes[GIT_STATUS_INDEX_NEW], TREE_AREA_STAGED));
 			}
 			else{
-				stats_files.push_back(_create_status_file(path, map_changes[entry->status & git_status_index], TREE_AREA_STAGED));
+				stats_files.push_back(create_status_file(path, map_changes[entry->status & git_status_index], TREE_AREA_STAGED));
 			}
 		}
 	}
@@ -389,7 +389,7 @@ Array GitAPI::_get_previous_commits() {
 		String author = sig->name;
 		int64_t when = (int64_t)sig->when.time + (int64_t)(sig->when.offset * 60);
 		String hex_id = commit_id;
-		Dictionary commit_info = _create_commit(msg, author, hex_id, when);
+		Dictionary commit_info = create_commit(msg, author, hex_id, when);
 		commits.push_back(commit_info);
 		git_commit_free(commit);
 	}
@@ -599,7 +599,7 @@ Array GitAPI::_parse_diff(git_diff *diff) {
 		if (delta->status == GIT_DELTA_UNMODIFIED || delta->status == GIT_DELTA_IGNORED || delta->status == GIT_DELTA_UNTRACKED) {
 			continue;
 		}
-		Dictionary diff_file = _create_diff_file(delta->new_file.path, delta->old_file.path);
+		Dictionary diff_file = create_diff_file(delta->new_file.path, delta->old_file.path);
 
 		Array diff_hunks;
 		for (int j = 0; j < git_patch_num_hunks(patch); j++) {
@@ -607,7 +607,7 @@ Array GitAPI::_parse_diff(git_diff *diff) {
 			size_t line_count;
 			git_patch_get_hunk(&git_hunk, &line_count, patch, j);
 
-			Dictionary diff_hunk = _create_diff_hunk(git_hunk->old_start, git_hunk->new_start, git_hunk->old_lines, git_hunk->new_lines);
+			Dictionary diff_hunk = create_diff_hunk(git_hunk->old_start, git_hunk->new_start, git_hunk->old_lines, git_hunk->new_lines);
 
 			Array diff_lines;
 			for (int k = 0; k < line_count; k++) {
@@ -617,14 +617,14 @@ Array GitAPI::_parse_diff(git_diff *diff) {
 				memcpy(content, git_diff_line->content, git_diff_line->content_len);
 				content[git_diff_line->content_len] = '\0';
 
-				Dictionary diff_line = _create_diff_line(git_diff_line->new_lineno, git_diff_line->old_lineno, String(content), String(git_diff_line->origin));
+				Dictionary diff_line = create_diff_line(git_diff_line->new_lineno, git_diff_line->old_lineno, String(content), String(git_diff_line->origin));
 				diff_lines.push_back(diff_line);
 			}
 
-			diff_hunk = _add_line_diffs_into_diff_hunk(diff_hunk, diff_lines);
+			diff_hunk = add_line_diffs_into_diff_hunk(diff_hunk, diff_lines);
 			diff_hunks.push_back(diff_hunk);
 		}
-		diff_file = _add_diff_hunks_into_diff_file(diff_file, diff_hunks);
+		diff_file = add_diff_hunks_into_diff_file(diff_file, diff_hunks);
 		diff_contents.push_back(diff_file);
 		
 		git_patch_free(patch);
