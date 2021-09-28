@@ -1,6 +1,8 @@
 #ifndef GIT_COMMON_H
 #define GIT_COMMON_H
 
+#include <cstdio>
+
 #include <Godot.hpp>
 
 #include <git2.h>
