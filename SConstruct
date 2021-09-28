@@ -45,11 +45,11 @@ if env['platform'] == "osx":
     cpp_library += '.osx'
     libgit2_lib_path += 'osx/'
     if env['target'] in ('debug', 'd'):
-        env.Append(CCFLAGS = ['-g','-O2', '-arch', 'x86_64', '-std=c++17'])
-        env.Append(LINKFLAGS = ['-arch', 'x86_64'])
+        env.Append(CCFLAGS = ['-g','-O2', '-arch', 'x86_64', '-arch', 'arm64', '-std=c++17'])
+        env.Append(LINKFLAGS = ['-arch', 'x86_64', '-arch', 'arm64'])
     else:
-        env.Append(CCFLAGS = ['-g','-O3', '-arch', 'x86_64', '-std=c++17'])
-        env.Append(LINKFLAGS = ['-arch', 'x86_64'])
+        env.Append(CCFLAGS = ['-g','-O3', '-arch', 'x86_64', '-arch', 'arm64', '-std=c++17'])
+        env.Append(LINKFLAGS = ['-arch', 'x86_64', '-arch', 'arm64'])
 
 elif env['platform'] in ('x11', 'linux'):
     env['target_path'] += 'x11/'
@@ -82,7 +82,10 @@ else:
     cpp_library += '.release'
     env['target_path'] += 'release/'
 
-cpp_library += '.' + str(bits)
+if env['platform'] == 'osx':
+    cpp_library += '.universal'
+else:
+    cpp_library += '.' + str(bits)
 
 # make sure our binding library properly includes
 env.Append(CPPPATH=['.', godot_headers_path, cpp_bindings_path + 'include/', cpp_bindings_path + 'include/core/', cpp_bindings_path + 'include/gen/'])
