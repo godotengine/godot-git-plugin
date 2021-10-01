@@ -3,72 +3,108 @@ name: C/C++ CI
 on: [push, pull_request]
 
 jobs:
-  build-ubuntu-debug:
+  ubuntu-debug:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
-      - name: Ubuntu Debug
+      - name: build-ubuntu-debug
         run: |
           pip3 install --user scons
           . ./build_libs.sh Debug
           scons platform=x11 target=debug
+      - uses: actions/upload-artifact@v2
+        with:
+          name: godot-git-plugin-ubuntu-debug-${{ github.sha }}
+          if-no-files-found: error
+          path: |
+            demo/
 
-  build-ubuntu-release:
+  ubuntu-release:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
-      - name: Ubuntu Release
+      - name: build-ubuntu-release
         run: |
           pip3 install --user scons
           . ./build_libs.sh Release
           scons platform=x11 target=release
+      - uses: actions/upload-artifact@v2
+        with:
+          name: godot-git-plugin-ubuntu-release-${{ github.sha }}
+          if-no-files-found: error
+          path: |
+            demo/
 
-  build-windows-debug:
+  windows-debug:
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v2
       - uses: actions/setup-python@v2
         with:
-          python-version: '3.x'
-          architecture: 'x64'
+          python-version: "3.x"
+          architecture: "x64"
       - uses: ilammy/msvc-dev-cmd@v1
-      - name: Windows Debug
+      - name: build-windows-debug
         run: |
           pip3 install --user scons
           ./build_libs.bat Debug
           scons platform=windows target=debug
+      - uses: actions/upload-artifact@v2
+        with:
+          name: godot-git-plugin-windows-debug-${{ github.sha }}
+          if-no-files-found: error
+          path: |
+            demo/
 
-  build-windows-release:
+  windows-release:
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v2
       - uses: actions/setup-python@v2
         with:
-          python-version: '3.x'
-          architecture: 'x64'
+          python-version: "3.x"
+          architecture: "x64"
       - uses: ilammy/msvc-dev-cmd@v1
-      - name: Windows Release
+      - name: build-windows-release
         run: |
           pip3 install --user scons
           ./build_libs.bat Release
           scons platform=windows target=release
+      - uses: actions/upload-artifact@v2
+        with:
+          name: godot-git-plugin-windows-release-${{ github.sha }}
+          if-no-files-found: error
+          path: |
+            demo/
 
-  build-macos-debug:
+  macos-debug:
     runs-on: macos-11
     steps:
       - uses: actions/checkout@v2
-      - name: macOS Debug
+      - name: build-macos-debug
         run: |
           brew install scons
           . ./build_libs_mac.sh Debug
           scons platform=osx target=debug use_llvm=yes
+      - uses: actions/upload-artifact@v2
+        with:
+          name: godot-git-plugin-macos-debug-${{ github.sha }}
+          if-no-files-found: error
+          path: |
+            demo/
 
-  build-macos-release:
+  macos-release:
     runs-on: macos-11
     steps:
       - uses: actions/checkout@v2
-      - name: macOS Release
+      - name: build-macos-release
         run: |
           brew install scons
           . ./build_libs_mac.sh Release
           scons platform=osx target=release use_llvm=yes
+      - uses: actions/upload-artifact@v2
+        with:
+          name: godot-git-plugin-macos-release-${{ github.sha }}
+          if-no-files-found: error
+          path: |
+            demo/
