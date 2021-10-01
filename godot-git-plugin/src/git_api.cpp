@@ -5,7 +5,6 @@ namespace godot {
 GitAPI *GitAPI::singleton = NULL;
 
 void GitAPI::_register_methods() {
-
 	register_method("_process", &GitAPI::_process);
 
 	register_method("_commit", &GitAPI::_commit);
@@ -21,9 +20,7 @@ void GitAPI::_register_methods() {
 }
 
 void GitAPI::_commit(const String p_msg) {
-
 	if (!can_commit) {
-
 		godot::Godot::print("Git API cannot commit. Check previous errors.");
 		return;
 	}
@@ -36,14 +33,11 @@ void GitAPI::_commit(const String p_msg) {
 
 	GIT2_CALL(git_repository_index(&repo_index, repo), "Could not get repository index", NULL);
 	for (int i = 0; i < staged_files.size(); i++) {
-
 		String file_path = staged_files[i];
 		File *file = File::_new();
 		if (file->file_exists(file_path)) {
-
 			GIT2_CALL(git_index_add_bypath(repo_index, file_path.alloc_c_string()), "Could not add file by path", NULL);
 		} else {
-
 			GIT2_CALL(git_index_remove_bypath(repo_index, file_path.alloc_c_string()), "Could not add file by path", NULL);
 		}
 	}
@@ -79,27 +73,21 @@ void GitAPI::_commit(const String p_msg) {
 }
 
 void GitAPI::_stage_file(const String p_file_path) {
-
 	if (staged_files.find(p_file_path) == -1) {
-
 		staged_files.push_back(p_file_path);
 	}
 }
 
 void GitAPI::_unstage_file(const String p_file_path) {
-
 	if (staged_files.find(p_file_path) != -1) {
-
 		staged_files.erase(p_file_path);
 	}
 }
 
 void GitAPI::create_gitignore_and_gitattributes() {
-
 	File *file = File::_new();
 
 	if (!file->file_exists("res://.gitignore")) {
-
 		file->open("res://.gitignore", File::ModeFlags::WRITE);
 		file->store_string(
 				"# Import cache\n"
@@ -113,7 +101,6 @@ void GitAPI::create_gitignore_and_gitattributes() {
 	}
 
 	if (!file->file_exists("res://.gitattributes")) {
-
 		file->open("res://.gitattributes", File::ModeFlags::WRITE);
 		file->store_string(
 				"# Set the default behavior, in case people don't have core.autocrlf set.\n"
@@ -138,14 +125,12 @@ void GitAPI::create_gitignore_and_gitattributes() {
 }
 
 bool GitAPI::create_initial_commit() {
-
 	git_signature *sig;
 	git_oid tree_id, commit_id;
 	git_index *repo_index;
 	git_tree *tree;
 
 	if (git_signature_default(&sig, repo) != 0) {
-
 		godot::Godot::print_error("Unable to create a commit signature. Perhaps 'user.name' and 'user.email' are not set. Set default user name and user email by `git config` and initialize again", __func__, __FILE__, __LINE__);
 		return false;
 	}
@@ -176,12 +161,10 @@ bool GitAPI::create_initial_commit() {
 }
 
 bool GitAPI::_is_vcs_initialized() {
-
 	return is_initialized;
 }
 
 Dictionary GitAPI::_get_modified_files_data() {
-
 	git_status_options opts = GIT_STATUS_OPTIONS_INIT;
 	opts.show = GIT_STATUS_SHOW_INDEX_AND_WORKDIR;
 	opts.flags = GIT_STATUS_OPT_EXCLUDE_SUBMODULES;
@@ -193,41 +176,32 @@ Dictionary GitAPI::_get_modified_files_data() {
 	Dictionary diff; // Schema is <file_path, status>
 	size_t count = git_status_list_entrycount(statuses);
 	for (size_t i = 0; i < count; ++i) {
-
 		const git_status_entry *entry = git_status_byindex(statuses, i);
 		String path;
 		if (entry->index_to_workdir) {
-
 			path = entry->index_to_workdir->new_file.path;
 		} else {
-
 			path = entry->head_to_index->new_file.path;
 		}
 		switch (entry->status) {
-
 			case GIT_STATUS_INDEX_NEW:
 			case GIT_STATUS_WT_NEW: {
-
 				diff[path] = 0;
 			} break;
 			case GIT_STATUS_INDEX_MODIFIED:
 			case GIT_STATUS_WT_MODIFIED: {
-
 				diff[path] = 1;
 			} break;
 			case GIT_STATUS_INDEX_RENAMED:
 			case GIT_STATUS_WT_RENAMED: {
-
 				diff[path] = 2;
 			} break;
 			case GIT_STATUS_INDEX_DELETED:
 			case GIT_STATUS_WT_DELETED: {
-
 				diff[path] = 3;
 			} break;
 			case GIT_STATUS_INDEX_TYPECHANGE:
 			case GIT_STATUS_WT_TYPECHANGE: {
-
 				diff[path] = 4;
 			} break;
 		}
@@ -239,7 +213,6 @@ Dictionary GitAPI::_get_modified_files_data() {
 }
 
 Array GitAPI::_get_file_diff(const String file_path) {
-
 	git_diff_options opts = GIT_DIFF_OPTIONS_INIT;
 	git_diff *diff;
 	char *pathspec = file_path.alloc_c_string();
@@ -261,39 +234,32 @@ Array GitAPI::_get_file_diff(const String file_path) {
 }
 
 String GitAPI::_get_project_name() {
-
 	return String("project");
 }
 
 String GitAPI::_get_vcs_name() {
-
 	return "Git";
 }
 
 bool GitAPI::_initialize(const String p_project_root_path) {
-
 	ERR_FAIL_COND_V(p_project_root_path == "", false);
 
 	singleton = this;
 
 	int init = git_libgit2_init();
 	if (init > 1) {
-
 		WARN_PRINT("Multiple libgit2 instances are running");
 	}
 
 	if (repo) {
-
 		return true;
 	}
 
 	can_commit = true;
 	GIT2_CALL(git_repository_init(&repo, p_project_root_path.alloc_c_string(), 0), "Could not initialize repository", NULL);
 	if (git_repository_head_unborn(repo) == 1) {
-
 		create_gitignore_and_gitattributes();
 		if (!create_initial_commit()) {
-
 			godot::Godot::print_error("Initial commit could not be created. Commit functionality will not work.", __func__, __FILE__, __LINE__);
 			can_commit = false;
 		}
@@ -306,7 +272,6 @@ bool GitAPI::_initialize(const String p_project_root_path) {
 }
 
 bool GitAPI::_shut_down() {
-
 	git_repository_free(repo);
 
 	GIT2_CALL(git_libgit2_shutdown(), "Could not shutdown Git Addon", NULL);

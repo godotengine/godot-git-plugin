@@ -3,7 +3,7 @@
 # chosen value in case the base style changes (last sync: Clang 6.0.1).
 ---
 ### General config, applies to all languages ###
-BasedOnStyle:  LLVM
+BasedOnStyle: LLVM
 AccessModifierOffset: -4
 AlignAfterOpenBracket: DontAlign
 # AlignConsecutiveAssignments: false
@@ -13,9 +13,9 @@ AlignAfterOpenBracket: DontAlign
 AlignTrailingComments: false
 AllowAllParametersOfDeclarationOnNextLine: false
 # AllowShortBlocksOnASingleLine: false
-AllowShortCaseLabelsOnASingleLine: true
+# AllowShortCaseLabelsOnASingleLine: false
 AllowShortFunctionsOnASingleLine: Inline
-AllowShortIfStatementsOnASingleLine: true
+# AllowShortIfStatementsOnASingleLine: false
 # AllowShortLoopsOnASingleLine: false
 # AlwaysBreakAfterDefinitionReturnType: None
 # AlwaysBreakAfterReturnType: None
@@ -46,7 +46,7 @@ BreakBeforeTernaryOperators: false
 # BreakConstructorInitializersBeforeComma: false
 BreakConstructorInitializers: AfterColon
 # BreakStringLiterals: true
-ColumnLimit:     0
+ColumnLimit: 0
 # CommentPragmas:  '^ IWYU pragma:'
 # CompactNamespaces: false
 ConstructorInitializerAllOnOneLineOrOnePerLine: true
@@ -63,20 +63,20 @@ Cpp11BracedListStyle: false
 #   - BOOST_FOREACH
 # IncludeBlocks:   Preserve
 IncludeCategories:
-  - Regex:           '".*"'
-    Priority:        1
-  - Regex:           '^<.*\.h>'
-    Priority:        2
-  - Regex:           '^<.*'
-    Priority:        3
+  - Regex: '".*"'
+    Priority: 1
+  - Regex: '^<.*\.h>'
+    Priority: 2
+  - Regex: "^<.*"
+    Priority: 3
 # IncludeIsMainRegex: '(Test)?$'
 IndentCaseLabels: true
 # IndentPPDirectives: None
-IndentWidth:     4
+IndentWidth: 4
 # IndentWrappedFunctionNames: false
 # JavaScriptQuotes: Leave
 # JavaScriptWrapImports: true
-# KeepEmptyLinesAtTheStartOfBlocks: true
+KeepEmptyLinesAtTheStartOfBlocks: false
 # MacroBlockBegin: ''
 # MacroBlockEnd:   ''
 # MaxEmptyLinesToKeep: 1
@@ -107,21 +107,30 @@ IndentWidth:     4
 # SpacesInCStyleCastParentheses: false
 # SpacesInParentheses: false
 # SpacesInSquareBrackets: false
-TabWidth:        4
-UseTab:          Always
+TabWidth: 4
+UseTab: Always
 ---
 ### C++ specific config ###
-Language:        Cpp
-Standard:        Cpp03
+Language: Cpp
+Standard: Cpp11
 ---
 ### ObjC specific config ###
-Language:        ObjC
-Standard:        Cpp03
+Language: ObjC
+Standard: Cpp11
 ObjCBlockIndentWidth: 4
 # ObjCSpaceAfterProperty: false
 # ObjCSpaceBeforeProtocolList: true
 ---
 ### Java specific config ###
-Language:        Java
+Language: Java
 # BreakAfterJavaFieldAnnotations: false
-...
+JavaImportGroups:
+  [
+    "org.godotengine",
+    "android",
+    "androidx",
+    "com.android",
+    "com.google",
+    "java",
+    "javax",
+  ]
