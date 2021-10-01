@@ -1,23 +1,22 @@
 #ifndef GIT_API_H
 #define GIT_API_H
 
-#include <Godot.hpp>
 #include <Button.hpp>
 #include <Control.hpp>
-#include <EditorVCSInterface.hpp>
-#include <PanelContainer.hpp>
 #include <Directory.hpp>
+#include <EditorVCSInterface.hpp>
 #include <File.hpp>
+#include <Godot.hpp>
+#include <PanelContainer.hpp>
 
-#include <git_common.h>
 #include <allocation_defs.h>
+#include <git_common.h>
 
 #include <git2.h>
 
 namespace godot {
 
 class GitAPI : public EditorVCSInterface {
-
 	GODOT_CLASS(GitAPI, EditorVCSInterface)
 
 	static GitAPI *singleton;
