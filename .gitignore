@@ -14,18 +14,5 @@ api.json
 .DS_Store
 
 # Binaries
-bin/
-intermediate/
 build/
-*.dll
-*.lib
-*.exp
 *.obj
-*.so
-*.dylib
-*.pdb
-*.ilk
-*.exe
-*.os
-*.out
-.import/
