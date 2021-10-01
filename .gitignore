@@ -18,6 +18,8 @@ bin/
 intermediate/
 build/
 *.dll
+*.lib
+*.exp
 *.obj
 *.so
 *.dylib
@@ -27,4 +29,3 @@ build/
 *.os
 *.out
 .import/
-

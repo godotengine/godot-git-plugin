@@ -8,8 +8,8 @@ del /F CMakeCache.txt
 cmake .. -DCMAKE_POSITION_INDEPENDENT_CODE=ON -DBUILD_SHARED_LIBS=OFF -DBUILD_CLAR=OFF -DBUILD_EXAMPLES=OFF -DUSE_SSH=OFF -DUSE_HTTPS=OFF -DUSE_BUNDLED_ZLIB=ON -DWINHTTP=OFF
 cmake --build . --config %1
 cd ../../../../
-mkdir "demo/bin/win64/"
-copy godot-git-plugin\thirdparty\libgit2\build\%1\git2.lib demo\bin\win64\
+mkdir "demo/addons/godot-git-plugin/win64/"
+copy godot-git-plugin\thirdparty\libgit2\build\%1\git2.lib demo\addons\godot-git-plugin\win64\git2.lib
 
 if "%CI%"=="" (
     echo Non-CI build detected
