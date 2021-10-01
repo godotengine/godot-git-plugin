@@ -8,8 +8,8 @@ rm -f CMakeCache.txt
 cmake .. -DCMAKE_POSITION_INDEPENDENT_CODE=ON -DBUILD_SHARED_LIBS=OFF -DBUILD_CLAR=OFF -DBUILD_EXAMPLES=OFF -DUSE_SSH=OFF -DUSE_HTTPS=OFF -DUSE_BUNDLED_ZLIB=ON
 cmake --build . --config $1
 cd ../../../../
-mkdir -p "demo/bin/x11/"
-cp "godot-git-plugin/thirdparty/libgit2/build/libgit2.a" "demo/bin/x11/libgit2.a"
+mkdir -p "demo/addons/godot-git-plugin/x11/"
+cp "godot-git-plugin/thirdparty/libgit2/build/libgit2.a" "demo/addons/godot-git-plugin/x11/libgit2.a"
 
 if [ -z "$CI" ]
 then
