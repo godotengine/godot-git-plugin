@@ -3,7 +3,7 @@ name: clang-format
 on: [push]
 
 jobs:
-  build:
+  clang-format:
     runs-on: ubuntu-latest
 
     steps:
