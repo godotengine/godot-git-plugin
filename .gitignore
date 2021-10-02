@@ -15,9 +15,12 @@ api.json
 
 # Binaries
 build/
+bin/
 osx/
 x11/
 win64/
+*.lib
+*.a
 *.obj
 *.ilk
 *.pdb

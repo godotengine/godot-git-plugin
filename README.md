@@ -23,10 +23,10 @@ This section onwards is only meant to be used if you intend to compile the plugi
 ### Build
 
 ```
-scons platform=windows target=release bits=64 -j %NUMBER_OF_PROCESSORS%
+scons platform=<platform> target=release bits=64 -j 6
 ```
 
-For more build options, run `scons platform=windows -h`
+For more build options, run `scons platform=<platform> -h`
 
 ## Bleeding Edge
 
@@ -35,7 +35,7 @@ Most of the times when new featured are being worked on for the Godot VCS Integr
 To build using custom GDNative API definition JSON files, run the below helper command:
 
 ```
-scons platform=windows target=debug godot_cpp=yes generate_bindings=yes bits=64 use_custom_api_file=yes custom_api_file=path/to/api.json -j %NUMBER_OF_PROCESSORS%
+scons platform=<platform> target=debug godot_cpp=yes generate_bindings=yes bits=64 use_custom_api_file=yes custom_api_file=path/to/api.json -j 6
 ```
 
-Once this command can completed successfully, the standard build commands in the above section can be run without recompiling godot-cpp. To stop godot-cpp from recompiling, do not use the `godot_cpp` option in SCons arguments. To view more options available while recompiling godot-cpp, run `scons platform=windows godot_cpp=yes -h`
+Once this command can completed successfully, the standard build commands in the above section can be run without recompiling godot-cpp. To stop godot-cpp from recompiling, do not use the `godot_cpp` option in SCons arguments. To view more options available while recompiling godot-cpp, run `scons platform=<platform> godot_cpp=yes -h`
