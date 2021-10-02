@@ -11,7 +11,6 @@
 namespace godot {
 
 void GitAPI::_register_methods() {
-
 	register_method("_process", &GitAPI::_process);
 
 	register_method("_commit", &GitAPI::_commit);
@@ -64,7 +63,6 @@ void GitAPI::_discard_file(String p_file_path) {
 }
 
 void GitAPI::_commit(const String p_msg) {
-
 	if (!can_commit) {
 		godot::Godot::print("Git API: Cannot commit. Check previous errors.");
 		return;
@@ -157,11 +155,9 @@ void GitAPI::_unstage_file(const String p_file_path) {
 }
 
 void GitAPI::create_gitignore_and_gitattributes() {
-
 	File *file = File::_new();
 
 	if (!file->file_exists("res://.gitignore")) {
-
 		file->open("res://.gitignore", File::ModeFlags::WRITE);
 		file->store_string(
 				"# Import cache\n"
@@ -175,7 +171,6 @@ void GitAPI::create_gitignore_and_gitattributes() {
 	}
 
 	if (!file->file_exists("res://.gitattributes")) {
-
 		file->open("res://.gitattributes", File::ModeFlags::WRITE);
 		file->store_string(
 				"# Set the default behavior, in case people don't have core.autocrlf set.\n"
@@ -200,14 +195,12 @@ void GitAPI::create_gitignore_and_gitattributes() {
 }
 
 bool GitAPI::create_initial_commit() {
-
 	git_signature *sig;
 	git_oid tree_id, commit_id;
 	git_index *repo_index;
 	git_tree *tree;
 
 	if (git_signature_default(&sig, repo) != 0) {
-
 		godot::Godot::print_error("Unable to create a commit signature. Perhaps 'user.name' and 'user.email' are not set. Set default user name and user email by `git config` and initialize again", __func__, __FILE__, __LINE__);
 		return false;
 	}
@@ -229,7 +222,6 @@ bool GitAPI::create_initial_commit() {
 }
 
 bool GitAPI::_is_vcs_initialized() {
-
 	return is_initialized;
 }
 
@@ -247,7 +239,6 @@ Array GitAPI::_get_modified_files_data() {
 
 	size_t count = git_status_list_entrycount(statuses);
 	for (size_t i = 0; i < count; ++i) {
-
 		const git_status_entry *entry = git_status_byindex(statuses, i);
 		String path;
 		if (entry->index_to_workdir) {
@@ -529,7 +520,6 @@ bool GitAPI::_checkout_branch(String p_branch_name) {
 }
 
 Array GitAPI::_get_file_diff(const String identifier, int area) {
-
 	git_diff_options opts = GIT_DIFF_OPTIONS_INIT;
 	git_diff *diff;
 	Array diff_contents;
@@ -633,37 +623,30 @@ Array GitAPI::_parse_diff(git_diff *diff) {
 }
 
 String GitAPI::_get_project_name() {
-
 	return String("project");
 }
 
 String GitAPI::_get_vcs_name() {
-
 	return "Git";
 }
 
 bool GitAPI::_initialize(const String p_project_root_path) {
-
 	ERR_FAIL_COND_V(p_project_root_path == "", false);
 
 	int init = git_libgit2_init();
 	if (init > 1) {
-
 		WARN_PRINT("Multiple libgit2 instances are running");
 	}
 
 	if (repo) {
-
 		return true;
 	}
 
 	can_commit = true;
 	GIT2_CALL_R(git_repository_init(&repo, p_project_root_path.alloc_c_string(), 0), "Could not initialize repository", false);
 	if (git_repository_head_unborn(repo) == 1) {
-
 		create_gitignore_and_gitattributes();
 		if (!create_initial_commit()) {
-
 			godot::Godot::print_error("Initial commit could not be created. Commit functionality will not work.", __func__, __FILE__, __LINE__);
 			can_commit = false;
 		}

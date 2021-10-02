@@ -1,0 +1,18 @@
+[general]
+
+singleton=true
+load_once=true
+symbol_prefix="godot_"
+reloadable=false
+
+[entry]
+
+OSX.64="res://addons/godot-git-plugin/osx/release/libgitapi.dylib"
+Windows.64="res://addons/godot-git-plugin/win64/release/libgitapi.dll"
+X11.64="res://addons/godot-git-plugin/x11/release/libgitapi.so"
+
+[dependencies]
+
+OSX.64=[  ]
+Windows.64=[  ]
+X11.64=[  ]
