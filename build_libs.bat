@@ -5,7 +5,7 @@ cd godot-git-plugin\thirdparty\libgit2\
 mkdir build
 cd build\
 del /F CMakeCache.txt
-cmake .. -DCMAKE_POSITION_INDEPENDENT_CODE=ON -DBUILD_SHARED_LIBS=OFF -DBUILD_CLAR=OFF -DBUILD_EXAMPLES=OFF -DUSE_SSH=OFF -DUSE_HTTPS=OFF -DUSE_BUNDLED_ZLIB=ON -DWINHTTP=OFF
+cmake .. -DCMAKE_POSITION_INDEPENDENT_CODE=ON -DBUILD_SHARED_LIBS=OFF -DBUILD_CLAR=OFF -DBUILD_EXAMPLES=OFF -DUSE_SSH=ON -DUSE_HTTPS=ON -DUSE_BUNDLED_ZLIB=ON -DWINHTTP=ON
 cmake --build . --config %1
 cd ../../../../
 mkdir "demo/addons/godot-git-plugin/win64/"

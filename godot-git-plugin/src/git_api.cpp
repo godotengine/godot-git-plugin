@@ -26,11 +26,11 @@ void GitAPI::_register_methods() {
 	register_method("_unstage_file", &GitAPI::_unstage_file);
 	register_method("_get_previous_commits", &GitAPI::_get_previous_commits);
 	register_method("_get_branch_list", &GitAPI::_get_branch_list);
+	register_method("_get_current_branch_name", &GitAPI::_get_current_branch_name);
 	register_method("_checkout_branch", &GitAPI::_checkout_branch);
 	register_method("_fetch", &GitAPI::_fetch);
 	register_method("_pull", &GitAPI::_pull);
 	register_method("_push", &GitAPI::_push);
-	register_method("_set_up_credentials", &GitAPI::_set_up_credentials);
 	register_method("_get_line_diff", &GitAPI::_get_line_diff);
 }
 
@@ -44,27 +44,27 @@ bool GitAPI::check_errors(int error, String message, String function, String fil
 	}
 
 	if ((lg2err = git_error_last()) != NULL && lg2err->message != NULL) {
-		message += " [" + String::num_int64(error) + "]; ";
+		message += ". Error " + String::num_int64(error) + ": ";
 		message += String(lg2err->message);
 	}
-	Godot::print_error("Git API: " + message, function, file, line);
+	Godot::print_error("GitAPI: " + message, function, file, line);
 	popup_error(message);
 	return true;
 }
 
-
-void GitAPI::_discard_file(String p_file_path) {
+void GitAPI::_discard_file(const String file_path) {
 
 	git_checkout_options opts = GIT_CHECKOUT_OPTIONS_INIT;
-	char *paths[] = { p_file_path.alloc_c_string() };
+	CString c_path(file_path);
+	char *paths[] = { c_path.data };
 	opts.paths = { paths, 1 };
 	opts.checkout_strategy = GIT_CHECKOUT_FORCE;
 	GIT2_CALL(git_checkout_index(repo, NULL, &opts), "Cannot checkout a file");
 }
 
-void GitAPI::_commit(const String p_msg) {
+void GitAPI::_commit(const String msg) {
 	if (!can_commit) {
-		godot::Godot::print("Git API: Cannot commit. Check previous errors.");
+		godot::Godot::print("GitAPI: Cannot commit. Check previous errors.");
 		return;
 	}
 
@@ -94,7 +94,7 @@ void GitAPI::_commit(const String p_msg) {
 						default_sign,
 						default_sign,
 						"UTF-8",
-						p_msg.alloc_c_string(),
+						CString(msg).data,
 						tree,
 						1,
 						parent_commit),
@@ -111,7 +111,7 @@ void GitAPI::_commit(const String p_msg) {
 						default_sign,
 						default_sign,
 						"UTF-8",
-						p_msg.alloc_c_string(),
+						CString(msg).data,
 						tree,
 						2,
 						parent_commit,
@@ -128,9 +128,10 @@ void GitAPI::_commit(const String p_msg) {
 	git_tree_free(tree);
 }
 
-void GitAPI::_stage_file(const String p_file_path) {
+void GitAPI::_stage_file(const String file_path) {
 	git_index *index;
-	char *paths[] = { p_file_path.alloc_c_string() };
+	CString c_path(file_path);
+	char *paths[] = { c_path.data };
 	git_strarray array = { paths, 1 };
 
 	GIT2_CALL(git_repository_index(&index, repo), "Could not get repository index");
@@ -140,9 +141,9 @@ void GitAPI::_stage_file(const String p_file_path) {
 	git_index_free(index);
 }
 
-void GitAPI::_unstage_file(const String p_file_path) {
-
-	char *paths[] = { p_file_path.alloc_c_string() };
+void GitAPI::_unstage_file(const String file_path) {
+	CString c_path(file_path);
+	char *paths[] = { c_path.data };
 	git_strarray array = { paths, 1 };
 
 	git_reference *head;
@@ -307,14 +308,12 @@ Array GitAPI::_get_branch_list() {
 	return branch_names;
 }
 
-Array GitAPI::_get_line_diff(String p_file_path, String p_text) {
-	//get blob
+Array GitAPI::_get_line_diff(String file_path, String text) {
 	git_index *index;
 	git_blob *blob;
 	git_reference *head;
 
 	git_diff_options opts = GIT_DIFF_OPTIONS_INIT;
-	git_diff *diff;
 	Array diff_contents;
 
 	opts.context_lines = 0;
@@ -323,7 +322,7 @@ Array GitAPI::_get_line_diff(String p_file_path, String p_text) {
 	GIT2_CALL_R(git_repository_index(&index, repo), "Failed to get repository index", diff_contents);
 	GIT2_CALL_R(git_index_read(index, 0), "Failed to read index", diff_contents);
 
-	const git_index_entry *entry = git_index_get_bypath(index, p_file_path.alloc_c_string(), GIT_INDEX_STAGE_NORMAL);
+	const git_index_entry *entry = git_index_get_bypath(index, CString(file_path).data, GIT_INDEX_STAGE_NORMAL);
 	
 	if (entry == NULL) {
 		git_index_free(index);
@@ -333,25 +332,29 @@ Array GitAPI::_get_line_diff(String p_file_path, String p_text) {
 	const git_oid *blobSha = &entry->id;
 	GIT2_CALL_R(git_repository_head(&head, repo), "Failed to load repository head", diff_contents);
 	GIT2_CALL_R(git_blob_lookup(&blob, repo, blobSha), "Failed to load head blob", diff_contents);
-	GIT2_CALL_R(git_diff_blob_to_buffer(blob, NULL, p_text.alloc_c_string(), p_text.length(), NULL, &opts, NULL, NULL, diff_hunk_cb, NULL, &diff_contents), "Failed to make diff", diff_contents);
+	GIT2_CALL_R(git_diff_blob_to_buffer(blob, NULL, CString(text).data, text.length(), NULL, &opts, NULL, NULL, diff_hunk_cb, NULL, &diff_contents), "Failed to make diff", diff_contents);
 
 	git_index_free(index);
 	git_blob_free(blob);
 	git_reference_free(head);
-	git_diff_free(diff);
 
 	return diff_contents;
 }
 
-const char *GitAPI::_get_current_branch_name(bool full_ref) {
-	git_reference *head, *branch;
+String GitAPI::_get_current_branch_name(bool full_ref) {
+	git_reference *head;
+	git_reference *branch;
+
 	git_repository_head(&head, repo);
 	git_reference_resolve(&branch, head);
-	const char *branch_name;
+
+	String branch_name;
 	if (full_ref) {
 		branch_name = git_reference_name(branch);
 	} else {
-		git_branch_name(&branch_name, branch);
+		const char *name = "";
+		GIT2_CALL_R(git_branch_name(&name, branch), "Could not get branch name from current branch reference.", "");
+		branch_name = name;
 	}
 
 	git_reference_free(head);
@@ -390,31 +393,97 @@ Array GitAPI::_get_previous_commits() {
 	return commits;
 }
 
-void GitAPI::_fetch() {
+void GitAPI::_fetch(String remote, String username, String password) {
 
-	Godot::print("Git API: Performing fetch...");
-	GIT2_CALL(git_remote_connect(remote, GIT_DIRECTION_FETCH, &remote_cbs, NULL, NULL), "Could not connect to remote \"" + String(remote_name) + "\"");
+	Godot::print("GitAPI: Performing fetch from " + remote);
+	
+	git_remote *remote_object;
+	GIT2_CALL(git_remote_lookup(&remote_object, repo, CString(remote).data), "Could not lookup remote \"" + remote + "\"");
+
+	CString c_username(username);
+	CString c_password(username);
+
+	String payload[2] = {
+		username,
+		password
+	};
+
+	git_remote_callbacks remote_cbs = GIT_REMOTE_CALLBACKS_INIT;
+	remote_cbs.credentials = &credentials_cb;
+	remote_cbs.update_tips = &update_cb;
+	remote_cbs.sideband_progress = &progress_cb;
+	remote_cbs.transfer_progress = &transfer_progress_cb;
+	remote_cbs.payload = payload;
+	remote_cbs.push_transfer_progress = &push_transfer_progress_cb;
+	remote_cbs.push_update_reference = &push_update_reference_cb;
+
+	GIT2_CALL(git_remote_connect(remote_object, GIT_DIRECTION_FETCH, &remote_cbs, NULL, NULL), "Could not connect to remote \"" + remote + "\". Are your credentials correct? Try using a PAT token (in case you are using Github) as your password");
 
 	git_fetch_options opts = GIT_FETCH_OPTIONS_INIT;
 	opts.callbacks = remote_cbs;
-	GIT2_CALL(git_remote_fetch(remote, NULL, &opts, "fetch"), "Could not fetch data from remote");
+	GIT2_CALL(git_remote_fetch(remote_object, NULL, &opts, "fetch"), "Could not fetch data from remote");
+
+	git_remote_free(remote_object);
+
+	Godot::print("GitAPI: Fetch ended");
 }
 
-void GitAPI::_pull() {
-	Godot::print("Git API: Performing pull...");
+void GitAPI::_pull(String remote, String username, String password) {
+	Godot::print("GitAPI: Performing pull from " + remote);
 
-	GIT2_CALL(git_remote_connect(remote, GIT_DIRECTION_FETCH, &remote_cbs, NULL, NULL), "Could not connect to remote \"" + String(remote_name) + "\"");
+	git_remote *remote_object;
+	GIT2_CALL(git_remote_lookup(&remote_object, repo, CString(remote).data), "Could not lookup remote \"" + remote + "\"");
+
+	String payload[2] = {
+		username,
+		password
+	};
+
+	git_remote_callbacks remote_cbs = GIT_REMOTE_CALLBACKS_INIT;
+	remote_cbs.credentials = &credentials_cb;
+	remote_cbs.update_tips = &update_cb;
+	remote_cbs.sideband_progress = &progress_cb;
+	remote_cbs.transfer_progress = &transfer_progress_cb;
+	remote_cbs.payload = payload;
+	remote_cbs.push_transfer_progress = &push_transfer_progress_cb;
+	remote_cbs.push_update_reference = &push_update_reference_cb;
+
+	GIT2_CALL(git_remote_connect(remote_object, GIT_DIRECTION_FETCH, &remote_cbs, NULL, NULL), "Could not connect to remote \"" + remote + "\". Are your credentials correct? Try using a PAT token (in case you are using Github) as your password");
 
 	git_fetch_options fetch_opts = GIT_FETCH_OPTIONS_INIT;
 	fetch_opts.callbacks = remote_cbs;
 
-	const char *branch_name = _get_current_branch_name(false);
-	// There is no way to get remote branch name from current branch name with libgit2
-	String ref_name = "refs/heads/" + String(branch_name) + ":refs/remotes/" + String(remote_name) + "/" + String(branch_name);
-	char *ref[] = { ref_name.alloc_c_string() };
+	String branch_name = _get_current_branch_name(false);
+
+	git_buf upstream_buf;
+	Godot::print_warning("yo", __FUNCTION__, __FILE__, __LINE__);
+	if (git_branch_upstream_name(&upstream_buf, repo, CString(branch_name).data) == GIT_ENOTFOUND)
+	{
+		Godot::print_warning("GitAPI: The current branch " + branch_name + " has no upstream branch. Setting the upstream to " + branch_name, __FUNCTION__, __FILE__, __LINE__);
+
+		git_reference *head;
+		git_reference *branch;
+
+		GIT2_CALL(git_repository_head(&head, repo), "Could not find repository HEAD");
+		GIT2_CALL(git_reference_resolve(&branch, head), "Could not resolve HEAD reference to " + branch_name + " branch");
+		GIT2_CALL(git_branch_set_upstream(branch, CString(branch_name).data), "Could not set " + branch_name + " upstream");
+
+		GIT2_CALL(git_branch_upstream_name(&upstream_buf, repo, CString(branch_name).data), "Could not get upstream for " + branch_name + " branch");
+		Godot::print_warning("yo", __FUNCTION__, __FILE__, __LINE__);
+
+		git_reference_free(head);
+		git_reference_free(branch);
+	}
+	else {
+		// Redo the operation in case we missed an actual error
+		GIT2_CALL(git_branch_upstream_name(&upstream_buf, repo, CString(branch_name).data), "Could not get current branch upstream name");
+	}
+	Godot::print_warning("yo", __FUNCTION__, __FILE__, __LINE__);
+	
+	char *ref[] = { upstream_buf.ptr };
 	git_strarray refspec = { ref, 1 };
 
-	GIT2_CALL(git_remote_fetch(remote, &refspec, &fetch_opts, "pull"), "Could not fetch data from remote");
+	GIT2_CALL(git_remote_fetch(remote_object, &refspec, &fetch_opts, "pull"), "Could not fetch data from remote");
 	GIT2_CALL(git_repository_fetchhead_foreach(repo, fetchhead_foreach_cb, &pull_merge_oid), "Could not read \"FETCH_HEAD\" file");
 
 	if (!&pull_merge_oid) {
@@ -447,7 +516,7 @@ void GitAPI::_pull() {
 
 		git_reference_free(target_ref);
 		git_reference_free(new_target_ref);
-		Godot::print("Git API: Fast Forwarded");
+		Godot::print("GitAPI: Fast Forwarded");
 		git_repository_state_cleanup(repo);
 	} else if (merge_analysis & GIT_MERGE_ANALYSIS_NORMAL) {
 		git_merge_options merge_opts = GIT_MERGE_OPTIONS_INIT;
@@ -462,74 +531,119 @@ void GitAPI::_pull() {
 		git_repository_index(&index, repo);
 
 		if (git_index_has_conflicts(index)) {
-			Godot::print("Git API: Index has conflicts, Solve conflicts and make a merge commit.");
+			Godot::print("GitAPI: Index has conflicts, Solve conflicts and make a merge commit.");
 		} else {
-			Godot::print("Git API: Change are staged, make a merge commit.");
+			Godot::print("GitAPI: Change are staged, make a merge commit.");
 		}
 
 		git_index_free(index);
 		has_merge = true;
 
 	} else if (merge_analysis & GIT_MERGE_ANALYSIS_UP_TO_DATE) {
-		Godot::print("Git API: Already up to date");
+		Godot::print("GitAPI: Already up to date");
 		git_repository_state_cleanup(repo);
 	} else {
-		Godot::print("Git API: Can not merge");
+		Godot::print("GitAPI: Can not merge");
 	}
 
 	git_annotated_commit_free(fetchhead_annotated_commit);
+
+	git_remote_free(remote_object);
+
+	Godot::print("GitAPI: Pull ended");
 }
 
-void GitAPI::_push() {
-	Godot::print("Git API: Performing push...");
+void GitAPI::_push(String remote, String username, String password) {
+	Godot::print("GitAPI: Performing push to " + remote);
 
-	GIT2_CALL(git_remote_connect(remote, GIT_DIRECTION_PUSH, &remote_cbs, NULL, NULL), "Could not connect to remote \"" + String(remote_name) + "\"");
+	git_remote *remote_object;
+	GIT2_CALL(git_remote_lookup(&remote_object, repo, CString(remote).data), "Could not lookup remote \"" + remote + "\"");
+
+	CString c_username(username);
+	CString c_password(username);
+
+	String payload[2] = {
+		username,
+		password
+	};
+
+	git_remote_callbacks remote_cbs = GIT_REMOTE_CALLBACKS_INIT;
+	remote_cbs.credentials = &credentials_cb;
+	remote_cbs.update_tips = &update_cb;
+	remote_cbs.sideband_progress = &progress_cb;
+	remote_cbs.transfer_progress = &transfer_progress_cb;
+	remote_cbs.payload = payload;
+	remote_cbs.push_transfer_progress = &push_transfer_progress_cb;
+	remote_cbs.push_update_reference = &push_update_reference_cb;
+
+	GIT2_CALL(git_remote_connect(remote_object, GIT_DIRECTION_PUSH, &remote_cbs, NULL, NULL), "Could not connect to remote \"" + remote + "\". Are your credentials correct? Try using a PAT token (in case you are using Github) as your password");
 
 	git_push_options push_opts = GIT_PUSH_OPTIONS_INIT;
 	push_opts.callbacks = remote_cbs;
 
-	String branch_name = String(_get_current_branch_name(true));
-	char *ref[] = { branch_name.alloc_c_string() };
+	String branch_name = _get_current_branch_name(false);
+
+	git_buf upstream_buf;
+	if (git_branch_upstream_name(&upstream_buf, repo, CString(branch_name).data) == GIT_ENOTFOUND)
+	{
+		Godot::print_warning("GitAPI: The current branch " + branch_name + " has no upstream branch. Setting the upstream to " + branch_name, __FUNCTION__, __FILE__, __LINE__);
+
+		git_reference *head;
+		git_reference *branch;
+
+		GIT2_CALL(git_repository_head(&head, repo), "Could not find repository HEAD");
+		GIT2_CALL(git_reference_resolve(&branch, head), "Could not resolve HEAD reference to " + branch_name + " branch");
+		GIT2_CALL(git_branch_set_upstream(branch, CString(branch_name).data), "Could not set " + branch_name + " upstream");
+
+		GIT2_CALL(git_branch_upstream_name(&upstream_buf, repo, CString(branch_name).data), "Could not get upstream for " + branch_name + " branch");
+
+		git_reference_free(head);
+		git_reference_free(branch);
+	}
+	else {
+		// Redo the operation in case we missed an actual error
+		GIT2_CALL(git_branch_upstream_name(&upstream_buf, repo, CString(branch_name).data), "Could not get current branch upstream name.");
+	}
+
+	char *ref[] = { upstream_buf.ptr };
 	git_strarray refspecs = { ref, 1 };
 
-	GIT2_CALL(git_remote_upload(remote, &refspecs, &push_opts), "Failed to push");
+	GIT2_CALL(git_remote_upload(remote_object, &refspecs, &push_opts), "Failed to push");
+
+	git_remote_free(remote_object);
+	
+	Godot::print("GitAPI: Push ended");
 }
 
-void GitAPI::_set_up_credentials(String p_username, String p_password) {
-	creds.username = p_username.alloc_c_string();
-	creds.password = p_password.alloc_c_string();
-}
-
-bool GitAPI::_checkout_branch(String p_branch_name) {
+bool GitAPI::_checkout_branch(String branch_name) {
 	git_checkout_options opts = GIT_CHECKOUT_OPTIONS_INIT;
 	opts.checkout_strategy = GIT_CHECKOUT_SAFE;
-	git_reference *ref, *branch;
+	git_reference *branch;
 	git_object *treeish;
 
-	GIT2_CALL_R(git_branch_lookup(&branch, repo, p_branch_name.alloc_c_string(), GIT_BRANCH_LOCAL), "Could not find branch", false);
+	GIT2_CALL_R(git_branch_lookup(&branch, repo, CString(branch_name).data, GIT_BRANCH_LOCAL), "Could not find branch", false);
 	const char *branch_ref_name = git_reference_name(branch);
 
-	GIT2_CALL_R(git_revparse_single(&treeish, repo, p_branch_name.alloc_c_string()), "Could not find branch head", false);
+	GIT2_CALL_R(git_revparse_single(&treeish, repo, CString(branch_name).data), "Could not find branch head", false);
 	GIT2_CALL_R(git_checkout_tree(repo, treeish, &opts), "Could not checkout", false);
 	GIT2_CALL_R(git_repository_set_head(repo, branch_ref_name), "Could not set head", false);
 
 	git_object_free(treeish);
-	git_reference_free(ref);
 	git_reference_free(branch);
 	return true;
 }
 
-Array GitAPI::_get_file_diff(const String identifier, int area) {
+Array GitAPI::_get_file_diff(const String identifier, const int64_t area) {
 	git_diff_options opts = GIT_DIFF_OPTIONS_INIT;
 	git_diff *diff;
 	Array diff_contents;
 
 	opts.context_lines = 2;
 	opts.interhunk_lines = 0;
-	opts.flags = GIT_DIFF_DISABLE_PATHSPEC_MATCH | GIT_DIFF_INCLUDE_UNTRACKED;
+	opts.flags = GIT_DIFF_DISABLE_PATHSPEC_MATCH | GIT_DIFF_INCLUDE_UNTRACKED | GIT_DIFF_INCLUDE_TYPECHANGE | GIT_DIFF_SHOW_BINARY;
 
-	char *pathspec = identifier.alloc_c_string();
-	opts.pathspec.strings = &pathspec;
+	CString pathspec(identifier);
+	opts.pathspec.strings = &pathspec.data;
 	opts.pathspec.count = 1;
 
 	switch ((TreeArea)area) {
@@ -553,7 +667,7 @@ Array GitAPI::_get_file_diff(const String identifier, int area) {
 			git_commit *commit = nullptr, *parent = nullptr;
 			git_tree *commit_tree = nullptr, *parent_tree = nullptr;
 
-			GIT2_CALL_R(git_revparse_single(&obj, repo, pathspec), "", diff_contents);
+			GIT2_CALL_R(git_revparse_single(&obj, repo, pathspec.data), "", diff_contents);
 			GIT2_CALL_R(git_commit_lookup(&commit, repo, git_object_id(obj)), "", diff_contents);
 			GIT2_CALL_R(git_commit_parent(&parent, commit, 0), "", diff_contents);
 			GIT2_CALL_R(git_commit_tree(&commit_tree, commit), "", diff_contents);
@@ -582,10 +696,6 @@ Array GitAPI::_parse_diff(git_diff *diff) {
 		const git_diff_delta *delta = git_diff_get_delta(diff, i); //file_cb
 		git_patch_from_diff(&patch, diff, i);
 
-		if (delta->flags & GIT_DIFF_FLAG_BINARY) {
-			continue;
-		}
-
 		if (delta->status == GIT_DELTA_UNMODIFIED || delta->status == GIT_DELTA_IGNORED || delta->status == GIT_DELTA_UNTRACKED) {
 			continue;
 		}
@@ -602,7 +712,7 @@ Array GitAPI::_parse_diff(git_diff *diff) {
 			Array diff_lines;
 			for (int k = 0; k < line_count; k++) {
 				const git_diff_line *git_diff_line;
-				git_patch_get_line_in_hunk(&git_diff_line, patch, j, k); //line_cb
+				git_patch_get_line_in_hunk(&git_diff_line, patch, j, k); // line_cb
 				char *content = new char[git_diff_line->content_len + 1];
 				memcpy(content, git_diff_line->content, git_diff_line->content_len);
 				content[git_diff_line->content_len] = '\0';
@@ -630,8 +740,8 @@ String GitAPI::_get_vcs_name() {
 	return "Git";
 }
 
-bool GitAPI::_initialize(const String p_project_root_path) {
-	ERR_FAIL_COND_V(p_project_root_path == "", false);
+bool GitAPI::_initialize(String project_root_path) {
+	ERR_FAIL_COND_V(project_root_path == "", false);
 
 	int init = git_libgit2_init();
 	if (init > 1) {
@@ -643,7 +753,7 @@ bool GitAPI::_initialize(const String p_project_root_path) {
 	}
 
 	can_commit = true;
-	GIT2_CALL_R(git_repository_init(&repo, p_project_root_path.alloc_c_string(), 0), "Could not initialize repository", false);
+	GIT2_CALL_R(git_repository_init(&repo, CString(project_root_path).data, 0), "Could not initialize repository", false);
 	if (git_repository_head_unborn(repo) == 1) {
 		create_gitignore_and_gitattributes();
 		if (!create_initial_commit()) {
@@ -652,17 +762,7 @@ bool GitAPI::_initialize(const String p_project_root_path) {
 		}
 	}
 
-	GIT2_CALL_R(git_repository_open(&repo, p_project_root_path.alloc_c_string()), "Could not open repository", false);
-	GIT2_CALL_R(git_remote_lookup(&remote, repo, remote_name), "Can not find remote \"" + String(remote_name) + "\" ", true);
-
-	remote_cbs = GIT_REMOTE_CALLBACKS_INIT;
-	remote_cbs.credentials = credentials_cb;
-	remote_cbs.update_tips = &update_cb;
-	remote_cbs.sideband_progress = &progress_cb;
-	remote_cbs.transfer_progress = transfer_progress_cb;
-	remote_cbs.payload = &creds;
-	remote_cbs.push_transfer_progress = push_transfer_progress_cb;
-	remote_cbs.push_update_reference = push_update_reference_cb;
+	GIT2_CALL_R(git_repository_open(&repo, CString(project_root_path).data), "Could not open repository", false);
 
 	is_initialized = true;
 
@@ -670,16 +770,11 @@ bool GitAPI::_initialize(const String p_project_root_path) {
 }
 
 bool GitAPI::_shut_down() {
-
 	if (repo)
 	{
 		git_repository_free(repo);
 	}
-	if (remote)
-	{
-		git_remote_free(remote);
-	}
-	GIT2_CALL_R(git_libgit2_shutdown(), "Could not shutdown Git Addon", false);
+	GIT2_CALL_R(git_libgit2_shutdown(), "Could not shutdown Git Plugin", false);
 
 	return true;
 }

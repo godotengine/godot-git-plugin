@@ -55,7 +55,7 @@ elif env['platform'] in ('x11', 'linux'):
     env['target_path'] += 'x11/'
     cpp_library += '.linux'
     libgit2_lib_path += 'x11/'
-    env.Append(LIBS=['ssl', 'crypto', 'ssh2'])
+    env.Append(LIBS=['ssl', 'crypto', 'ssh2', 'pcre'])
 
     if env['target'] in ('debug', 'd'):
         env.Append(CCFLAGS = ['-fPIC', '-g3','-Og', '-std=c++17'])
@@ -71,9 +71,9 @@ elif env['platform'] == "windows":
     env.Append(ENV = os.environ)
 
     env.Append(CCFLAGS = ['-DWIN32', '-D_WIN32', '-D_WINDOWS', '-W3', '-GR', '-D_CRT_SECURE_NO_WARNINGS', '/std:c++17'])
-    env.Append(LIBS=['Advapi32'])
+    env.Append(LIBS=['Advapi32', 'Winhttp', 'Rpcrt4', 'crypt32', 'OLE32'])
     if env['target'] in ('debug', 'd'):
-        env.Append(CCFLAGS = ['-EHsc', '-D_DEBUG', '-MDd'])
+        env.Append(CCFLAGS = ['-EHsc', '-D_DEBUG', '-MDd', '/DEBUG'])
     else:
         env.Append(CCFLAGS = ['-O2', '-EHsc', '-DNDEBUG', '-MD'])
 

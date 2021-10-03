@@ -59,12 +59,16 @@ extern "C" int push_update_reference_cb(const char *refname, const char *status,
 }
 
 extern "C" int credentials_cb(git_cred **out, const char *url, const char *username_from_url, unsigned int allowed_types, void *payload) {
-	Credentials *creds = (Credentials *)payload;
-	if (creds->username == "" || creds->password == "") {
+	godot::String* creds = (godot::String *)payload;
+	
+	godot::String& username = creds[0];
+	godot::String& password = creds[1];
+	
+	if (username.empty() || password.empty()) {
 		return GIT_EUSER;
 	}
 
-	return git_cred_userpass_plaintext_new(out, creds->username, creds->password);
+	return git_cred_userpass_plaintext_new(out, godot::CString(username).data, godot::CString(password).data);
 }
 
 extern "C" int diff_hunk_cb(const git_diff_delta *delta, const git_diff_hunk *range, void *payload){

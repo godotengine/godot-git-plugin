@@ -7,8 +7,10 @@
 #include <EditorVCSInterface.hpp>
 #include <File.hpp>
 #include <Godot.hpp>
+#include <GodotGlobal.hpp>
 #include <OS.hpp>
-#include <PanelContainer.hpp>
+#include <AcceptDialog.hpp>
+#include <LineEdit.hpp>
 
 #include <allocation_defs.h>
 #include <git_common.h>
@@ -16,6 +18,23 @@
 #include <git2.h>
 
 namespace godot {
+
+struct CString {
+	char *data = nullptr;
+
+	CString() = delete;
+	CString(const String& string) : data(string.alloc_c_string()) {}
+	CString(CString &&) = delete;
+	CString &operator=(const CString &) = delete;
+	CString &operator=(CString &&) = delete;
+
+	~CString() {
+		if (data) {
+			godot::api->godot_free(data);
+			data = nullptr;
+		}
+	}
+};
 
 class GitAPI : public EditorVCSInterface {
 	GODOT_CLASS(GitAPI, EditorVCSInterface)
@@ -25,47 +44,39 @@ class GitAPI : public EditorVCSInterface {
 	bool is_initialized;
 	bool can_commit;
 
-	PanelContainer *init_settings_panel_container;
-	Button *init_settings_button;
-
 	git_repository *repo = nullptr;
-
-	const char *remote_name = "origin";
-	git_remote *remote = nullptr;
-	git_remote_callbacks remote_cbs;
 
 	bool has_merge = false;
 	git_oid pull_merge_oid;
-	Credentials creds;
-
-	void _commit(const String p_msg);
-	bool _is_vcs_initialized();
+	
+	// Endpoints
+	bool _checkout_branch(const String branch);
+	void _commit(const String message);
+	void _discard_file(const String file_path);
+	void _fetch(const String remote, const String username, const String password);
+	Array _get_branch_list();
+	String _get_current_branch_name(const bool full_ref);
+	Array _get_file_diff(const String identifier, const int64_t area);
+	Array _get_line_diff(const String file_path, const String text);
 	Array _get_modified_files_data();
-	Array _get_file_diff(const String identifier, int area);
+	Array _get_previous_commits();
 	String _get_project_name();
 	String _get_vcs_name();
-	bool _initialize(const String p_project_root_path);
+	bool _initialize(const String project_root_path);
+	bool _is_vcs_initialized();
+	void _pull(const String remote, const String username, const String password);
+	void _push(const String remote, const String username, const String password);
 	bool _shut_down();
-	void _stage_file(const String p_file_path);
-	void _unstage_file(const String p_file_path);
-	void _discard_file(String p_file_path);
-	Array _get_previous_commits();
-	Array _get_branch_list();
-	bool _checkout_branch(String p_branch);
-	Dictionary _get_data();
-	void _fetch();
-	void _pull();
-	void _push();
-	const char *_get_current_branch_name(bool full_ref);
-	void _set_up_credentials(String p_username, String p_password);
-	Array _parse_diff(git_diff *diff);
-	Array _get_line_diff(String p_file_path, String p_text);
+	void _stage_file(const String file_path);
+	void _unstage_file(const String file_path);
 
-	bool check_errors(int error, String message, String function, String file, int line);
+	// Helpers
+	Array _parse_diff(git_diff *p_diff);
 
 public:
 	static void _register_methods();
 
+	bool check_errors(int error, String message, String function, String file, int line);
 	void create_gitignore_and_gitattributes();
 	bool create_initial_commit();
 
