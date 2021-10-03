@@ -119,7 +119,7 @@ void GitAPI::_commit(const String msg) {
 				"Could not create commit");
 		has_merge = false;
 		git_commit_free(fetchhead_commit);
-		git_repository_state_cleanup(repo);
+		GIT2_CALL(git_repository_state_cleanup(repo), "Could not clean repository state");
 	}
 
 	git_index_free(repo_index);
@@ -149,8 +149,8 @@ void GitAPI::_unstage_file(const String file_path) {
 	git_reference *head;
 	git_object *head_commit;
 
-	git_repository_head(&head, repo);
-	git_reference_peel(&head_commit, head, GIT_OBJ_COMMIT);
+	GIT2_CALL(git_repository_head(&head, repo), "Could not get repository HEAD");
+	GIT2_CALL(git_reference_peel(&head_commit, head, GIT_OBJ_COMMIT), "Could not peel HEAD reference");
 
 	git_reset_default(repo, head_commit, &array);
 }
@@ -161,13 +161,17 @@ void GitAPI::create_gitignore_and_gitattributes() {
 	if (!file->file_exists("res://.gitignore")) {
 		file->open("res://.gitignore", File::ModeFlags::WRITE);
 		file->store_string(
-				"# Import cache\n"
-				".import/\n\n"
+				"# Godot-specific ignores\n"
+				".import/\n"
+				"export.cfg\n"
+				"export_presets.cfg\n\n"
 
-				"# Binaries\n"
-				"bin/\n"
-				"build/\n"
-				"lib/\n");
+				"# Imported translations (automatically generated from CSV files)\n"
+				"*.translation\n\n"
+
+				"# Mono-specific ignores\n"
+				".mono/\n"
+				"data_*/\n");
 		file->close();
 	}
 
@@ -595,7 +599,7 @@ Array GitAPI::_get_file_diff(const String identifier, const int64_t area) {
 
 	opts.context_lines = 2;
 	opts.interhunk_lines = 0;
-	opts.flags = GIT_DIFF_DISABLE_PATHSPEC_MATCH | GIT_DIFF_INCLUDE_UNTRACKED | GIT_DIFF_INCLUDE_TYPECHANGE | GIT_DIFF_SHOW_BINARY;
+	opts.flags = GIT_DIFF_RECURSE_UNTRACKED_DIRS | GIT_DIFF_DISABLE_PATHSPEC_MATCH | GIT_DIFF_INCLUDE_UNTRACKED | GIT_DIFF_SHOW_UNTRACKED_CONTENT | GIT_DIFF_INCLUDE_TYPECHANGE;
 
 	CString pathspec(identifier);
 	opts.pathspec.strings = &pathspec.data;
@@ -651,7 +655,7 @@ Array GitAPI::_parse_diff(git_diff *diff) {
 		const git_diff_delta *delta = git_diff_get_delta(diff, i); //file_cb
 		git_patch_from_diff(&patch, diff, i);
 
-		if (delta->status == GIT_DELTA_UNMODIFIED || delta->status == GIT_DELTA_IGNORED || delta->status == GIT_DELTA_UNTRACKED) {
+		if (delta->status == GIT_DELTA_UNMODIFIED || delta->status == GIT_DELTA_IGNORED) {
 			continue;
 		}
 		Dictionary diff_file = create_diff_file(delta->new_file.path, delta->old_file.path);

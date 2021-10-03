@@ -1,7 +1,11 @@
-# Import cache
+# Godot-specific ignores
 .import/
+export.cfg
+export_presets.cfg
 
-# Binaries
-bin/
-build/
-lib/
+# Imported translations (automatically generated from CSV files)
+*.translation
+
+# Mono-specific ignores
+.mono/
+data_*/
