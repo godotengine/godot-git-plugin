@@ -16,4 +16,3 @@ api.json
 # Binaries
 build/
 *.obj
-*debug/

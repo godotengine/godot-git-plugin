@@ -455,32 +455,32 @@ void GitAPI::_pull(String remote, String username, String password) {
 
 	String branch_name = _get_current_branch_name(false);
 
-	git_buf upstream_buf;
-	Godot::print_warning("yo", __FUNCTION__, __FILE__, __LINE__);
-	if (git_branch_upstream_name(&upstream_buf, repo, CString(branch_name).data) == GIT_ENOTFOUND)
-	{
-		Godot::print_warning("GitAPI: The current branch " + branch_name + " has no upstream branch. Setting the upstream to " + branch_name, __FUNCTION__, __FILE__, __LINE__);
+	CString ref_name("refs/heads/" + branch_name + ":refs/remotes/" + remote + "/" + branch_name);
+	// git_buf* upstream_buf;
+	// Godot::print_warning(branch_name, __FUNCTION__, __FILE__, __LINE__);
+	// if (git_branch_upstream_name(upstream_buf, repo, CString(branch_name).data) == GIT_ENOTFOUND)
+	// {
+	// 	Godot::print_warning("GitAPI: The current branch " + branch_name + " has no upstream branch. Setting the upstream to " + branch_name, __FUNCTION__, __FILE__, __LINE__);
 
-		git_reference *head;
-		git_reference *branch;
+	// 	git_reference *head;
+	// 	git_reference *branch;
 
-		GIT2_CALL(git_repository_head(&head, repo), "Could not find repository HEAD");
-		GIT2_CALL(git_reference_resolve(&branch, head), "Could not resolve HEAD reference to " + branch_name + " branch");
-		GIT2_CALL(git_branch_set_upstream(branch, CString(branch_name).data), "Could not set " + branch_name + " upstream");
+	// 	GIT2_CALL(git_repository_head(&head, repo), "Could not find repository HEAD");
+	// 	GIT2_CALL(git_reference_resolve(&branch, head), "Could not resolve HEAD reference to " + branch_name + " branch");
+	// 	GIT2_CALL(git_branch_set_upstream(branch, CString(branch_name).data), "Could not set " + branch_name + " upstream");
 
-		GIT2_CALL(git_branch_upstream_name(&upstream_buf, repo, CString(branch_name).data), "Could not get upstream for " + branch_name + " branch");
-		Godot::print_warning("yo", __FUNCTION__, __FILE__, __LINE__);
+	// 	GIT2_CALL(git_branch_upstream_name(&upstream_buf, repo, CString(branch_name).data), "Could not get upstream for " + branch_name + " branch");
+	// 	Godot::print_warning("yo", __FUNCTION__, __FILE__, __LINE__);
 
-		git_reference_free(head);
-		git_reference_free(branch);
-	}
-	else {
-		// Redo the operation in case we missed an actual error
-		GIT2_CALL(git_branch_upstream_name(&upstream_buf, repo, CString(branch_name).data), "Could not get current branch upstream name");
-	}
-	Godot::print_warning("yo", __FUNCTION__, __FILE__, __LINE__);
+	// 	git_reference_free(head);
+	// 	git_reference_free(branch);
+	// }
+	// else {
+	// 	// Redo the operation in case we missed an actual error
+	// 	GIT2_CALL(git_branch_upstream_name(&upstream_buf, repo, CString(branch_name).data), "Could not get current branch upstream name");
+	// }
 	
-	char *ref[] = { upstream_buf.ptr };
+	char *ref[] = { ref_name.data };
 	git_strarray refspec = { ref, 1 };
 
 	GIT2_CALL(git_remote_fetch(remote_object, &refspec, &fetch_opts, "pull"), "Could not fetch data from remote");
