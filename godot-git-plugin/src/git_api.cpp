@@ -43,8 +43,9 @@ bool GitAPI::check_errors(int error, String message, String function, String fil
 		return false;
 	}
 
+	message += ".";
 	if ((lg2err = git_error_last()) != NULL && lg2err->message != NULL) {
-		message += ". Error " + String::num_int64(error) + ": ";
+		message += " Error " + String::num_int64(error) + ": ";
 		message += String(lg2err->message);
 	}
 	Godot::print_error("GitAPI: " + message, function, file, line);
@@ -101,7 +102,7 @@ void GitAPI::_commit(const String msg) {
 				"Could not create commit");
 	} else {
 		git_commit *fetchhead_commit;
-		git_commit_lookup(&fetchhead_commit, repo, &pull_merge_oid);
+		GIT2_CALL(git_commit_lookup(&fetchhead_commit, repo, &pull_merge_oid), "Could not lookup commit pointed to by HEAD");
 
 		GIT2_CALL(
 				git_commit_create_v(
@@ -152,7 +153,7 @@ void GitAPI::_unstage_file(const String file_path) {
 	GIT2_CALL(git_repository_head(&head, repo), "Could not get repository HEAD");
 	GIT2_CALL(git_reference_peel(&head_commit, head, GIT_OBJ_COMMIT), "Could not peel HEAD reference");
 
-	git_reset_default(repo, head_commit, &array);
+	GIT2_CALL(git_reset_default(repo, head_commit, &array), "Could not reset " + file_path + " to state at HEAD");
 }
 
 void GitAPI::create_gitignore_and_gitattributes() {
@@ -205,10 +206,8 @@ bool GitAPI::create_initial_commit() {
 	git_index *repo_index;
 	git_tree *tree;
 
-	if (git_signature_default(&sig, repo) != 0) {
-		godot::Godot::print_error("Unable to create a commit signature. Perhaps 'user.name' and 'user.email' are not set. Set default user name and user email by `git config` and initialize again", __func__, __FILE__, __LINE__);
-		return false;
-	}
+	GIT2_CALL_R(git_signature_default(&sig, repo), "Unable to create a commit signature. Perhaps 'user.name' and 'user.email' are not set. Set default user name and user email by `git config` and initialize again", false);
+
 	GIT2_CALL_R(git_repository_index(&repo_index, repo), "Could not get repository index", false);
 	GIT2_CALL_R(git_index_write_tree(&tree_id, repo_index), "Could not create intial commit", false);
 
@@ -299,7 +298,7 @@ Array GitAPI::_get_branch_list() {
 
 	while (git_branch_next(&ref, &type, it) != GIT_ITEROVER) {
 		const char *name;
-		git_branch_name(&name, ref);
+		GIT2_CALL_R(git_branch_name(&name, ref), "Could not get branch name", Array());
 		if (git_branch_is_head(ref)) {
 			branch_names[0] = String(name);
 		} else {
@@ -349,15 +348,15 @@ String GitAPI::_get_current_branch_name(bool full_ref) {
 	git_reference *head;
 	git_reference *branch;
 
-	git_repository_head(&head, repo);
-	git_reference_resolve(&branch, head);
+	GIT2_CALL_R(git_repository_head(&head, repo), "Could not get repository HEAD", "");
+	GIT2_CALL_R(git_reference_resolve(&branch, head), "Could not resolve HEAD reference", "");
 
 	String branch_name;
 	if (full_ref) {
 		branch_name = git_reference_name(branch);
 	} else {
 		const char *name = "";
-		GIT2_CALL_R(git_branch_name(&name, branch), "Could not get branch name from current branch reference.", "");
+		GIT2_CALL_R(git_branch_name(&name, branch), "Could not get branch name from current branch reference", "");
 		branch_name = name;
 	}
 
@@ -375,9 +374,9 @@ Array GitAPI::_get_previous_commits() {
 	git_oid oid;
 	char commit_id[GIT_OID_HEXSZ + 1];
 
-	git_revwalk_new(&walker, repo);
-	git_revwalk_sorting(walker, GIT_SORT_TIME);
-	git_revwalk_push_head(walker);
+	GIT2_CALL_R(git_revwalk_new(&walker, repo), "Could not create new revwalk", Array());
+	GIT2_CALL_R(git_revwalk_sorting(walker, GIT_SORT_TIME), "Could not sort revwalk by time", Array());
+	GIT2_CALL_R(git_revwalk_push_head(walker), "Could not push head to revwalk", Array());
 
 	for (int i = 0; !git_revwalk_next(&oid, walker) && i <= max_commit_fetch; i++) {
 		GIT2_CALL_R(git_commit_lookup(&commit, repo, &oid), "Failed to lookup the commit", commits);
@@ -498,7 +497,7 @@ void GitAPI::_pull(String remote, String username, String password) {
 		git_reference_free(target_ref);
 		git_reference_free(new_target_ref);
 		Godot::print("GitAPI: Fast Forwarded");
-		git_repository_state_cleanup(repo);
+		GIT2_CALL(git_repository_state_cleanup(repo), "Could not clean repository state");
 	} else if (merge_analysis & GIT_MERGE_ANALYSIS_NORMAL) {
 		git_merge_options merge_opts = GIT_MERGE_OPTIONS_INIT;
 		git_checkout_options checkout_opts = GIT_CHECKOUT_OPTIONS_INIT;
@@ -509,7 +508,7 @@ void GitAPI::_pull(String remote, String username, String password) {
 		GIT2_CALL(git_merge(repo, merge_heads, 1, &merge_opts, &checkout_opts), "Merge Failed");
 
 		git_index *index;
-		git_repository_index(&index, repo);
+		GIT2_CALL(git_repository_index(&index, repo), "Could not create repository index");
 
 		if (git_index_has_conflicts(index)) {
 			Godot::print("GitAPI: Index has conflicts, Solve conflicts and make a merge commit.");
@@ -522,7 +521,7 @@ void GitAPI::_pull(String remote, String username, String password) {
 
 	} else if (merge_analysis & GIT_MERGE_ANALYSIS_UP_TO_DATE) {
 		Godot::print("GitAPI: Already up to date");
-		git_repository_state_cleanup(repo);
+		GIT2_CALL(git_repository_state_cleanup(repo), "Could not clean repository state");
 	} else {
 		Godot::print("GitAPI: Can not merge");
 	}
@@ -559,15 +558,16 @@ void GitAPI::_push(String remote, String username, String password) {
 
 	GIT2_CALL(git_remote_connect(remote_object, GIT_DIRECTION_PUSH, &remote_cbs, NULL, NULL), "Could not connect to remote \"" + remote + "\". Are your credentials correct? Try using a PAT token (in case you are using Github) as your password");
 
-	git_push_options push_opts = GIT_PUSH_OPTIONS_INIT;
-	push_opts.callbacks = remote_cbs;
+	String branch_name(_get_current_branch_name(false));
+	CString ref_name("refs/heads/" + branch_name + ":refs/remotes/" + remote + "/" + branch_name);
 
-	CString full_branch_name(_get_current_branch_name(true));
+	git_remote_add_push(repo, CString(remote).data, ref_name.data);
 
-	char *ref[] = { full_branch_name.data };
-	git_strarray refspecs = { ref, 1 };
+	git_push_options push_options;
+	git_push_init_options(&push_options, GIT_PUSH_OPTIONS_VERSION);
+	push_options.callbacks = remote_cbs;
 
-	GIT2_CALL(git_remote_upload(remote_object, &refspecs, &push_opts), "Failed to push");
+	GIT2_CALL(git_remote_push(remote_object, NULL, &push_options), "Failed to push");
 
 	git_remote_free(remote_object);
 	
@@ -613,8 +613,8 @@ Array GitAPI::_get_file_diff(const String identifier, const int64_t area) {
 			git_object *obj = nullptr;
 			git_tree *tree = nullptr;
 
-			GIT2_CALL_R(git_revparse_single(&obj, repo, "HEAD^{tree}"), "", diff_contents);
-			GIT2_CALL_R(git_tree_lookup(&tree, repo, git_object_id(obj)), "", diff_contents);
+			GIT2_CALL_R(git_revparse_single(&obj, repo, "HEAD^{tree}"), "Could not get HEAD^{tree} object", diff_contents);
+			GIT2_CALL_R(git_tree_lookup(&tree, repo, git_object_id(obj)), "Could not lookup HEAD^{tree}", diff_contents);
 			GIT2_CALL_R(git_diff_tree_to_index(&diff, repo, tree, NULL, &opts), "Could not create diff for tree from index directory", diff_contents);
 
 			git_tree_free(tree);
@@ -626,12 +626,12 @@ Array GitAPI::_get_file_diff(const String identifier, const int64_t area) {
 			git_commit *commit = nullptr, *parent = nullptr;
 			git_tree *commit_tree = nullptr, *parent_tree = nullptr;
 
-			GIT2_CALL_R(git_revparse_single(&obj, repo, pathspec.data), "", diff_contents);
-			GIT2_CALL_R(git_commit_lookup(&commit, repo, git_object_id(obj)), "", diff_contents);
-			GIT2_CALL_R(git_commit_parent(&parent, commit, 0), "", diff_contents);
-			GIT2_CALL_R(git_commit_tree(&commit_tree, commit), "", diff_contents);
-			GIT2_CALL_R(git_commit_tree(&parent_tree, parent), "", diff_contents);
-			GIT2_CALL_R(git_diff_tree_to_tree(&diff, repo, parent_tree, commit_tree, &opts), "", diff_contents);
+			GIT2_CALL_R(git_revparse_single(&obj, repo, pathspec.data), "Could not get object at " + identifier, diff_contents);
+			GIT2_CALL_R(git_commit_lookup(&commit, repo, git_object_id(obj)), "Could not get commit "+ identifier, diff_contents);
+			GIT2_CALL_R(git_commit_parent(&parent, commit, 0), "Could not get parent commit of " + identifier, diff_contents);
+			GIT2_CALL_R(git_commit_tree(&commit_tree, commit), "Could not get commit tree of " + identifier, diff_contents);
+			GIT2_CALL_R(git_commit_tree(&parent_tree, parent), "Could not get parent commit tree of " + identifier, diff_contents);
+			GIT2_CALL_R(git_diff_tree_to_tree(&diff, repo, parent_tree, commit_tree, &opts), "Could not generate diff for commit " + identifier, diff_contents);
 
 			git_object_free(obj);
 			git_commit_free(commit);
@@ -653,7 +653,7 @@ Array GitAPI::_parse_diff(git_diff *diff) {
 	for (int i = 0; i < git_diff_num_deltas(diff); i++) {
 		git_patch *patch;
 		const git_diff_delta *delta = git_diff_get_delta(diff, i); //file_cb
-		git_patch_from_diff(&patch, diff, i);
+		GIT2_CALL_R(git_patch_from_diff(&patch, diff, i), "Could not create patch from diff", Array());
 
 		if (delta->status == GIT_DELTA_UNMODIFIED || delta->status == GIT_DELTA_IGNORED) {
 			continue;
@@ -664,14 +664,14 @@ Array GitAPI::_parse_diff(git_diff *diff) {
 		for (int j = 0; j < git_patch_num_hunks(patch); j++) {
 			const git_diff_hunk *git_hunk;
 			size_t line_count;
-			git_patch_get_hunk(&git_hunk, &line_count, patch, j);
+			GIT2_CALL_R(git_patch_get_hunk(&git_hunk, &line_count, patch, j), "Could not get hunk from patch", Array());
 
 			Dictionary diff_hunk = create_diff_hunk(git_hunk->old_start, git_hunk->new_start, git_hunk->old_lines, git_hunk->new_lines);
 
 			Array diff_lines;
 			for (int k = 0; k < line_count; k++) {
 				const git_diff_line *git_diff_line;
-				git_patch_get_line_in_hunk(&git_diff_line, patch, j, k); // line_cb
+				GIT2_CALL_R(git_patch_get_line_in_hunk(&git_diff_line, patch, j, k), "Could not get line from hunk in patch", Array()); // line_cb
 				char *content = new char[git_diff_line->content_len + 1];
 				memcpy(content, git_diff_line->content, git_diff_line->content_len);
 				content[git_diff_line->content_len] = '\0';
