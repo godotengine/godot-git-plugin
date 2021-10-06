@@ -585,7 +585,7 @@ void GitAPI::_pull(String remote, String username, String password) {
 	Godot::print("GitAPI: Pull ended");
 }
 
-void GitAPI::_push(String remote, String username, String password) {
+void GitAPI::_push(const String remote, const String username, const String password, const bool force) {
 	Godot::print("GitAPI: Performing push to " + remote);
 
 	git_remote_ptr remote_object;
@@ -614,7 +614,7 @@ void GitAPI::_push(String remote, String username, String password) {
 
 	String branch_name = _get_current_branch_name(true);
 
-	CString pushspec(String() + branch_name);
+	CString pushspec(String() + (force ? "+" : "") + branch_name);
 	const git_strarray refspec = { &pushspec.data, 1 };
 
 	git_push_options push_options = GIT_PUSH_OPTIONS_INIT;

@@ -91,7 +91,7 @@ class GitAPI : public EditorVCSInterface {
 	bool _initialize(const String project_root_path);
 	bool _is_vcs_initialized();
 	void _pull(const String remote, const String username, const String password);
-	void _push(const String remote, const String username, const String password);
+	void _push(const String remote, const String username, const String password, const bool force);
 	bool _shut_down();
 	void _stage_file(const String file_path);
 	void _unstage_file(const String file_path);
