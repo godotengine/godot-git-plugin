@@ -619,15 +619,22 @@ void GitAPI::_push(String remote, String username, String password) {
 		git_remote_connect, remote_object.get(), GIT_DIRECTION_PUSH, &remote_cbs, NULL, NULL);
 
 	String branch_name = _get_current_branch_name(true);
+	String branch_name_short = _get_current_branch_name(false);
 
 	git_buf ref_name = {};
-	GIT2_CALL("Could not get branch upstream for " + branch_name,
-		git_branch_upstream_name, &ref_name, repo.get(), CString(branch_name).data);
+	int error = git_branch_upstream_name(&ref_name, repo.get(), CString(branch_name).data);
+	if (error == GIT_ENOTFOUND)
+	{
+		String push_ref_spec(branch_name + ":" + branch_name);
+		Godot::print_warning("Could not get branch upstream for " + branch_name + ". Setting upstream as " + remote + "/" + branch_name_short, __FUNCTION__, __FILE__, __LINE__);
 
-	CString ref_spec_str(branch_name + ":" + ref_name.ptr);
+		git_reference_ptr branch_object;
+		GIT2_PTR("Could not lookup branch being pushed",
+				git_branch_lookup, branch_object, repo.get(), CString(branch_name_short).data, GIT_BRANCH_LOCAL);
 
-	GIT2_CALL("Could not add push refspec to remote configuration", 
-		git_remote_add_push, repo.get(), CString(remote).data, ref_spec_str.data);
+		GIT2_CALL("Could not set branch upstream for " + branch_name,
+				git_branch_set_upstream, branch_object.get(), CString(remote + "/" + branch_name_short).data);
+	}
 
 	git_push_options push_options = GIT_PUSH_OPTIONS_INIT;
 	push_options.callbacks = remote_cbs;
