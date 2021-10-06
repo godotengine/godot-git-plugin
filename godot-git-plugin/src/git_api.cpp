@@ -623,6 +623,8 @@ void GitAPI::_push(String remote, String username, String password) {
 
 	git_buf ref_name = {};
 	int error = git_branch_upstream_name(&ref_name, repo.get(), CString(branch_name).data);
+
+	// Set the upstream for the user's convenience
 	if (error == GIT_ENOTFOUND)
 	{
 		String push_ref_spec(branch_name + ":" + branch_name);
@@ -635,10 +637,13 @@ void GitAPI::_push(String remote, String username, String password) {
 		GIT2_CALL("Could not set branch upstream for " + branch_name,
 			git_branch_set_upstream, branch_object.get(), CString(remote + "/" + branch_name_short).data);
 	}
-
-	ref_name = {};
-	GIT2_CALL("Could not get upstream branch",
-			git_branch_upstream_name, &ref_name, repo.get(), CString(branch_name).data);
+	else
+	{
+		if (check_errors(error, "Could not get branch upstream", __FUNCTION__, __FILE__, __LINE__))
+		{
+			return;
+		}
+	}
 
 	CString pushspec(String() + branch_name);
 
