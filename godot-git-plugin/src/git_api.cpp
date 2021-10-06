@@ -630,17 +630,25 @@ void GitAPI::_push(String remote, String username, String password) {
 
 		git_reference_ptr branch_object;
 		GIT2_PTR("Could not lookup branch being pushed",
-				git_branch_lookup, branch_object, repo.get(), CString(branch_name_short).data, GIT_BRANCH_LOCAL);
+			git_branch_lookup, branch_object, repo.get(), CString(branch_name_short).data, GIT_BRANCH_LOCAL);
 
 		GIT2_CALL("Could not set branch upstream for " + branch_name,
-				git_branch_set_upstream, branch_object.get(), CString(remote + "/" + branch_name_short).data);
+			git_branch_set_upstream, branch_object.get(), CString(remote + "/" + branch_name_short).data);
 	}
+
+	ref_name = {};
+	GIT2_CALL("Could not get upstream branch",
+			git_branch_upstream_name, &ref_name, repo.get(), CString(branch_name).data);
+
+	CString pushspec(String() + branch_name);
+
+	const git_strarray refspec = { &pushspec.data, 1 };
 
 	git_push_options push_options = GIT_PUSH_OPTIONS_INIT;
 	push_options.callbacks = remote_cbs;
 
 	GIT2_CALL("Failed to push",
-		git_remote_push, remote_object.get(), NULL, &push_options);
+		git_remote_push, remote_object.get(), &refspec, &push_options);
 	
 	Godot::print("GitAPI: Push ended");
 }

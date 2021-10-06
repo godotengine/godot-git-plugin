@@ -9,7 +9,8 @@ extern "C" int progress_cb(const char *str, int len, void *data) {
 
 extern "C" int update_cb(const char *refname, const git_oid *a, const git_oid *b, void *data) {
 	constexpr int short_commit_length = 8;
-	char a_str[short_commit_length + 1], b_str[short_commit_length + 1];
+	char a_str[short_commit_length + 1];
+	char b_str[short_commit_length + 1];
 	(void)data;
 
 	git_oid_tostr(b_str, short_commit_length - 1, b);
@@ -45,7 +46,16 @@ extern "C" int fetchhead_foreach_cb(const char *ref_name, const char *remote_url
 }
 
 extern "C" int push_transfer_progress_cb(unsigned int current, unsigned int total, size_t bytes, void *payload) {
-	godot::Godot::print("Writing Objects: " + godot::String::num_int64((int)current * 100 / total) + "% (" + godot::String::num_int64((int)current) + "/" + godot::String::num_int64((int)total) + "), " + godot::String::num_int64(bytes) + " bytes, done.");
+	int64_t progress = 100;
+	
+	if (total != 0)
+	{
+		progress = (current * 100) / total;
+	}
+
+	godot::Godot::print("Writing Objects: " + 
+		godot::String::num_int64(progress) + "% (" + 
+		godot::String::num_int64((int)current) + "/" + godot::String::num_int64((int)total) + "), " + godot::String::num_int64(bytes) + " bytes, done.");
 	return 0;
 }
 
