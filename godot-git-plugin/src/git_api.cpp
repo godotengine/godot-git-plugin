@@ -104,35 +104,35 @@ void GitAPI::_commit(const String msg) {
 	if (!has_merge) {
 
 		GIT2_CALL("Could not create commit",
-				git_commit_create_v,
-						&new_commit_id,
-						repo.get(),
-						"HEAD",
-						default_sign.get(),
-						default_sign.get(),
-						"UTF-8",
-						CString(msg).data,
-						tree.get(),
-						1,
-						parent_commit.get());
+			git_commit_create_v,
+				&new_commit_id,
+				repo.get(),
+				"HEAD",
+				default_sign.get(),
+				default_sign.get(),
+				"UTF-8",
+				CString(msg).data,
+				tree.get(),
+				1,
+				parent_commit.get());
 	} else {
 		git_commit_ptr fetchhead_commit;
 		GIT2_PTR("Could not lookup commit pointed to by HEAD", 
 			git_commit_lookup, fetchhead_commit, repo.get(), &pull_merge_oid);
 
 		GIT2_CALL("Could not create commit",
-				git_commit_create_v,
-						&new_commit_id,
-						repo.get(),
-						"HEAD",
-						default_sign.get(),
-						default_sign.get(),
-						"UTF-8",
-						CString(msg).data,
-						tree.get(),
-						2,
-						parent_commit.get(),
-						fetchhead_commit.get());
+			git_commit_create_v,
+				&new_commit_id,
+				repo.get(),
+				"HEAD",
+				default_sign.get(),
+				default_sign.get(),
+				"UTF-8",
+				CString(msg).data,
+				tree.get(),
+				2,
+				parent_commit.get(),
+				fetchhead_commit.get());
 		has_merge = false;
 		GIT2_CALL("Could not clean repository state", 
 			git_repository_state_cleanup, repo.get());
@@ -233,9 +233,8 @@ bool GitAPI::create_initial_commit() {
 	GIT2_PTR_R("Could not lookup tree from disk", false, git_tree_lookup, tree, repo.get(), &tree_id);
 	
 	git_oid commit_id;
-	GIT2_CALL_R(
-			"Could not create the initial commit", false,
-			git_commit_create_v, 
+	GIT2_CALL_R("Could not create the initial commit", false,
+		git_commit_create_v, 
 			&commit_id, 
 			repo.get(), 
 			"HEAD", 
@@ -784,7 +783,7 @@ bool GitAPI::_initialize(String project_root_path) {
 	{
 		create_gitignore_and_gitattributes();
 		if (!create_initial_commit()) {
-			godot::Godot::print_error("Initial commit could not be created. Commit functionality will not work.", __func__, __FILE__, __LINE__);
+			popup_error("GitAPI: Initial commit could not be created. Commit functionality will not work.");
 		}
 	}
 	else
