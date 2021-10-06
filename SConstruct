@@ -74,6 +74,7 @@ elif env['platform'] == "windows":
     env.Append(LIBS=['Advapi32', 'Winhttp', 'Rpcrt4', 'crypt32', 'OLE32'])
     if env['target'] in ('debug', 'd'):
         env.Append(CCFLAGS = ['-EHsc', '-D_DEBUG', '-MDd', '/DEBUG'])
+        env['PDB'] = env['target_name'] + '.pdb'
     else:
         env.Append(CCFLAGS = ['-O2', '-EHsc', '-DNDEBUG', '-MD'])
 
