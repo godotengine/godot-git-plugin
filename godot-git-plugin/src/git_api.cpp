@@ -499,11 +499,7 @@ void GitAPI::_pull(String remote, String username, String password) {
 
 	String branch_name = _get_current_branch_name(true);
 
-	git_buf ref_name = {};
-	GIT2_CALL("Could not get branch upstream for " + branch_name,
-		git_branch_upstream_name, &ref_name, repo.get(), CString(branch_name).data);
-
-	CString ref_spec_str(branch_name + ":" + ref_name.ptr);
+	CString ref_spec_str(branch_name);
 	
 	char *ref[] = { ref_spec_str.data };
 	git_strarray refspec = { ref, 1 };
@@ -512,7 +508,6 @@ void GitAPI::_pull(String remote, String username, String password) {
 		git_remote_fetch, remote_object.get(), &refspec, &fetch_opts, "pull");
 	
 	pull_merge_oid = {};
-
 	GIT2_CALL("Could not read \"FETCH_HEAD\" file", 
 		git_repository_fetchhead_foreach, repo.get(), fetchhead_foreach_cb, &pull_merge_oid);
 
@@ -619,34 +614,8 @@ void GitAPI::_push(String remote, String username, String password) {
 		git_remote_connect, remote_object.get(), GIT_DIRECTION_PUSH, &remote_cbs, NULL, NULL);
 
 	String branch_name = _get_current_branch_name(true);
-	String branch_name_short = _get_current_branch_name(false);
-
-	git_buf ref_name = {};
-	int error = git_branch_upstream_name(&ref_name, repo.get(), CString(branch_name).data);
-
-	// Set the upstream for the user's convenience
-	if (error == GIT_ENOTFOUND)
-	{
-		String push_ref_spec(branch_name + ":" + branch_name);
-		Godot::print_warning("Could not get branch upstream for " + branch_name + ". Setting upstream as " + remote + "/" + branch_name_short, __FUNCTION__, __FILE__, __LINE__);
-
-		git_reference_ptr branch_object;
-		GIT2_PTR("Could not lookup branch being pushed",
-			git_branch_lookup, branch_object, repo.get(), CString(branch_name_short).data, GIT_BRANCH_LOCAL);
-
-		GIT2_CALL("Could not set branch upstream for " + branch_name,
-			git_branch_set_upstream, branch_object.get(), CString(remote + "/" + branch_name_short).data);
-	}
-	else
-	{
-		if (check_errors(error, "Could not get branch upstream", __FUNCTION__, __FILE__, __LINE__))
-		{
-			return;
-		}
-	}
 
 	CString pushspec(String() + branch_name);
-
 	const git_strarray refspec = { &pushspec.data, 1 };
 
 	git_push_options push_options = GIT_PUSH_OPTIONS_INIT;
