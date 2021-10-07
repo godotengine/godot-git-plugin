@@ -3,7 +3,12 @@
 
 extern "C" int progress_cb(const char *str, int len, void *data) {
 	(void)data;
-	godot::Godot::print("remote: " + godot::String(str).strip_edges());
+	godot::String progress_str;
+	for (int i = 0; i < len; i++) {
+		progress_str += str[i];
+	}
+
+	godot::Godot::print("remote: " + progress_str.strip_edges());
 	return 0;
 }
 
@@ -13,13 +18,11 @@ extern "C" int update_cb(const char *refname, const git_oid *a, const git_oid *b
 	char b_str[short_commit_length + 1];
 	(void)data;
 
-	git_oid_tostr(b_str, short_commit_length - 1, b);
-	b_str[short_commit_length] = '\0';
+	git_oid_tostr(b_str, short_commit_length, b);
 	if (git_oid_is_zero(a)) {
 		godot::Godot::print("* [new] " + godot::String(b_str) + " " + godot::String(refname));
 	} else {
-		git_oid_nfmt(a_str, short_commit_length - 1, a);
-		a_str[short_commit_length] = '\0';
+		git_oid_tostr(a_str, short_commit_length, a);
 		godot::Godot::print("[updated] " + godot::String(a_str) + "..." + godot::String(b_str) + " " + godot::String(refname));
 	}
 

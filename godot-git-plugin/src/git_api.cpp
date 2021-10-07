@@ -556,7 +556,7 @@ void GitAPI::_pull(String remote, String username, String password) {
 
 		merge_opts.file_favor = GIT_MERGE_FILE_FAVOR_NORMAL;
 		merge_opts.file_flags = (GIT_MERGE_FILE_STYLE_DIFF3 | GIT_MERGE_FILE_DIFF_MINIMAL);
-		checkout_opts.checkout_strategy = (GIT_CHECKOUT_SAFE | GIT_CHECKOUT_ALLOW_CONFLICTS | GIT_CHECKOUT_CONFLICT_STYLE_DIFF3);
+		checkout_opts.checkout_strategy = (GIT_CHECKOUT_SAFE | GIT_CHECKOUT_ALLOW_CONFLICTS | GIT_CHECKOUT_CONFLICT_STYLE_MERGE);
 		GIT2_CALL("Merge Failed", 
 			git_merge, repo.get(), merge_heads, 1, &merge_opts, &checkout_opts);
 
@@ -565,9 +565,9 @@ void GitAPI::_pull(String remote, String username, String password) {
 			git_repository_index, index, repo.get());
 
 		if (git_index_has_conflicts(index.get())) {
-			Godot::print("GitAPI: Index has conflicts, Solve conflicts and make a merge commit.");
+			popup_error("GitAPI: Index has conflicts, Solve conflicts and make a merge commit.");
 		} else {
-			Godot::print("GitAPI: Change are staged, make a merge commit.");
+			popup_error("GitAPI: Change are staged, make a merge commit.");
 		}
 
 		has_merge = true;
