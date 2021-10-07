@@ -78,6 +78,7 @@ class GitAPI : public EditorVCSInterface {
 	// Endpoints
 	bool _checkout_branch(const String branch);
 	void _commit(const String message);
+	void _create_branch(const String branch_name);
 	void _discard_file(const String file_path);
 	void _fetch(const String remote, const String username, const String password);
 	Array _get_branch_list();

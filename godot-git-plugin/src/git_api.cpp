@@ -35,6 +35,7 @@ void GitAPI::_register_methods() {
 	register_method("_unstage_file", &GitAPI::_unstage_file);
 	register_method("_get_previous_commits", &GitAPI::_get_previous_commits);
 	register_method("_get_branch_list", &GitAPI::_get_branch_list);
+	register_method("_create_branch", &GitAPI::_create_branch);
 	register_method("_get_current_branch_name", &GitAPI::_get_current_branch_name);
 	register_method("_checkout_branch", &GitAPI::_checkout_branch);
 	register_method("_fetch", &GitAPI::_fetch);
@@ -337,6 +338,20 @@ Array GitAPI::_get_branch_list() {
 	}
 
 	return branch_names;
+}
+
+void GitAPI::_create_branch(const String branch_name) {
+	git_oid head_commit_id;
+	GIT2_CALL("Could not get HEAD commit ID", 
+		git_reference_name_to_id, &head_commit_id, repo.get(), "HEAD");
+
+	git_commit_ptr head_commit;
+	GIT2_PTR("Could not lookup HEAD commit",
+		git_commit_lookup, head_commit, repo.get(), &head_commit_id);
+
+	git_reference_ptr branch_ref;
+	GIT2_PTR("Could not create branch from HEAD",
+		git_branch_create, branch_ref, repo.get(), CString(branch_name).data, head_commit.get(), 0);
 }
 
 Array GitAPI::_get_line_diff(String file_path, String text) {
