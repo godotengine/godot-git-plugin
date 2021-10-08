@@ -85,13 +85,10 @@ extern "C" int credentials_cb(git_cred **out, const char *url, const char *usern
 }
 
 extern "C" int diff_hunk_cb(const git_diff_delta *delta, const git_diff_hunk *range, void *payload){
-	godot::Array *diff_hunks = (godot::Array *)payload;
-	godot::Dictionary hunk;
-	hunk["old_start"] = range->old_start;
-	hunk["old_lines"] = range->old_lines;
-	hunk["new_start"] = range->new_start;
-	hunk["new_lines"] = range->new_lines;
-	diff_hunks->push_back(hunk);
+	godot::DiffHelper *diff_helper = (godot::DiffHelper *)payload;
 
+	godot::Dictionary hunk = diff_helper->git_api->create_diff_hunk(range->old_start, range->new_start, range->old_lines, range->new_lines);
+	diff_helper->diff_hunks->push_back(hunk);
+	
 	return 1;
 }

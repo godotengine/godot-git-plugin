@@ -25,6 +25,7 @@ void GitAPI::_register_methods() {
 	register_method("_commit", &GitAPI::_commit);
 	register_method("_is_vcs_initialized", &GitAPI::_is_vcs_initialized);
 	register_method("_get_modified_files_data", &GitAPI::_get_modified_files_data);
+	register_method("_get_remotes", &GitAPI::_get_remotes);
 	register_method("_get_file_diff", &GitAPI::_get_file_diff);
 	register_method("_get_project_name", &GitAPI::_get_project_name);
 	register_method("_get_vcs_name", &GitAPI::_get_vcs_name);
@@ -36,6 +37,7 @@ void GitAPI::_register_methods() {
 	register_method("_get_previous_commits", &GitAPI::_get_previous_commits);
 	register_method("_get_branch_list", &GitAPI::_get_branch_list);
 	register_method("_create_branch", &GitAPI::_create_branch);
+	register_method("_create_remote", &GitAPI::_create_remote);
 	register_method("_get_current_branch_name", &GitAPI::_get_current_branch_name);
 	register_method("_checkout_branch", &GitAPI::_checkout_branch);
 	register_method("_fetch", &GitAPI::_fetch);
@@ -354,6 +356,12 @@ void GitAPI::_create_branch(const String branch_name) {
 		git_branch_create, branch_ref, repo.get(), CString(branch_name).data, head_commit.get(), 0);
 }
 
+void GitAPI::_create_remote(const String remote_name, const String remote_url) {
+	git_remote_ptr remote;
+	GIT2_PTR("Could not create remote",
+		git_remote_create, remote, repo.get(), CString(remote_name).data, CString(remote_url).data);
+}
+
 Array GitAPI::_get_line_diff(String file_path, String text) {
 
 	git_diff_options opts = GIT_DIFF_OPTIONS_INIT;
@@ -377,14 +385,15 @@ Array GitAPI::_get_line_diff(String file_path, String text) {
 	GIT2_PTR_R("Failed to load repository head", Array(),
 		git_repository_head, head, repo.get());
 
-	const git_oid *blobSha = &entry->id;
 	git_blob_ptr blob;
 	GIT2_PTR_R("Failed to load head blob", Array(), 
-		git_blob_lookup, blob, repo.get(), blobSha);
+		git_blob_lookup, blob, repo.get(), &entry->id);
 
 	Array diff_contents;
+
+	DiffHelper diff_helper = { &diff_contents, this };
 	GIT2_CALL_R("Failed to make diff", Array(),
-		git_diff_blob_to_buffer, blob.get(), NULL, CString(text).data, text.length(), NULL, &opts, NULL, NULL, diff_hunk_cb, NULL, &diff_contents);
+		git_diff_blob_to_buffer, blob.get(), NULL, CString(text).data, text.length(), NULL, &opts, NULL, NULL, diff_hunk_cb, NULL, &diff_helper);
 
 	return diff_contents;
 }
@@ -410,6 +419,19 @@ String GitAPI::_get_current_branch_name(bool full_ref) {
 	}
 
 	return branch_name;
+}
+
+Array GitAPI::_get_remotes() {
+	git_strarray remote_array;
+	GIT2_CALL_R("Could not get list of remotes", Array(),
+		git_remote_list, &remote_array, repo.get());
+
+	Array remotes;
+	for (int i = 0; i < remote_array.count; i++) {
+		remotes.push_back(remote_array.strings[i]);
+	}
+
+	return remotes;
 }
 
 Array GitAPI::_get_previous_commits() {
