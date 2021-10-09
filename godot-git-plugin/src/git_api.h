@@ -90,13 +90,13 @@ class GitAPI : public EditorVCSInterface {
 	void _discard_file(const String file_path);
 	void _fetch(const String remote, const String username, const String password);
 	Array _get_branch_list();
-	Array _get_remotes();
 	String _get_current_branch_name(const bool full_ref);
 	Array _get_file_diff(const String identifier, const int64_t area);
 	Array _get_line_diff(const String file_path, const String text);
 	Array _get_modified_files_data();
 	Array _get_previous_commits();
 	String _get_project_name();
+	Array _get_remotes();
 	String _get_vcs_name();
 	bool _initialize(const String project_root_path);
 	bool _is_vcs_initialized();

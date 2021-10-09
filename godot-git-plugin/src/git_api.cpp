@@ -448,21 +448,21 @@ Array GitAPI::_get_previous_commits() {
 	git_oid oid;
 	Array commits;
 	char commit_id[GIT_OID_HEXSZ + 1];
-	const git_signature *sig;
 	for (int i = 0; !git_revwalk_next(&oid, walker.get()) && i <= max_commit_fetch; i++) {
 		git_commit_ptr commit;
 		GIT2_PTR_R("Failed to lookup the commit", commits, 
 			git_commit_lookup, commit, repo.get(), &oid);
 		
-		sig = git_commit_author(commit.get());
 		git_oid_tostr(commit_id, GIT_OID_HEXSZ + 1, git_commit_id(commit.get()));
 		
 		String msg = git_commit_message(commit.get());
-		String author = sig->name;
-		int64_t when = (int64_t)sig->when.time + (int64_t)(sig->when.offset * 60);
+		String author = git_commit_author(commit.get())->name;
+		author = author + " <" + String(git_commit_author(commit.get())->email) + ">";
+		int64_t when = git_commit_time(commit.get());
+		int64_t offset = git_commit_time_offset(commit.get());
 		String hex_id = commit_id;
 		
-		Dictionary commit_info = create_commit(msg, author, hex_id, when);
+		Dictionary commit_info = create_commit(msg, author, hex_id, String::num_int64(when), offset);
 		
 		commits.push_back(commit_info);
 	}
