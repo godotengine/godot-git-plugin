@@ -75,31 +75,27 @@ using git_tree_ptr = unique_ptr_deleter<git_tree, git_tree_free>;
 class GitAPI : public EditorVCSInterface {
 	GODOT_CLASS(GitAPI, EditorVCSInterface)
 
-	const int max_commit_fetch = 10;
-
 	git_repository_ptr repo;
 
 	bool has_merge = false;
 	git_oid pull_merge_oid = {};
 	
 	// Endpoints
-	bool _checkout_branch(const String branch);
-	void _commit(const String message);
+	bool _checkout_branch(const String branch_name);
+	void _commit(const String msg);
 	void _create_branch(const String branch_name);
 	void _create_remote(const String remote_name, const String remote_url);
 	void _discard_file(const String file_path);
 	void _fetch(const String remote, const String username, const String password);
 	Array _get_branch_list();
-	String _get_current_branch_name(const bool full_ref);
-	Array _get_file_diff(const String identifier, const int64_t area);
+	String _get_current_branch_name();
+	Array _get_diff(const String identifier, const int64_t area);
 	Array _get_line_diff(const String file_path, const String text);
 	Array _get_modified_files_data();
-	Array _get_previous_commits();
-	String _get_project_name();
+	Array _get_previous_commits(const int64_t max_commits);
 	Array _get_remotes();
 	String _get_vcs_name();
-	bool _initialize(const String project_root_path);
-	bool _is_vcs_initialized();
+	bool _initialize(const String project_path);
 	void _pull(const String remote, const String username, const String password);
 	void _push(const String remote, const String username, const String password, const bool force);
 	bool _shut_down();
@@ -115,12 +111,9 @@ public:
 	bool check_errors(int error, String message, String function, String file, int line);
 	void create_gitignore_and_gitattributes();
 	bool create_initial_commit();
+	String get_commit_date(const git_time *intime);
 
 	void _init();
-	void _process();
-
-	GitAPI();
-	~GitAPI();
 };
 
 } // namespace godot

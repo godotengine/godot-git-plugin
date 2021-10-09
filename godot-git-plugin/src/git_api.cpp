@@ -20,14 +20,10 @@ do {                                                                   \
 namespace godot {
 
 void GitAPI::_register_methods() {
-	register_method("_process", &GitAPI::_process);
-
 	register_method("_commit", &GitAPI::_commit);
-	register_method("_is_vcs_initialized", &GitAPI::_is_vcs_initialized);
 	register_method("_get_modified_files_data", &GitAPI::_get_modified_files_data);
 	register_method("_get_remotes", &GitAPI::_get_remotes);
-	register_method("_get_file_diff", &GitAPI::_get_file_diff);
-	register_method("_get_project_name", &GitAPI::_get_project_name);
+	register_method("_get_diff", &GitAPI::_get_diff);
 	register_method("_get_vcs_name", &GitAPI::_get_vcs_name);
 	register_method("_initialize", &GitAPI::_initialize);
 	register_method("_shut_down", &GitAPI::_shut_down);
@@ -254,8 +250,29 @@ bool GitAPI::create_initial_commit() {
 	return true;
 }
 
-bool GitAPI::_is_vcs_initialized() {
-	return repo != nullptr;
+String GitAPI::get_commit_date(const git_time* intime) {
+	char sign, out[32];
+	struct tm *intm;
+	int offset, hours, minutes;
+	time_t t;
+
+	offset = intime->offset;
+	if (offset < 0) {
+		sign = '-';
+		offset = -offset;
+	} else {
+		sign = '+';
+	}
+
+	hours = offset / 60;
+	minutes = offset % 60;
+
+	t = (time_t)intime->time + (intime->offset * 60);
+
+	intm = gmtime(&t);
+	strftime(out, sizeof(out), "%a %b %e %T %Y", intm);
+
+	return String(out) + " " + sign + (hours < 10 ? "0" : "") + String::num(hours) + ":" + (minutes < 10 ? "0" : "") + String::num(minutes);
 }
 
 Array GitAPI::_get_modified_files_data() {
@@ -398,27 +415,21 @@ Array GitAPI::_get_line_diff(String file_path, String text) {
 	return diff_contents;
 }
 
-String GitAPI::_get_current_branch_name(bool full_ref) {
+String GitAPI::_get_current_branch_name() {
 
 	git_reference_ptr head;
 	GIT2_PTR_R("Could not get repository HEAD", "",
 		git_repository_head, head, repo.get());
 
 	git_reference_ptr branch;
-	GIT2_PTR_R("Could not resolve HEAD reference", "", 
+	GIT2_PTR_R("Could not resolve HEAD reference", "",
 		git_reference_resolve, branch, head.get());
 
-	String branch_name;
-	if (full_ref) {
-		branch_name = git_reference_name(branch.get());
-	} else {
-		const char *name = "";
-		GIT2_CALL_R("Could not get branch name from current branch reference", "", 
-			git_branch_name, &name, branch.get());
-		branch_name = name;
-	}
+	const char *name = "";
+	GIT2_CALL_R("Could not get branch name from current branch reference", "", 
+		git_branch_name, &name, branch.get());
 
-	return branch_name;
+	return name;
 }
 
 Array GitAPI::_get_remotes() {
@@ -434,7 +445,7 @@ Array GitAPI::_get_remotes() {
 	return remotes;
 }
 
-Array GitAPI::_get_previous_commits() {
+Array GitAPI::_get_previous_commits(const int64_t max_commits) {
 
 	git_revwalk_ptr walker;
 
@@ -448,7 +459,7 @@ Array GitAPI::_get_previous_commits() {
 	git_oid oid;
 	Array commits;
 	char commit_id[GIT_OID_HEXSZ + 1];
-	for (int i = 0; !git_revwalk_next(&oid, walker.get()) && i <= max_commit_fetch; i++) {
+	for (int i = 0; !git_revwalk_next(&oid, walker.get()) && i <= max_commits; i++) {
 		git_commit_ptr commit;
 		GIT2_PTR_R("Failed to lookup the commit", commits, 
 			git_commit_lookup, commit, repo.get(), &oid);
@@ -456,14 +467,12 @@ Array GitAPI::_get_previous_commits() {
 		git_oid_tostr(commit_id, GIT_OID_HEXSZ + 1, git_commit_id(commit.get()));
 		
 		String msg = git_commit_message(commit.get());
-		String author = git_commit_author(commit.get())->name;
-		author = author + " <" + String(git_commit_author(commit.get())->email) + ">";
-		int64_t when = git_commit_time(commit.get());
-		int64_t offset = git_commit_time_offset(commit.get());
-		String hex_id = commit_id;
+
+		const git_signature *sig = git_commit_author(commit.get());
+		String author = String() + sig->name + " <" + sig->email + ">";
 		
-		Dictionary commit_info = create_commit(msg, author, hex_id, String::num_int64(when), offset);
-		
+		Dictionary commit_info = create_commit(msg, author, commit_id, get_commit_date(&sig->when));
+
 		commits.push_back(commit_info);
 	}
 
@@ -533,9 +542,9 @@ void GitAPI::_pull(String remote, String username, String password) {
 	git_fetch_options fetch_opts = GIT_FETCH_OPTIONS_INIT;
 	fetch_opts.callbacks = remote_cbs;
 
-	String branch_name = _get_current_branch_name(true);
+	String branch_name = _get_current_branch_name();
 
-	CString ref_spec_str(branch_name);
+	CString ref_spec_str("refs/heads/" + branch_name);
 	
 	char *ref[] = { ref_spec_str.data };
 	git_strarray refspec = { ref, 1 };
@@ -649,9 +658,9 @@ void GitAPI::_push(const String remote, const String username, const String pass
 	GIT2_CALL("Could not connect to remote \"" + remote + "\". Are your credentials correct? Try using a PAT token (in case you are using Github) as your password", 
 		git_remote_connect, remote_object.get(), GIT_DIRECTION_PUSH, &remote_cbs, NULL, NULL);
 
-	String branch_name = _get_current_branch_name(true);
+	String branch_name = _get_current_branch_name();
 
-	CString pushspec(String() + (force ? "+" : "") + branch_name);
+	CString pushspec(String() + (force ? "+" : "") + "refs/heads/" + branch_name);
 	const git_strarray refspec = { &pushspec.data, 1 };
 
 	git_push_options push_options = GIT_PUSH_OPTIONS_INIT;
@@ -684,7 +693,7 @@ bool GitAPI::_checkout_branch(String branch_name) {
 	return true;
 }
 
-Array GitAPI::_get_file_diff(const String identifier, const int64_t area) {
+Array GitAPI::_get_diff(const String identifier, const int64_t area) {
 	git_diff_options opts = GIT_DIFF_OPTIONS_INIT;
 	Array diff_contents;
 
@@ -795,16 +804,12 @@ Array GitAPI::_parse_diff(git_diff *diff) {
 	return diff_contents;
 }
 
-String GitAPI::_get_project_name() {
-	return String("project");
-}
-
 String GitAPI::_get_vcs_name() {
 	return "Git";
 }
 
-bool GitAPI::_initialize(String project_root_path) {
-	ERR_FAIL_COND_V(project_root_path == "", false);
+bool GitAPI::_initialize(String project_path) {
+	ERR_FAIL_COND_V(project_path == "", false);
 
 	int init = git_libgit2_init();
 	if (init > 1) {
@@ -812,7 +817,7 @@ bool GitAPI::_initialize(String project_root_path) {
 	}
 
 	GIT2_PTR_R("Could not initialize repository", false,
-		git_repository_init, repo, CString(project_root_path).data, 0);
+		git_repository_init, repo, CString(project_path).data, 0);
 	
 	git_reference* head = nullptr;
 	int error = git_repository_head(&head, repo.get());
@@ -828,9 +833,6 @@ bool GitAPI::_initialize(String project_root_path) {
 		check_errors(error, "Could not get repository HEAD", __FUNCTION__, __FILE__, __LINE__);
 	}
 
-	GIT2_PTR_R("Could not open repository", false,
-		git_repository_open, repo, CString(project_root_path).data);
-
 	return true;
 }
 
@@ -842,15 +844,6 @@ bool GitAPI::_shut_down() {
 }
 
 void GitAPI::_init() {
-}
-
-void GitAPI::_process() {
-}
-
-GitAPI::GitAPI() {
-}
-
-GitAPI::~GitAPI() {
 }
 
 } // namespace godot
