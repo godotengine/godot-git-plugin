@@ -1,5 +1,8 @@
-#include <git_api.h>
 #include <git_common.h>
+
+#include <Directory.hpp>
+
+#include <git_api.h>
 
 extern "C" int progress_cb(const char *str, int len, void *data) {
 	(void)data;
@@ -72,16 +75,25 @@ extern "C" int push_update_reference_cb(const char *refname, const char *status,
 }
 
 extern "C" int credentials_cb(git_cred **out, const char *url, const char *username_from_url, unsigned int allowed_types, void *payload) {
-	godot::String* creds = (godot::String *)payload;
-	
-	godot::String& username = creds[0];
-	godot::String& password = creds[1];
-	
-	if (username.empty() || password.empty()) {
-		return GIT_EUSER;
+	Credentials* creds = (Credentials *)payload;
+
+	if (allowed_types & GIT_CREDENTIAL_USERPASS_PLAINTEXT) {
+		return git_cred_userpass_plaintext_new(out, godot::CString(creds->username).data, godot::CString(creds->password).data);
 	}
 
-	return git_cred_userpass_plaintext_new(out, godot::CString(username).data, godot::CString(password).data);
+	if (allowed_types & GIT_CREDENTIAL_SSH_KEY) {
+		return git_credential_ssh_key_new(out, 
+			godot::CString(creds->username).data, 
+			godot::CString(creds->ssh_public_key_path).data, 
+			godot::CString(creds->ssh_private_key_path).data, 
+			godot::CString(creds->ssh_passphrase).data);
+	}
+
+	if (allowed_types & GIT_CREDENTIAL_USERNAME) {
+		return git_credential_username_new(out, godot::CString(creds->username).data);
+	}
+
+	return GIT_PASSTHROUGH;
 }
 
 extern "C" int diff_hunk_cb(const git_diff_delta *delta, const git_diff_hunk *range, void *payload){

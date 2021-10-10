@@ -40,6 +40,7 @@ void GitAPI::_register_methods() {
 	register_method("_pull", &GitAPI::_pull);
 	register_method("_push", &GitAPI::_push);
 	register_method("_get_line_diff", &GitAPI::_get_line_diff);
+	register_method("_set_credentials", &GitAPI::_set_credentials);
 }
 
 bool GitAPI::check_errors(int error, String message, String function, String file, int line) {
@@ -59,6 +60,14 @@ bool GitAPI::check_errors(int error, String message, String function, String fil
 	Godot::print_error("GitAPI: " + message, function, file, line);
 	popup_error(message);
 	return true;
+}
+
+void GitAPI::_set_credentials(const String username, const String password, const String ssh_public_key_path, const String ssh_private_key_path, const String ssh_passphrase) {
+	creds.username = username;
+	creds.password = password;
+	creds.ssh_public_key_path = ssh_public_key_path;
+	creds.ssh_private_key_path = ssh_private_key_path;
+	creds.ssh_passphrase = ssh_passphrase;
 }
 
 void GitAPI::_discard_file(const String file_path) {
@@ -376,7 +385,7 @@ void GitAPI::_create_branch(const String branch_name) {
 void GitAPI::_create_remote(const String remote_name, const String remote_url) {
 	git_remote_ptr remote;
 	GIT2_PTR("Could not create remote",
-		git_remote_create, remote, repo.get(), CString(remote_name).data, CString(remote_url).data);
+		git_remote_create_with_opts, remote, CString(remote_url).data, &opts);
 }
 
 Array GitAPI::_get_line_diff(String file_path, String text) {
@@ -479,7 +488,7 @@ Array GitAPI::_get_previous_commits(const int64_t max_commits) {
 	return commits;
 }
 
-void GitAPI::_fetch(String remote, String username, String password) {
+void GitAPI::_fetch(String remote) {
 
 	Godot::print("GitAPI: Performing fetch from " + remote);
 	
@@ -487,20 +496,12 @@ void GitAPI::_fetch(String remote, String username, String password) {
 	GIT2_PTR("Could not lookup remote \"" + remote + "\"",
 		git_remote_lookup, remote_object, repo.get(), CString(remote).data);
 
-	CString c_username(username);
-	CString c_password(username);
-
-	String payload[2] = {
-		username,
-		password
-	};
-
 	git_remote_callbacks remote_cbs = GIT_REMOTE_CALLBACKS_INIT;
 	remote_cbs.credentials = &credentials_cb;
 	remote_cbs.update_tips = &update_cb;
 	remote_cbs.sideband_progress = &progress_cb;
 	remote_cbs.transfer_progress = &transfer_progress_cb;
-	remote_cbs.payload = payload;
+	remote_cbs.payload = &creds;
 	remote_cbs.push_transfer_progress = &push_transfer_progress_cb;
 	remote_cbs.push_update_reference = &push_update_reference_cb;
 
@@ -515,24 +516,19 @@ void GitAPI::_fetch(String remote, String username, String password) {
 	Godot::print("GitAPI: Fetch ended");
 }
 
-void GitAPI::_pull(String remote, String username, String password) {
+void GitAPI::_pull(String remote) {
 	Godot::print("GitAPI: Performing pull from " + remote);
 
 	git_remote_ptr remote_object;
 	GIT2_PTR("Could not lookup remote \"" + remote + "\"",
 		git_remote_lookup, remote_object, repo.get(), CString(remote).data);
 
-	String payload[2] = {
-		username,
-		password
-	};
-
 	git_remote_callbacks remote_cbs = GIT_REMOTE_CALLBACKS_INIT;
 	remote_cbs.credentials = &credentials_cb;
 	remote_cbs.update_tips = &update_cb;
 	remote_cbs.sideband_progress = &progress_cb;
 	remote_cbs.transfer_progress = &transfer_progress_cb;
-	remote_cbs.payload = payload;
+	remote_cbs.payload = &creds;
 	remote_cbs.push_transfer_progress = &push_transfer_progress_cb;
 	remote_cbs.push_update_reference = &push_update_reference_cb;
 
@@ -631,27 +627,19 @@ void GitAPI::_pull(String remote, String username, String password) {
 	Godot::print("GitAPI: Pull ended");
 }
 
-void GitAPI::_push(const String remote, const String username, const String password, const bool force) {
+void GitAPI::_push(const String remote, const bool force) {
 	Godot::print("GitAPI: Performing push to " + remote);
 
 	git_remote_ptr remote_object;
 	GIT2_PTR("Could not lookup remote \"" + remote + "\"", 
 		git_remote_lookup, remote_object, repo.get(), CString(remote).data);
 
-	CString c_username(username);
-	CString c_password(username);
-
-	String payload[2] = {
-		username,
-		password
-	};
-
 	git_remote_callbacks remote_cbs = GIT_REMOTE_CALLBACKS_INIT;
 	remote_cbs.credentials = &credentials_cb;
 	remote_cbs.update_tips = &update_cb;
 	remote_cbs.sideband_progress = &progress_cb;
 	remote_cbs.transfer_progress = &transfer_progress_cb;
-	remote_cbs.payload = payload;
+	remote_cbs.payload = &creds;
 	remote_cbs.push_transfer_progress = &push_transfer_progress_cb;
 	remote_cbs.push_update_reference = &push_update_reference_cb;
 

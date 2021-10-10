@@ -75,18 +75,18 @@ using git_tree_ptr = unique_ptr_deleter<git_tree, git_tree_free>;
 class GitAPI : public EditorVCSInterface {
 	GODOT_CLASS(GitAPI, EditorVCSInterface)
 
-	git_repository_ptr repo;
-
+	Credentials creds;
 	bool has_merge = false;
+	git_repository_ptr repo;
 	git_oid pull_merge_oid = {};
-	
+
 	// Endpoints
 	bool _checkout_branch(const String branch_name);
 	void _commit(const String msg);
 	void _create_branch(const String branch_name);
 	void _create_remote(const String remote_name, const String remote_url);
 	void _discard_file(const String file_path);
-	void _fetch(const String remote, const String username, const String password);
+	void _fetch(const String remote);
 	Array _get_branch_list();
 	String _get_current_branch_name();
 	Array _get_diff(const String identifier, const int64_t area);
@@ -96,8 +96,9 @@ class GitAPI : public EditorVCSInterface {
 	Array _get_remotes();
 	String _get_vcs_name();
 	bool _initialize(const String project_path);
-	void _pull(const String remote, const String username, const String password);
-	void _push(const String remote, const String username, const String password, const bool force);
+	void _pull(const String remote);
+	void _push(const String remote, const bool force);
+	void _set_credentials(const String username, const String password, const String ssh_public_key_path, const String ssh_private_key_path, const String ssh_passphrase);
 	bool _shut_down();
 	void _stage_file(const String file_path);
 	void _unstage_file(const String file_path);

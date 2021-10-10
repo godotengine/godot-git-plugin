@@ -7,6 +7,14 @@
 
 #include <git2.h>
 
+struct Credentials {
+	godot::String username;
+	godot::String password;
+	godot::String ssh_public_key_path;
+	godot::String ssh_private_key_path;
+	godot::String ssh_passphrase;
+};
+
 extern "C" int progress_cb(const char *str, int len, void *data);
 extern "C" int update_cb(const char *refname, const git_oid *a, const git_oid *b, void *data);
 extern "C" int transfer_progress_cb(const git_indexer_progress *stats, void *payload);
