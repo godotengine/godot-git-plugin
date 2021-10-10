@@ -385,7 +385,7 @@ void GitAPI::_create_branch(const String branch_name) {
 void GitAPI::_create_remote(const String remote_name, const String remote_url) {
 	git_remote_ptr remote;
 	GIT2_PTR("Could not create remote",
-		git_remote_create_with_opts, remote, CString(remote_url).data, &opts);
+		git_remote_create, remote, repo.get(), CString(remote_name).data, CString(remote_url).data);
 }
 
 Array GitAPI::_get_line_diff(String file_path, String text) {
@@ -781,6 +781,8 @@ Array GitAPI::_parse_diff(git_diff *diff) {
 
 				Dictionary diff_line = create_diff_line(git_diff_line->new_lineno, git_diff_line->old_lineno, String(content), String(git_diff_line->origin));
 				diff_lines.push_back(diff_line);
+
+				delete[] content;
 			}
 
 			diff_hunk = add_line_diffs_into_diff_hunk(diff_hunk, diff_lines);

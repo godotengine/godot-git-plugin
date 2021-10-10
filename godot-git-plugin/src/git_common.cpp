@@ -6,12 +6,13 @@
 
 extern "C" int progress_cb(const char *str, int len, void *data) {
 	(void)data;
-	godot::String progress_str;
-	for (int i = 0; i < len; i++) {
-		progress_str += str[i];
-	}
 
-	godot::Godot::print("remote: " + progress_str.strip_edges());
+	char* progress_str = new char[len + 1];
+	memcpy(progress_str, str, len);
+	progress_str[len] = '\0';
+	godot::Godot::print("remote: " + godot::String(progress_str).strip_edges());
+	delete[] progress_str;
+
 	return 0;
 }
 
@@ -93,7 +94,7 @@ extern "C" int credentials_cb(git_cred **out, const char *url, const char *usern
 		return git_credential_username_new(out, godot::CString(creds->username).data);
 	}
 
-	return GIT_PASSTHROUGH;
+	return GIT_EUSER;
 }
 
 extern "C" int diff_hunk_cb(const git_diff_delta *delta, const git_diff_hunk *range, void *payload){

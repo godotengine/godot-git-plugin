@@ -1,0 +1,3 @@
+#!/usr/bin/env python
+
+SConscript("git2/SCsub")

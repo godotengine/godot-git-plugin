@@ -7,9 +7,9 @@ reloadable=false
 
 [entry]
 
-OSX.64="res://addons/godot-git-plugin/osx/release/libgitapi.dylib"
-Windows.64="res://addons/godot-git-plugin/win64/debug/libgitapi.dll"
-X11.64="res://addons/godot-git-plugin/x11/release/libgitapi.so"
+OSX.64="res://addons/godot-git-plugin/osx/libgitapi.dylib"
+Windows.64="res://addons/godot-git-plugin/win64/libgitapi.dll"
+X11.64="res://addons/godot-git-plugin/x11/libgitapi.so"
 
 [dependencies]
 

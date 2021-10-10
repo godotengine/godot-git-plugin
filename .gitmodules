@@ -3,5 +3,5 @@
 	url = https://github.com/godotengine/godot-cpp
 	branch = 3.x
 [submodule "libgit2"]
-	path = godot-git-plugin/thirdparty/libgit2
+	path = thirdparty/git2/libgit2
 	url = https://github.com/libgit2/libgit2
