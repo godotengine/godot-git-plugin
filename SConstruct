@@ -11,8 +11,8 @@ env = Environment(ENV = os.environ)
 
 # Define our options
 opts.Add(EnumVariable("target", "Compilation target", "debug", ["d", "debug", "r", "release"]))
-opts.Add(EnumVariable("platform", "Compilation platform", "", ["", "windows", "x11", "linux", "osx"]))
-opts.Add(EnumVariable("p", "Compilation target, alias for \"platform\"", "", ["", "windows", "x11", "linux", "osx"]))
+opts.Add(EnumVariable("platform", "Compilation platform", "", ["", "windows", "linux", "osx"]))
+opts.Add(EnumVariable("p", "Compilation target, alias for \"platform\"", "", ["", "windows", "linux", "osx"]))
 opts.Add(BoolVariable("godot_cpp", "Build godot-cpp by forwarding arguments to it.", "no"))
 opts.Add(BoolVariable("use_llvm", "Use the LLVM / Clang compiler", "no"))
 opts.Add(PathVariable("target_path", "The path where the lib is installed.", "demo/addons/godot-git-plugin/"))
