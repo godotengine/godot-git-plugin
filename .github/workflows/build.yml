@@ -9,6 +9,7 @@ jobs:
       - uses: actions/checkout@v2
       - name: build-linux-release
         run: |
+          git submodule update --init --recursive
           pip3 install --user scons
           scons platform=x11 target=release bits=64 -j $(nproc)
       - uses: actions/upload-artifact@v2
@@ -29,6 +30,7 @@ jobs:
       - uses: ilammy/msvc-dev-cmd@v1
       - name: build-windows-release
         run: |
+          git submodule update --init --recursive
           pip3 install --user scons
           scons platform=windows target=release bits=64 -j $env:NUMBER_OF_PROCESSORS
       - uses: actions/upload-artifact@v2
@@ -44,6 +46,7 @@ jobs:
       - uses: actions/checkout@v2
       - name: build-macos-release
         run: |
+          git submodule update --init --recursive
           brew install scons
           scons platform=osx target=release bits=64 macos_arch=universal use_llvm=yes -j $(sysctl -n hw.logicalcpu)
       - uses: actions/upload-artifact@v2
