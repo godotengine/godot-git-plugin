@@ -91,6 +91,7 @@ if env_git["platform"] == "windows":
     )
 
 if env_git["platform"] in ["linux", "osx"]:
+    env_git.Append(CCFLAGS = "-fPIC")
     libgit2_sources += [
         "libgit2/deps/ntlmclient/crypt_openssl.c",
         "libgit2/deps/ntlmclient/unicode_builtin.c"

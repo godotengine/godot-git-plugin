@@ -63,6 +63,7 @@ if env_ssh2["platform"] == "windows":
     env_ssh2.Append(LIBS = ["crypt32", "user32"])
 
 if env_ssh2["platform"] == "osx":
+    env_ssh2.Append(CCFLAGS = "-fPIC")
     env_ssh2.Append(
         CPPPATH=[
             "libssh2/include/",
@@ -78,6 +79,7 @@ if env_ssh2["platform"] == "osx":
     )
 
 if env_ssh2["platform"] == "linux":
+    env_ssh2.Append(CCFLAGS = "-fPIC")
     env_ssh2.Append(
         CPPPATH=[
             ".",
