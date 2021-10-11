@@ -41,11 +41,6 @@ env_ssh2.Prepend(
     ]
 )
 
-env_ssh2.Prepend(
-    CPPDEFINES=[
-    ]
-)
-
 if env_ssh2["platform"] == "windows":
     env_ssh2.Append(
         CPPPATH=[
@@ -66,8 +61,8 @@ if env_ssh2["platform"] == "osx":
     env_ssh2.Append(CCFLAGS = "-fPIC")
     env_ssh2.Append(
         CPPPATH=[
+            "."
             "libssh2/include/",
-            "libssh2/os400/"
         ]
     )
     libssh2_sources += ["libssh2/src/openssl.c"]
@@ -77,14 +72,8 @@ if env_ssh2["platform"] == "osx":
             "HAVE_SYS_UIO_H"
         ]
     )
-    if env_ssh2["macos_arch"] == "universal":
-        env_ssh2.Append(LINKFLAGS=["-arch", "x86_64", "-arch", "arm64"])
-        env_ssh2.Append(CCFLAGS=["-arch", "x86_64", "-arch", "arm64"])
-    else:
-        env_ssh2.Append(LINKFLAGS=["-arch", env_ssh2["macos_arch"]])
-        env_ssh2.Append(CCFLAGS=["-arch", env_ssh2["macos_arch"]])
 
-if env_ssh2["platform"] == "linux":
+if env_ssh2["platform"] in ["linux", "osx"]:
     env_ssh2.Append(CCFLAGS = "-fPIC")
     env_ssh2.Append(
         CPPPATH=[
@@ -130,5 +119,13 @@ if env_ssh2["platform"] == "linux":
             ("STDC_HEADERS", 1)
         ]
     )
+
+if env_ssh2["platform"] == "osx":
+    if env_ssh2["macos_arch"] == "universal":
+        env_ssh2.Append(LINKFLAGS=["-arch", "x86_64", "-arch", "arm64"])
+        env_ssh2.Append(CCFLAGS=["-arch", "x86_64", "-arch", "arm64"])
+    else:
+        env_ssh2.Append(LINKFLAGS=["-arch", env_ssh2["macos_arch"]])
+        env_ssh2.Append(CCFLAGS=["-arch", env_ssh2["macos_arch"]])
 
 env_ssh2.StaticLibrary(target = "../bin/" + "ssh2", source = libssh2_sources)
