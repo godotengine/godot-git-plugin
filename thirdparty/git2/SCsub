@@ -42,14 +42,15 @@ env_git.Prepend(
         "libgit2/deps/http-parser/",
         "libgit2/deps/pcre/",
         "libgit2/deps/zlib/",
+        "../ssh2/libssh2/include/",
     ]
 )
 
 env_git.Prepend(
     CPPDEFINES=[
         "GIT_THREADS",
-        #"GIT_SSH",
-        #"GIT_SSH_MEMORY_CREDENTIALS",
+        "GIT_SSH",
+        "GIT_SSH_MEMORY_CREDENTIALS",
         "LIBGIT2_NO_FEATURES_H",
         "GIT_SHA1_COLLISIONDETECT",
         "GIT_HTTPS",
@@ -83,6 +84,8 @@ if env_git["platform"] == "windows":
             "PCREGREP_BUFSIZE",
             ("MAX_NAME_SIZE", "32"),
             ("MAX_NAME_COUNT", "10000"),
+            "HAVE_WINCNG",
+            "LIBSSH2_WINCNG"
         ]
     )
 
@@ -116,5 +119,6 @@ if env_git["platform"] in ["x11", "osx"]:
         ]
     )
 
-env_git["PDB"] = "git2.pdb"
+env.Append(LIBPATH=["../bin/"])
+
 env_git.StaticLibrary(target = "../bin/" + "git2", source = libgit2_sources)

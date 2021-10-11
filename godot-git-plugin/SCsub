@@ -41,7 +41,7 @@ if env["platform"] == "osx":
 elif env["platform"] in ("x11", "linux"):
     env["target_path"] += "x11/"
     cpp_library += ".linux"
-    env.Append(LIBS=["ssl", "crypto", "ssh2", "pcre"])
+    env.Append(LIBS=["ssl"])
 
     if env["target"] in ("debug", "d"):
         env.Append(CCFLAGS = ["-fPIC", "-g3","-Og", "-std=c++17"])
@@ -56,7 +56,7 @@ elif env["platform"] == "windows":
     env.Append(ENV = os.environ)
 
     env.Append(CCFLAGS = ["-DWIN32", "-D_WIN32", "-D_WINDOWS", "-W3", "-GR", "-D_CRT_SECURE_NO_WARNINGS", "/std:c++17"])
-    env.Append(LIBS=["Advapi32", "Winhttp", "Rpcrt4", "crypt32", "OLE32"])
+    env.Append(LIBS=["Advapi32", "Winhttp", "Rpcrt4", "crypt32", "OLE32", "user32"])
     if env["target"] in ("debug", "d"):
         env.Append(CCFLAGS = ["-EHsc", "-D_DEBUG", "-MDd", "/DEBUG"])
         env["PDB"] = env["target_name"] + ".pdb"
@@ -73,11 +73,11 @@ if env["platform"] == "osx":
 else:
     cpp_library += "." + str(bits)
 
-env.Append(CPPPATH=[".", "src/"])
-env.Append(CPPPATH=[godot_headers_path, cpp_bindings_path + "include/", cpp_bindings_path + "include/core/", cpp_bindings_path + "include/gen/"])
-env.Append(CPPPATH=["../thirdparty/git2/libgit2/include/"])
-env.Append(LIBPATH=[cpp_bindings_path + "bin/", "../thirdparty/bin/"])
-env.Append(LIBS=[cpp_library, "git2"])
+env.Append(CPPPATH = [".", "src/"])
+env.Append(CPPPATH = [godot_headers_path, cpp_bindings_path + "include/", cpp_bindings_path + "include/core/", cpp_bindings_path + "include/gen/"])
+env.Append(CPPPATH = ["../thirdparty/git2/libgit2/include/"])
+env.Append(LIBPATH = [cpp_bindings_path + "bin/", "../thirdparty/bin/"])
+env.Append(LIBS = [cpp_library, "git2", "ssh2"])
 
 library = env.SharedLibrary(
     target = env["target_path"] + env["target_name"],
