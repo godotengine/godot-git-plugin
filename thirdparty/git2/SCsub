@@ -91,7 +91,10 @@ if env_git["platform"] == "windows":
     )
 
 if env_git["platform"] in ["linux", "osx"]:
-    libgit2_sources += Glob("libgit2/deps/ntlmclient/crypt_openssl.c")
+    libgit2_sources += [
+        "libgit2/deps/ntlmclient/crypt_openssl.c",
+        "libgit2/deps/ntlmclient/unicode_builtin.c"
+    ]
     env_git.Prepend(
         CPPDEFINES=[
 			"HAVE_DIRENT_H",
@@ -121,10 +124,9 @@ if env_git["platform"] in ["linux", "osx"]:
             "GIT_OPENSSL",
             "GIT_USE_FUTIMENS",
             "GIT_USE_STAT_MTIM",
-            "CRYPT_OPENSSL"
+            "CRYPT_OPENSSL",
+            "UNICODE_BUILTIN"
         ]
     )
-
-env.Append(LIBPATH=["../bin/"])
 
 env_git.StaticLibrary(target = "../bin/" + "git2", source = libgit2_sources)

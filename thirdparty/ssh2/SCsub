@@ -69,21 +69,57 @@ if env_ssh2["platform"] == "osx":
             "libssh2/os400/"
         ]
     )
-    libssh2_sources += ["libssh2/os400/" + "*.c"]
+    libssh2_sources += ["libssh2/src/openssl.c"]
     env_ssh2.Append(
-        CPPDEFINES=[]
+        CPPDEFINES=[
+            "LIBSSH2_OPENSSL",
+            "HAVE_SYS_UIO_H"
+        ]
     )
 
 if env_ssh2["platform"] == "linux":
     env_ssh2.Append(
         CPPPATH=[
+            ".",
             "libssh2/include/",
-            "libssh2/vms/"
         ]
     )
+    libssh2_sources += ["libssh2/src/openssl.c"]
     env_ssh2.Append(
         CPPDEFINES=[
-            "LIBSSH2_OPENSSL"
+            "LIBSSH2_CONFIG_H",
+            "HAVE_SYS_UIO_H",
+            ("HAVE_ALLOCA", 1),
+            ("HAVE_ALLOCA_H", 1),
+            ("HAVE_ARPA_INET_H", 1),
+            ("HAVE_ERRNO_H", 1),
+            ("HAVE_FCNTL_H", 1),
+            ("HAVE_GETTIMEOFDAY", 1),
+            ("HAVE_GETTIMEOFDAY", 1),
+            ("HAVE_INTTYPES_H", 1),
+            ("HAVE_LONGLONG", 1),
+            ("HAVE_NETINET_IN_H", 1),
+            ("HAVE_O_NONBLOCK", 1),
+            ("HAVE_SELECT", 1),
+            ("HAVE_STDINT_H", 1),
+            ("HAVE_STDIO_H", 1),
+            ("HAVE_STDLIB_H", 1),
+            ("HAVE_STRINGS_H", 1),
+            ("HAVE_STRING_H", 1),
+            ("HAVE_STRTOLL", 1),
+            ("HAVE_SYS_IOCTL_H", 1),
+            ("HAVE_SYS_SOCKET_H", 1),
+            ("HAVE_SYS_STAT_H", 1),
+            ("HAVE_SYS_TIME_H", 1),
+            ("HAVE_SYS_TYPES_H", 1),
+            ("HAVE_SYS_UIO_H", 1),
+            ("HAVE_SYS_UN_H", 1),
+            ("HAVE_UNISTD_H", 1),
+            ("LIBSSH2_CLEAR_MEMORY", 1),
+            ("LIBSSH2_DH_GEX_NEW", 1),
+            ("LIBSSH2_OPENSSL", 1),
+            ("LT_OBJDIR", ".libs/"),
+            ("STDC_HEADERS", 1)
         ]
     )
 
