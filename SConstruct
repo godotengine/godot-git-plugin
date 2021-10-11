@@ -14,13 +14,18 @@ opts.Add(EnumVariable("target", "Compilation target", "debug", ["d", "debug", "r
 opts.Add(EnumVariable("platform", "Compilation platform", "", ["", "windows", "linux", "osx"]))
 opts.Add(EnumVariable("p", "Compilation target, alias for \"platform\"", "", ["", "windows", "linux", "osx"]))
 opts.Add(BoolVariable("godot_cpp", "Build godot-cpp by forwarding arguments to it.", "no"))
-opts.Add(BoolVariable("use_llvm", "Use the LLVM / Clang compiler", "no"))
+opts.Add(BoolVariable("use_llvm", "Use the LLVM / Clang compiler - only effective when targeting Linux or FreeBSD.", "no"))
 opts.Add(PathVariable("target_path", "The path where the lib is installed.", "demo/addons/godot-git-plugin/"))
 opts.Add(PathVariable("target_name", "The library name.", "libgitapi", PathVariable.PathAccept))
 opts.Add(EnumVariable("bits", "The bit architecture.", "64", ["64"]))
 opts.Add(EnumVariable("macos_arch", "Target macOS architecture", "universal", ["universal", "x86_64", "arm64"]))
 # Updates the environment with the option variables.
 opts.Update(env)
+
+if env["platform"] == "osx":
+	# Use only clang on osx because we need to do universal builds
+	env["CXX"] = "clang++"
+	env["CC"] = "clang"
 
 Export("env")
 
