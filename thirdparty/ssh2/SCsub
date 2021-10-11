@@ -77,6 +77,12 @@ if env_ssh2["platform"] == "osx":
             "HAVE_SYS_UIO_H"
         ]
     )
+    if env_ssh2["macos_arch"] == "universal":
+        env_ssh2.Append(LINKFLAGS=["-arch", "x86_64", "-arch", "arm64"])
+        env_ssh2.Append(CCFLAGS=["-arch", "x86_64", "-arch", "arm64"])
+    else:
+        env_ssh2.Append(LINKFLAGS=["-arch", env_ssh2["macos_arch"]])
+        env_ssh2.Append(CCFLAGS=["-arch", env_ssh2["macos_arch"]])
 
 if env_ssh2["platform"] == "linux":
     env_ssh2.Append(CCFLAGS = "-fPIC")
