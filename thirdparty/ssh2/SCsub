@@ -35,7 +35,7 @@ libssh2_sources = [
 ]
 
 env_ssh2.Prepend(
-    CPPPATH=[
+    CPPPATH = [
         "libssh2/include/"
         "libssh2/src/"
     ]
@@ -43,47 +43,31 @@ env_ssh2.Prepend(
 
 if env_ssh2["platform"] == "windows":
     env_ssh2.Append(
-        CPPPATH=[
+        CPPPATH = [
             "libssh2/include/",
             "libssh2/win32/"
         ]
     )
     libssh2_sources += [ "libssh2/src/agent_win.c", "libssh2/src/wincng.c"]
     env_ssh2.Append(
-        CPPDEFINES=[
+        CPPDEFINES = [
             "LIBSSH2_WINCNG",
             "HAVE_WINCNG"
         ]
     )
     env_ssh2.Append(LIBS = ["crypt32", "user32"])
 
-if env_ssh2["platform"] == "osx":
-    env_ssh2.Append(CCFLAGS = "-fPIC")
-    env_ssh2.Append(
-        CPPPATH=[
-            "."
-            "libssh2/include/",
-        ]
-    )
-    libssh2_sources += ["libssh2/src/openssl.c"]
-    env_ssh2.Append(
-        CPPDEFINES=[
-            "LIBSSH2_OPENSSL",
-            "HAVE_SYS_UIO_H"
-        ]
-    )
-
 if env_ssh2["platform"] in ["linux", "osx"]:
     env_ssh2.Append(CCFLAGS = "-fPIC")
     env_ssh2.Append(
-        CPPPATH=[
+        CPPPATH = [
             ".",
             "libssh2/include/",
         ]
     )
     libssh2_sources += ["libssh2/src/openssl.c"]
     env_ssh2.Append(
-        CPPDEFINES=[
+        CPPDEFINES = [
             "LIBSSH2_CONFIG_H",
             "HAVE_SYS_UIO_H",
             ("HAVE_ALLOCA", 1),
@@ -121,11 +105,7 @@ if env_ssh2["platform"] in ["linux", "osx"]:
     )
 
 if env_ssh2["platform"] == "osx":
-    if env_ssh2["macos_arch"] == "universal":
-        env_ssh2.Append(LINKFLAGS=["-arch", "x86_64", "-arch", "arm64"])
-        env_ssh2.Append(CCFLAGS=["-arch", "x86_64", "-arch", "arm64"])
-    else:
-        env_ssh2.Append(LINKFLAGS=["-arch", env_ssh2["macos_arch"]])
-        env_ssh2.Append(CCFLAGS=["-arch", env_ssh2["macos_arch"]])
+    env_ssh2.Append(CPPPATH = [ "/usr/local/opt/openssl@1.1/include/" ])
+    env_ssh2.Append(LIBPATH = [ "/usr/local/opt/openssl@1.1/lib/" ])
 
 env_ssh2.StaticLibrary(target = "../bin/" + "ssh2", source = libssh2_sources)

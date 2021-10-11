@@ -131,22 +131,7 @@ if env_git["platform"] in ["linux", "osx"]:
     )
 
 if env_git["platform"] == "osx":
-    env_git.Prepend(
-        CPPPATH=[
-            "/usr/local/opt/openssl@1.1/include/"
-        ]
-    )
-    env_git.Prepend(
-        LIBPATH=[
-            "/usr/local/opt/openssl@1.1/lib/"
-        ]
-    )
-
-    if env_git["macos_arch"] == "universal":
-        env_git.Append(LINKFLAGS=["-arch", "x86_64", "-arch", "arm64"])
-        env_git.Append(CCFLAGS=["-arch", "x86_64", "-arch", "arm64"])
-    else:
-        env_git.Append(LINKFLAGS=["-arch", env_git["macos_arch"]])
-        env_git.Append(CCFLAGS=["-arch", env_git["macos_arch"]])
+    env_git.Prepend(CPPPATH = [ "/usr/local/opt/openssl@1.1/include/" ])
+    env_git.Prepend(LIBPATH = [ "/usr/local/opt/openssl@1.1/lib/" ])
 
 env_git.StaticLibrary(target = "../bin/" + "git2", source = libgit2_sources)

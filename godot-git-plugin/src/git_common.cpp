@@ -67,8 +67,9 @@ extern "C" int push_transfer_progress_cb(unsigned int current, unsigned int tota
 }
 
 extern "C" int push_update_reference_cb(const char *refname, const char *status, void *data) {
-	if (status == "") {
-		godot::Godot::print("[rejected] " + godot::String(refname) + " " + godot::String(status));
+	godot::String status_str = status;
+	if (status_str == "") {
+		godot::Godot::print("[rejected] " + godot::String(refname) + " " + status_str);
 	} else {
 		godot::Godot::print("[updated] " + godot::String(refname));
 	}
