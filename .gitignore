@@ -17,7 +17,7 @@ api.json
 build/
 bin/
 osx/
-x11/
+linux/
 win64/
 *.lib
 *.a

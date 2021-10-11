@@ -11,7 +11,7 @@ jobs:
         run: |
           git submodule update --init --recursive
           pip3 install --user scons
-          scons platform=linux target=release bits=64 godot_cpp=yes -j $(nproc)
+          scons platform=linux target=release bits=64 godot_cpp=yes generate_bindings=yes use_custom_api_file=yes custom_api_file=api.ci.json -j $(nproc)
       - uses: actions/upload-artifact@v2
         with:
           name: godot-git-plugin-linux-release-${{ github.sha }}
@@ -32,7 +32,7 @@ jobs:
         run: |
           git submodule update --init --recursive
           pip3 install --user scons
-          scons platform=windows target=release bits=64 godot_cpp=yes -j $env:NUMBER_OF_PROCESSORS
+          scons platform=windows target=release bits=64 godot_cpp=yes generate_bindings=yes use_custom_api_file=yes custom_api_file=api.ci.json -j $env:NUMBER_OF_PROCESSORS
       - uses: actions/upload-artifact@v2
         with:
           name: godot-git-plugin-windows-release-${{ github.sha }}
@@ -48,7 +48,7 @@ jobs:
         run: |
           git submodule update --init --recursive
           brew install scons
-          scons platform=osx target=release bits=64 godot_cpp=yes macos_arch=universal use_llvm=yes -j $(sysctl -n hw.logicalcpu)
+          scons platform=osx target=release bits=64 godot_cpp=yes generate_bindings=yes use_custom_api_file=yes custom_api_file=api.ci.json macos_arch=universal use_llvm=yes -j $(sysctl -n hw.logicalcpu)
       - uses: actions/upload-artifact@v2
         with:
           name: godot-git-plugin-macos-release-${{ github.sha }}

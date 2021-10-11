@@ -32,7 +32,7 @@ if env_git["platform"] == "windows":
     env_git.Prepend(CPPDEFINES=["GIT_WINHTTP"])
     libgit2_sources += Glob("libgit2/src/win32/" + "*.c")
 
-if env_git["platform"] in ["x11", "osx"]:
+if env_git["platform"] in ["linux", "osx"]:
     libgit2_sources += Glob("libgit2/src/unix/" + "*.c")
 
 env_git.Prepend(
@@ -42,6 +42,7 @@ env_git.Prepend(
         "libgit2/deps/http-parser/",
         "libgit2/deps/pcre/",
         "libgit2/deps/zlib/",
+        "libgit2/deps/ntlmclient/",
         "../ssh2/libssh2/include/",
     ]
 )
@@ -89,7 +90,8 @@ if env_git["platform"] == "windows":
         ]
     )
 
-if env_git["platform"] in ["x11", "osx"]:
+if env_git["platform"] in ["linux", "osx"]:
+    libgit2_sources += Glob("libgit2/deps/ntlmclient/crypt_openssl.c")
     env_git.Prepend(
         CPPDEFINES=[
 			"HAVE_DIRENT_H",
@@ -116,6 +118,10 @@ if env_git["platform"] in ["x11", "osx"]:
             "PCREGREP_BUFSIZE",
             ("MAX_NAME_SIZE", "32"),
             ("MAX_NAME_COUNT", "10000"),
+            "GIT_OPENSSL",
+            "GIT_USE_FUTIMENS",
+            "GIT_USE_STAT_MTIM",
+            "CRYPT_OPENSSL"
         ]
     )
 
