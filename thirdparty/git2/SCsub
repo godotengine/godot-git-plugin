@@ -28,13 +28,6 @@ if env_git["bits"] == 64:
 elif env_git["bits"] == 32:
     env_git.Prepend(CPPDEFINES=["GIT_ARCH_32"])
 
-if env_git["platform"] == "windows":
-    env_git.Prepend(CPPDEFINES=["GIT_WINHTTP"])
-    libgit2_sources += Glob("libgit2/src/win32/" + "*.c")
-
-if env_git["platform"] in ["linux", "osx"]:
-    libgit2_sources += Glob("libgit2/src/unix/" + "*.c")
-
 env_git.Prepend(
     CPPPATH=[
         "libgit2/include/",
@@ -61,8 +54,10 @@ env_git.Prepend(
 )
 
 if env_git["platform"] == "windows":
+    libgit2_sources += Glob("libgit2/src/win32/" + "*.c")
     env_git.Prepend(
         CPPDEFINES=[
+            "GIT_WINHTTP",
             "HAVE_SYS_STAT_H",
             "HAVE_SYS_TYPES_H",
             "HAVE_WINDOWS_H",
@@ -92,6 +87,7 @@ if env_git["platform"] == "windows":
 
 if env_git["platform"] in ["linux", "osx"]:
     env_git.Append(CCFLAGS="-fPIC")
+    libgit2_sources += Glob("libgit2/src/unix/" + "*.c")
     libgit2_sources += [
         "libgit2/deps/ntlmclient/crypt_openssl.c",
         "libgit2/deps/ntlmclient/unicode_builtin.c"
@@ -131,13 +127,8 @@ if env_git["platform"] in ["linux", "osx"]:
     )
 
 if env_git["platform"] == "osx":
-    # We link to OpenSSL dynamically only on macOS to allow universal builds
-    env_git.Prepend(
-        CPPDEFINES=[
-            "CRYPT_OPENSSL_DYNAMIC",
-            ("GIT_OPENSSL_DYNAMIC", "1"),
-        ]
-    )
     env_git.Prepend(CPPPATH=[env_git["macos_ssl_path"] + "include/"])
+    env_git.Append(LIBPATH=[env_git["macos_ssl_path"] + "lib/"])
+    env_git.Append(LIBS=["ssl"])
 
 env_git.StaticLibrary(target="../bin/" + "git2", source=libgit2_sources)
