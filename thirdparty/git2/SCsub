@@ -91,14 +91,14 @@ if env_git["platform"] == "windows":
     )
 
 if env_git["platform"] in ["linux", "osx"]:
-    env_git.Append(CCFLAGS = "-fPIC")
+    env_git.Append(CCFLAGS="-fPIC")
     libgit2_sources += [
         "libgit2/deps/ntlmclient/crypt_openssl.c",
         "libgit2/deps/ntlmclient/unicode_builtin.c"
     ]
     env_git.Prepend(
         CPPDEFINES=[
-			"HAVE_DIRENT_H",
+            "HAVE_DIRENT_H",
             "HAVE_SYS_STAT_H",
             "HAVE_SYS_TYPES_H",
             "HAVE_UNISTD_H",
@@ -131,7 +131,6 @@ if env_git["platform"] in ["linux", "osx"]:
     )
 
 if env_git["platform"] == "osx":
-    env_git.Prepend(CPPPATH = [ "/usr/local/opt/openssl@1.1/include/" ])
-    env_git.Prepend(LIBPATH = [ "/usr/local/opt/openssl@1.1/lib/" ])
+    env_git.Prepend(CPPPATH=["/usr/local/opt/openssl@1.1/include/"])
 
-env_git.StaticLibrary(target = "../bin/" + "git2", source = libgit2_sources)
+env_git.StaticLibrary(target="../bin/" + "git2", source=libgit2_sources)
