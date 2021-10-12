@@ -105,6 +105,11 @@ if env_ssh2["platform"] in ["linux", "osx"]:
     )
 
 if env_ssh2["platform"] == "osx":
+    env_ssh2.Append(CPPDEFINES = [
+        ("WORDS_BIGENDIAN", "1"),
+        ("_DARWIN_USE_64_BIT_INODE", "1"),
+        ("AC_APPLE_UNIVERSAL_BUILD", 1)
+    ])
     env_ssh2.Append(CPPPATH = [ "/usr/local/opt/openssl@1.1/include/" ])
     env_ssh2.Append(LIBPATH = [ "/usr/local/opt/openssl@1.1/lib/" ])
 
