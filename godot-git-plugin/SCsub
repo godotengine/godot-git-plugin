@@ -31,6 +31,8 @@ if not os.path.isdir(env["target_path"]):
 if env["platform"] == "osx":
     env["target_path"] += "osx/"
     cpp_library += ".osx"
+    env.Append(LIBS=["ssl"])
+
     if env["target"] in ("debug", "d"):
         env.Append(CCFLAGS = ["-g","-O2", "-arch", "x86_64", "-arch", "arm64", "-std=c++17"])
         env.Append(LINKFLAGS = ["-arch", "x86_64", "-arch", "arm64"])
@@ -68,10 +70,10 @@ if env["target"] in ("debug", "d"):
 else:
     cpp_library += ".release"
 
-cpp_library += "." + str(bits)
-if env['platform'] == 'osx':
-    if env['macos_arch'] != 'universal':
-        cpp_library = env['macos_arch']
+if env['platform'] == 'osx' and env['macos_arch'] != 'universal':
+    cpp_library += "." + env['macos_arch']
+else:
+    cpp_library += "." + str(bits)
 
 env.Append(CPPPATH = [".", "src/"])
 env.Append(CPPPATH = [godot_headers_path, cpp_bindings_path + "include/", cpp_bindings_path + "include/core/", cpp_bindings_path + "include/gen/"])
