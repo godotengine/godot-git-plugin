@@ -27,8 +27,13 @@ opts.Add(PathVariable("target_name", "The library name.",
 opts.Add(EnumVariable("bits", "The bit architecture.", "64", ["64"]))
 opts.Add(EnumVariable("macos_arch", "Target macOS architecture",
          "universal", ["universal", "x86_64", "arm64"]))
-opts.Add(PathVariable("macos_ssl_path", "Path to OpenSSL libraries - only used in macOS builds.",
+opts.Add(PathVariable("macos_openssl", "Path to OpenSSL libraries - only used in macOS builds.",
          "/usr/local/opt/openssl@1.1/", PathVariable.PathAccept))
+opts.Add(PathVariable("macos_openssl_static_ssl", "Path to OpenSSL libssl.a library - only used in macOS builds.",
+         "/usr/local/opt/openssl@1.1/lib/libssl.1.1.a", PathVariable.PathAccept))
+opts.Add(PathVariable("macos_openssl_static_crypto", "Path to OpenSSL libcrypto.a library - only used in macOS builds.",
+         "/usr/local/opt/openssl@1.1/lib/libcrypto.1.1.a", PathVariable.PathAccept))
+
 # Updates the environment with the option variables.
 opts.Update(env)
 

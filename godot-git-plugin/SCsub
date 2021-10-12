@@ -31,8 +31,11 @@ if not os.path.isdir(env["target_path"]):
 if env["platform"] == "osx":
     env["target_path"] += "osx/"
     cpp_library += ".osx"
-    env.Append(LIBPATH=[env["macos_ssl_path"] + "lib/"])
-    env.Append(LIBS=["ssl", "crypto"])
+
+    # Force static linkage (https://stackoverflow.com/a/2995999/7370948)
+    static_ssl = File(env["macos_openssl_static_ssl"])
+    static_crypto = File(env["macos_openssl_static_crypto"])
+    env.Append(LIBS=[static_ssl, static_crypto])
 
     if env["target"] in ("debug", "d"):
         env.Append(CCFLAGS=["-g", "-O2", "-std=c++17"])

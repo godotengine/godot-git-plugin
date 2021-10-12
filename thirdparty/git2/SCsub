@@ -127,8 +127,9 @@ if env_git["platform"] in ["linux", "osx"]:
     )
 
 if env_git["platform"] == "osx":
-    env_git.Prepend(CPPPATH=[env_git["macos_ssl_path"] + "include/"])
-    env_git.Append(LIBPATH=[env_git["macos_ssl_path"] + "lib/"])
-    env_git.Append(LIBS=["ssl"])
+    env_git.Prepend(CPPPATH=[env_git["macos_openssl"] + "include/"])
+    static_ssl = File(env_git["macos_openssl_static_ssl"])
+    static_crypto = File(env_git["macos_openssl_static_crypto"])
+    env_git.Append(LIBS=[static_ssl, static_crypto])
 
 env_git.StaticLibrary(target="../bin/" + "git2", source=libgit2_sources)

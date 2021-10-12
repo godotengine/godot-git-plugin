@@ -105,9 +105,10 @@ if env_ssh2["platform"] in ["linux", "osx"]:
     )
 
 if env_ssh2["platform"] == "osx":
-    env_ssh2.Append(CPPPATH=[env_ssh2["macos_ssl_path"] + "include/"])
-    env_ssh2.Append(LIBPATH=[env_ssh2["macos_ssl_path"] + "lib/"])
-    env_ssh2.Append(LIBS=["ssl", "crypto"])
+    env_ssh2.Append(CPPPATH=[env_ssh2["macos_openssl"] + "include/"])
+    static_ssl = File(env_ssh2["macos_openssl_static_ssl"])
+    static_crypto = File(env_ssh2["macos_openssl_static_crypto"])
+    env_ssh2.Append(LIBS=[static_ssl, static_crypto])
 
     # TODO: Verify if this works on actual M1 hardware
     if env_ssh2["macos_arch"] == "arm64":
