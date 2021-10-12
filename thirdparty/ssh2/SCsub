@@ -105,12 +105,17 @@ if env_ssh2["platform"] in ["linux", "osx"]:
     )
 
 if env_ssh2["platform"] == "osx":
+    env_ssh2.Append(CPPPATH=[env_ssh2["macos_ssl_path"] + "include/"])
+
+    # We only link to OpenSSL dynamic libraries on macOS when we are
+    # doing a universal build, otherwise we do a static link
     if env_ssh2["macos_arch"] == "universal":
         env_ssh2.Append(CPPDEFINES=[
             ("WORDS_BIGENDIAN", "1"),
             ("AC_APPLE_UNIVERSAL_BUILD", 1)
         ])
-    env_ssh2.Append(CPPPATH=["/usr/local/opt/openssl@1.1/include/"])
-    env_ssh2.Append(LIBPATH=["/usr/local/opt/openssl@1.1/lib/"])
+    else:
+        env_ssh2.Append(LIBPATH=[env_ssh2["macos_ssl_path"] + "lib/"])
+        env_ssh2.Append(LIBS=["ssl", "crypto"])
 
 env_ssh2.StaticLibrary(target="../bin/" + "ssh2", source=libssh2_sources)

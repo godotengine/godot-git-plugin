@@ -19,7 +19,7 @@ This section onwards is only meant to be used if you intend to compile the plugi
 
 - [SCons](https://scons.org/pages/download.html) (v3.0.1+)
 - C++17 and C90 compilers detectable by SCons and present in `PATH`.
-- For Mac users, `brew install openssl@1.1`
+- For Mac users, run `brew install openssl` and use the `macos_ssl_path` SCons argument.
 - For Linux users, `sudo apt-get install libssl-dev`, or local package manager equivalent.
 
 ### Build

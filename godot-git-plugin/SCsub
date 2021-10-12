@@ -32,9 +32,6 @@ if env["platform"] == "osx":
     env["target_path"] += "osx/"
     cpp_library += ".osx"
 
-    env.Prepend(LIBPATH=["/usr/local/opt/openssl@1.1/lib/"])
-    env.Append(LIBS=["ssl", "crypto"])
-
     if env["target"] in ("debug", "d"):
         env.Append(CCFLAGS=["-g", "-O2", "-std=c++17"])
     else:

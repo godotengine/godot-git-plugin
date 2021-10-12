@@ -42,7 +42,7 @@ jobs:
           path: |
             demo/
 
-  macos:
+  macos-x64:
     runs-on: macos-11
     steps:
       - uses: actions/checkout@v2
@@ -50,11 +50,28 @@ jobs:
         run: |
           git submodule update --init --recursive
           brew install scons openssl@1.1
-          scons platform=osx target=release bits=64 godot_cpp=yes generate_bindings=yes use_custom_api_file=yes custom_api_file=api.ci.json macos_arch=x86_64 use_llvm=yes -j $(sysctl -n hw.logicalcpu)
+          scons platform=osx target=release bits=64 godot_cpp=yes generate_bindings=yes use_custom_api_file=yes custom_api_file=api.ci.json macos_arch=x86_64 macos_ssl_path=/usr/local/opt/openssl@1.1/ use_llvm=yes -j $(sysctl -n hw.logicalcpu)
           otool -L demo/addons/godot-git-plugin/osx/libgitapi.dylib
       - uses: actions/upload-artifact@v2
         with:
-          name: godot-git-plugin-macos-release-${{ github.sha }}
+          name: godot-git-plugin-macos-release-x64-${{ github.sha }}
+          if-no-files-found: error
+          path: |
+            demo/
+
+  macos-arm64:
+    runs-on: macos-11
+    steps:
+      - uses: actions/checkout@v2
+      - name: build-macos-release
+        run: |
+          git submodule update --init --recursive
+          brew install scons openssl@1.1
+          scons platform=osx target=release bits=64 godot_cpp=yes generate_bindings=yes use_custom_api_file=yes custom_api_file=api.ci.json macos_arch=arm64 macos_ssl_path=/usr/local/opt/openssl@1.1/ use_llvm=yes -j $(sysctl -n hw.logicalcpu)
+          otool -L demo/addons/godot-git-plugin/osx/libgitapi.dylib
+      - uses: actions/upload-artifact@v2
+        with:
+          name: godot-git-plugin-macos-release-arm64-${{ github.sha }}
           if-no-files-found: error
           path: |
             demo/
