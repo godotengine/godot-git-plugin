@@ -3,6 +3,7 @@
 
 #include <memory>
 
+#include <AcceptDialog.hpp>
 #include <Button.hpp>
 #include <Control.hpp>
 #include <Directory.hpp>
@@ -10,9 +11,8 @@
 #include <File.hpp>
 #include <Godot.hpp>
 #include <GodotGlobal.hpp>
-#include <OS.hpp>
-#include <AcceptDialog.hpp>
 #include <LineEdit.hpp>
+#include <OS.hpp>
 
 #include <allocation_defs.h>
 #include <git_common.h>
@@ -32,7 +32,8 @@ struct CString {
 	char *data = nullptr;
 
 	CString() = delete;
-	CString(const String& string) : data(string.alloc_c_string()) {}
+	CString(const String &string) :
+			data(string.alloc_c_string()) {}
 	CString(CString &&) = delete;
 	CString &operator=(const CString &) = delete;
 	CString &operator=(CString &&) = delete;
@@ -47,10 +48,10 @@ struct CString {
 
 template <auto DeleteFn>
 struct FunctionDeleter {
-    template <class T>
-    void operator()(T* ptr) {
-        DeleteFn(ptr);
-    }
+	template <class T>
+	void operator()(T *ptr) {
+		DeleteFn(ptr);
+	}
 };
 
 template <class T, auto DeleteFn>

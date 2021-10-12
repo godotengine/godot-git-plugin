@@ -25,4 +25,3 @@ extern "C" int push_update_reference_cb(const char *refname, const char *status,
 extern "C" int diff_hunk_cb(const git_diff_delta *delta, const git_diff_hunk *range, void *payload);
 
 #endif // !GIT_COMMON_H
-

@@ -7,7 +7,7 @@
 extern "C" int progress_cb(const char *str, int len, void *data) {
 	(void)data;
 
-	char* progress_str = new char[len + 1];
+	char *progress_str = new char[len + 1];
 	memcpy(progress_str, str, len);
 	progress_str[len] = '\0';
 	godot::Godot::print("remote: " + godot::String(progress_str).strip_edges());
@@ -34,7 +34,6 @@ extern "C" int update_cb(const char *refname, const git_oid *a, const git_oid *b
 }
 
 extern "C" int transfer_progress_cb(const git_indexer_progress *stats, void *payload) {
-
 	(void)payload;
 
 	if (stats->received_objects == stats->total_objects) {
@@ -54,15 +53,14 @@ extern "C" int fetchhead_foreach_cb(const char *ref_name, const char *remote_url
 
 extern "C" int push_transfer_progress_cb(unsigned int current, unsigned int total, size_t bytes, void *payload) {
 	int64_t progress = 100;
-	
-	if (total != 0)
-	{
+
+	if (total != 0) {
 		progress = (current * 100) / total;
 	}
 
-	godot::Godot::print("Writing Objects: " + 
-		godot::String::num_int64(progress) + "% (" + 
-		godot::String::num_int64((int)current) + "/" + godot::String::num_int64((int)total) + "), " + godot::String::num_int64(bytes) + " bytes, done.");
+	godot::Godot::print("Writing Objects: " +
+						godot::String::num_int64(progress) + "% (" +
+						godot::String::num_int64((int)current) + "/" + godot::String::num_int64((int)total) + "), " + godot::String::num_int64(bytes) + " bytes, done.");
 	return 0;
 }
 
@@ -77,18 +75,18 @@ extern "C" int push_update_reference_cb(const char *refname, const char *status,
 }
 
 extern "C" int credentials_cb(git_cred **out, const char *url, const char *username_from_url, unsigned int allowed_types, void *payload) {
-	Credentials* creds = (Credentials *)payload;
+	Credentials *creds = (Credentials *)payload;
 
 	if (allowed_types & GIT_CREDENTIAL_USERPASS_PLAINTEXT) {
 		return git_cred_userpass_plaintext_new(out, godot::CString(creds->username).data, godot::CString(creds->password).data);
 	}
 
 	if (allowed_types & GIT_CREDENTIAL_SSH_KEY) {
-		return git_credential_ssh_key_new(out, 
-			godot::CString(creds->username).data, 
-			godot::CString(creds->ssh_public_key_path).data, 
-			godot::CString(creds->ssh_private_key_path).data, 
-			godot::CString(creds->ssh_passphrase).data);
+		return git_credential_ssh_key_new(out,
+				godot::CString(creds->username).data,
+				godot::CString(creds->ssh_public_key_path).data,
+				godot::CString(creds->ssh_private_key_path).data,
+				godot::CString(creds->ssh_passphrase).data);
 	}
 
 	if (allowed_types & GIT_CREDENTIAL_USERNAME) {
@@ -98,11 +96,11 @@ extern "C" int credentials_cb(git_cred **out, const char *url, const char *usern
 	return GIT_EUSER;
 }
 
-extern "C" int diff_hunk_cb(const git_diff_delta *delta, const git_diff_hunk *range, void *payload){
+extern "C" int diff_hunk_cb(const git_diff_delta *delta, const git_diff_hunk *range, void *payload) {
 	godot::DiffHelper *diff_helper = (godot::DiffHelper *)payload;
 
 	godot::Dictionary hunk = diff_helper->git_api->create_diff_hunk(range->old_start, range->new_start, range->old_lines, range->new_lines);
 	diff_helper->diff_hunks->push_back(hunk);
-	
+
 	return 1;
 }
