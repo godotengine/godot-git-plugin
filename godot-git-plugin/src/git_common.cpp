@@ -77,20 +77,22 @@ extern "C" int push_update_reference_cb(const char *refname, const char *status,
 extern "C" int credentials_cb(git_cred **out, const char *url, const char *username_from_url, unsigned int allowed_types, void *payload) {
 	Credentials *creds = (Credentials *)payload;
 
+	godot::String proper_username = username_from_url ? username_from_url : creds->username;
+
 	if (allowed_types & GIT_CREDENTIAL_USERPASS_PLAINTEXT) {
-		return git_cred_userpass_plaintext_new(out, godot::CString(creds->username).data, godot::CString(creds->password).data);
+		return git_cred_userpass_plaintext_new(out, godot::CString(proper_username).data, godot::CString(creds->password).data);
 	}
 
 	if (allowed_types & GIT_CREDENTIAL_SSH_KEY) {
 		return git_credential_ssh_key_new(out,
-				godot::CString(creds->username).data,
+				godot::CString(proper_username).data,
 				godot::CString(creds->ssh_public_key_path).data,
 				godot::CString(creds->ssh_private_key_path).data,
 				godot::CString(creds->ssh_passphrase).data);
 	}
 
 	if (allowed_types & GIT_CREDENTIAL_USERNAME) {
-		return git_credential_username_new(out, godot::CString(creds->username).data);
+		return git_credential_username_new(out, godot::CString(proper_username).data);
 	}
 
 	return GIT_EUSER;
