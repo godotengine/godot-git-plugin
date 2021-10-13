@@ -19,8 +19,13 @@ This section onwards is only meant to be used if you intend to compile the plugi
 
 - [SCons](https://scons.org/pages/download.html) (v3.0.1+)
 - C++17 and C90 compilers detectable by SCons and present in `PATH`.
-- For Mac users, run `brew install openssl@1.1`.
-- For Linux users, `sudo apt-get install libssl-dev`, or local package manager equivalent.
+- Platforms Specific Setup
+  - Windows
+    - No extra steps required other than setting up the compilers.
+  - MacOS
+    - For making universal builds targeting both Apple Silicon and x86_64, you can optionally run `build_openssl_universal_osx.sh` to build OpenSSL yourself and replace the already prebuilt libraries provided inside `thirdparty/openssl/`, otherwise, just run `brew install openssl@1.1`.
+  - Linux
+    - Run `sudo apt-get install libssl-dev`, or local package manager equivalent.
 
 ### Build
 

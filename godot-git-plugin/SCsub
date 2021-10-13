@@ -33,8 +33,8 @@ if env["platform"] == "osx":
     cpp_library += ".osx"
 
     # Force static linkage (https://stackoverflow.com/a/2995999/7370948)
-    static_ssl = File("../" + env["macos_openssl_static_ssl"])
-    static_crypto = File("../" + env["macos_openssl_static_crypto"])
+    static_ssl = File(env["macos_openssl_static_ssl"])
+    static_crypto = File(env["macos_openssl_static_crypto"])
     env.Append(LIBS=[static_ssl, static_crypto])
 
     if env["target"] in ("debug", "d"):

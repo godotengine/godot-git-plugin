@@ -24,3 +24,4 @@ win64/
 *.obj
 *.ilk
 *.pdb
+!thirdparty/openssl/*
