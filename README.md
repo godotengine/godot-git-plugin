@@ -46,3 +46,11 @@ scons platform=<platform> target=debug godot_cpp=yes generate_bindings=yes bits=
 ```
 
 Once this command can completed successfully, the standard build commands in the above section can be run without recompiling godot-cpp. To stop godot-cpp from recompiling, do not use the `godot_cpp` option in SCons arguments. To view more options available while recompiling godot-cpp, run `scons platform=<platform> godot_cpp=yes -h`
+
+---
+
+## License
+
+This plugin is under the MIT License. Third-party notices are present in [THIRDPARTY.md](THIRDPARTY.md).
+
+OpenSSL License Attributions - This product includes software developed by the OpenSSL Project for use in the OpenSSL Toolkit. (http://www.openssl.org/). This product includes cryptographic software written by Eric Young (eay@cryptsoft.com)
