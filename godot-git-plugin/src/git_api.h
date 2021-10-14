@@ -2,7 +2,9 @@
 #define GIT_API_H
 
 #include <memory>
+#include <vector>
 
+#include <GodotGlobal.hpp>
 #include <AcceptDialog.hpp>
 #include <Button.hpp>
 #include <Control.hpp>
@@ -10,7 +12,6 @@
 #include <EditorVCSInterface.hpp>
 #include <File.hpp>
 #include <Godot.hpp>
-#include <GodotGlobal.hpp>
 #include <LineEdit.hpp>
 #include <OS.hpp>
 
@@ -42,6 +43,33 @@ struct CString {
 		if (data) {
 			godot::api->godot_free(data);
 			data = nullptr;
+		}
+	}
+};
+
+template <class T>
+class Capture {
+	T &smart_ptr = nullptr;
+
+	using Raw = decltype(smart_ptr.get());
+
+	Raw raw = nullptr;
+
+public:
+	Capture() = delete;
+	Capture(T &ptr) :
+			smart_ptr(ptr) {}
+	Capture(Capture &&) = delete;
+	Capture &operator=(const Capture &) = delete;
+	Capture &operator=(Capture &&) = delete;
+
+	operator Raw *() {
+		return &raw;
+	}
+
+	~Capture() {
+		if (raw) {
+			smart_ptr.reset(raw);
 		}
 	}
 };
@@ -110,7 +138,7 @@ class GitAPI : public EditorVCSInterface {
 public:
 	static void _register_methods();
 
-	bool check_errors(int error, String message, String function, String file, int line);
+	bool check_errors(int error, String function, String file, int line, String message, const std::vector<git_error_code> &ignores = {});
 	void create_gitignore_and_gitattributes();
 	bool create_initial_commit();
 	String get_commit_date(const git_time *intime);

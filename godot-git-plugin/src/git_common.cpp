@@ -1,7 +1,5 @@
 #include <git_common.h>
 
-#include <Directory.hpp>
-
 #include <git_api.h>
 
 extern "C" int progress_cb(const char *str, int len, void *data) {

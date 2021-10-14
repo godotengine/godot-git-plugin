@@ -24,15 +24,11 @@ config/name="demo"
 run/main_scene="res://demo.tscn"
 config/icon="res://icon.png"
 
-[gdnative]
+[editor]
 
-singletons=[ "res://addons/godot-git-plugin/git_api.gdnlib" ]
+version_control/autoload_on_startup=true
+version_control/plugin_name="GitAPI"
 
 [rendering]
 
 environment/default_environment="res://default_env.tres"
-
-[version_control]
-
-autoload_on_startup=true
-plugin_name="GitAPI"
