@@ -127,6 +127,8 @@ class GitAPI : public EditorVCSInterface {
 	bool _initialize(const String project_path);
 	void _pull(const String remote);
 	void _push(const String remote, const bool force);
+	void _remove_branch(const String branch_name);
+	void _remove_remote(const String remote_name);
 	void _set_credentials(const String username, const String password, const String ssh_public_key_path, const String ssh_private_key_path, const String ssh_passphrase);
 	bool _shut_down();
 	void _stage_file(const String file_path);

@@ -39,6 +39,8 @@ void GitAPI::_register_methods() {
 	register_method("_get_branch_list", &GitAPI::_get_branch_list);
 	register_method("_create_branch", &GitAPI::_create_branch);
 	register_method("_create_remote", &GitAPI::_create_remote);
+	register_method("_remove_branch", &GitAPI::_remove_branch);
+	register_method("_remove_remote", &GitAPI::_remove_remote);
 	register_method("_get_current_branch_name", &GitAPI::_get_current_branch_name);
 	register_method("_checkout_branch", &GitAPI::_checkout_branch);
 	register_method("_fetch", &GitAPI::_fetch);
@@ -338,6 +340,16 @@ void GitAPI::_create_branch(const String branch_name) {
 void GitAPI::_create_remote(const String remote_name, const String remote_url) {
 	git_remote_ptr remote;
 	GIT2_CALL(git_remote_create(Capture(remote), repo.get(), CString(remote_name).data, CString(remote_url).data), "Could not create remote");
+}
+
+void GitAPI::_remove_branch(const String branch_name) {
+	git_reference_ptr branch;
+	GIT2_CALL(git_branch_lookup(Capture(branch), repo.get(), CString(branch_name).data, GIT_BRANCH_LOCAL), "Could not find branch " + branch_name);
+	GIT2_CALL(git_branch_delete(branch.get()), "Could not delete branch reference of " + branch_name);
+}
+
+void GitAPI::_remove_remote(const String remote_name) {
+	GIT2_CALL(git_remote_delete(repo.get(), CString(remote_name).data), "Could not delete remote " + remote_name);
 }
 
 Array GitAPI::_get_line_diff(String file_path, String text) {
