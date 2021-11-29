@@ -52,7 +52,7 @@ Replace `Release` with `Debug` and `release` with `debug` in the above instructi
 
 > This section onwards is only meant to be used by developers.
 
-Most of the times when new featured are being worked on for the Godot VCS Integration, this requires us to make changes in Godot along with this plugin. Thus, this means we need to manually generate the GDNative API from these newer Godot builds and then use them with godot-cpp.
+Most of the times when new features are being worked on for the Godot VCS Integration, this requires us to make changes in Godot along with this plugin. Thus, this means we need to manually generate the GDNative API from these newer Godot builds and then use them with godot-cpp.
 
 1. Generate `api.json` from Godot executable: `godot --gdnative-generate-json-api api.json`
 2. Change directory to `godot-cpp`: `cd godot-cpp`
