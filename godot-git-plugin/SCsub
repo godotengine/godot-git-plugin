@@ -45,7 +45,7 @@ if env["platform"] == "osx":
 elif env["platform"] == "linux":
     env["target_path"] += "linux/"
     cpp_library += ".linux"
-    env.Append(LIBS=["ssl"])
+    env.Append(LIBS=["ssl", "crypto"])
 
     if env["target"] in ("debug", "d"):
         env.Append(CCFLAGS=["-fPIC", "-g3", "-Og", "-std=c++17"])
@@ -84,7 +84,7 @@ env.Append(CPPPATH=[godot_headers_path, cpp_bindings_path + "include/",
            cpp_bindings_path + "include/core/", cpp_bindings_path + "include/gen/"])
 env.Append(CPPPATH=["../thirdparty/git2/libgit2/include/"])
 env.Append(LIBPATH=[cpp_bindings_path + "bin/", "../thirdparty/bin/"])
-env.Append(LIBS=[cpp_library, "git2", "ssh2"])
+env.Prepend(LIBS=[cpp_library, "git2", "ssh2"])
 
 library = env.SharedLibrary(
     target=env["target_path"] + env["target_name"],

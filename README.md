@@ -17,6 +17,7 @@ This section onwards is only meant to be used if you intend to compile the plugi
 
 ### Required Tools
 
+- Full copy of the source code. Remember to use `git clone --recursive`.
 - [SCons](https://scons.org/pages/download.html) (v3.0.1+)
 - C++17 and C90 compilers detectable by SCons and present in `PATH`.
 - Platforms Specific Setup
@@ -37,7 +38,7 @@ For more build options, run `scons platform=<platform> -h`
 
 ## Bleeding Edge
 
-Most of the times when new featured are being worked on for the Godot VCS Integration, this requires making changes inside of the Godot Editor source code along with this plugin. Thus, this means we need to manually generate the GDNative API from these newer Godot builds and then use them with godot-cpp.
+Most of the times when new features are being worked on for the Godot VCS Integration, it requires developers to make changes in the Godot Editor source code along with this plugin. This means we need to manually generate the GDNative API from the custom Godot builds and then use it to compile godot-cpp.
 
 To build using custom GDNative API definition JSON files, run the below helper command:
 
@@ -45,7 +46,7 @@ To build using custom GDNative API definition JSON files, run the below helper c
 scons platform=<platform> target=debug godot_cpp=yes generate_bindings=yes bits=64 use_custom_api_file=yes custom_api_file=path/to/api.json -j 6
 ```
 
-Once this command can completed successfully, the standard build commands in the above section can be run without recompiling godot-cpp. To stop godot-cpp from recompiling, do not use the `godot_cpp` option in SCons arguments. To view more options available while recompiling godot-cpp, run `scons platform=<platform> godot_cpp=yes -h`
+Once this command can completed successfully, the standard build commands in the above section can be run without recompiling godot-cpp. To stop godot-cpp from recompiling, do not use the `godot_cpp` option in SCons arguments. To view more options available while recompiling godot-cpp, run `scons platform=<platform> godot_cpp=yes -h`.
 
 ---
 
