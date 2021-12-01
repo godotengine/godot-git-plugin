@@ -307,7 +307,6 @@ Array GitAPI::_get_branch_list() {
 	GIT2_CALL_R(git_branch_iterator_new(Capture(it), repo.get(), GIT_BRANCH_LOCAL), "Could not create branch iterator", Array());
 
 	Array branch_names;
-	branch_names.push_back(String()); // Leave space for current branch
 
 	git_reference_ptr ref;
 	git_branch_t type;
@@ -317,7 +316,8 @@ Array GitAPI::_get_branch_list() {
 		GIT2_CALL_R(git_branch_name(&name, ref.get()), "Could not get branch name", Array());
 
 		if (git_branch_is_head(ref.get())) {
-			branch_names[0] = String(name);
+			// Always send the current branch as the first branch in list
+			branch_names.push_front(name);
 		} else {
 			branch_names.push_back(String(name));
 		}
