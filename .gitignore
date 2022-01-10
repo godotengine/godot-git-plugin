@@ -15,4 +15,14 @@ api.json
 
 # Binaries
 build/
+bin/
+osx/
+linux/
+win64/
+*.lib
+*.a
 *.obj
+*.os
+*.ilk
+*.pdb
+!thirdparty/openssl/*

@@ -9,7 +9,7 @@
 config_version=4
 
 _global_script_classes=[ {
-"base": "",
+"base": "EditorVCSInterface",
 "class": "GitAPI",
 "language": "NativeScript",
 "path": "res://addons/godot-git-plugin/git_api.gdns"
@@ -24,9 +24,10 @@ config/name="demo"
 run/main_scene="res://demo.tscn"
 config/icon="res://icon.png"
 
-[gdnative]
+[editor]
 
-singletons=[ "res://addons/godot-git-plugin/git_api.gdnlib" ]
+version_control/autoload_on_startup=true
+version_control/plugin_name="GitAPI"
 
 [rendering]
 

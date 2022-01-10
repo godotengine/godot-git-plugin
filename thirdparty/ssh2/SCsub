@@ -1,0 +1,113 @@
+#!/usr/bin/env python
+
+# Adopted from https://github.com/nodegit/nodegit/blob/4561dcb7c120474a4553baa27e4c4c2f4be23a2b/vendor/libgit2.gyp
+
+Import("env")
+
+env_ssh2 = env.Clone()
+
+# Thirdparty source files.
+libssh2_sources = [
+    "libssh2/src/agent.c",
+    "libssh2/src/bcrypt_pbkdf.c",
+    "libssh2/src/blowfish.c",
+    "libssh2/src/crypt.c",
+    "libssh2/src/keepalive.c",
+    "libssh2/src/libgcrypt.c",
+    "libssh2/src/openssl.c",
+    "libssh2/src/publickey.c",
+    "libssh2/src/sftp.c",
+    "libssh2/src/version.c",
+    "libssh2/src/channel.c",
+    "libssh2/src/global.c",
+    "libssh2/src/kex.c",
+    "libssh2/src/mac.c",
+    "libssh2/src/packet.c",
+    "libssh2/src/scp.c",
+    "libssh2/src/transport.c",
+    "libssh2/src/comp.c",
+    "libssh2/src/hostkey.c",
+    "libssh2/src/knownhost.c",
+    "libssh2/src/misc.c",
+    "libssh2/src/pem.c",
+    "libssh2/src/session.c",
+    "libssh2/src/userauth.c",
+]
+
+env_ssh2.Prepend(
+    CPPPATH=[
+        "libssh2/include/"
+        "libssh2/src/"
+    ]
+)
+
+if env_ssh2["platform"] == "windows":
+    env_ssh2.Append(
+        CPPPATH=[
+            "libssh2/include/",
+            "libssh2/win32/"
+        ]
+    )
+    libssh2_sources += ["libssh2/src/agent_win.c", "libssh2/src/wincng.c"]
+    env_ssh2.Append(
+        CPPDEFINES=[
+            "LIBSSH2_WINCNG",
+            "HAVE_WINCNG"
+        ]
+    )
+    env_ssh2.Append(LIBS=["crypt32", "user32"])
+
+if env_ssh2["platform"] in ["linux", "osx"]:
+    env_ssh2.Append(CCFLAGS="-fPIC")
+    env_ssh2.Append(
+        CPPPATH=[
+            ".",
+            "libssh2/include/",
+        ]
+    )
+    libssh2_sources += ["libssh2/src/openssl.c"]
+    env_ssh2.Append(
+        CPPDEFINES=[
+            "LIBSSH2_CONFIG_H",
+            "HAVE_SYS_UIO_H",
+            ("HAVE_ALLOCA", 1),
+            ("HAVE_ALLOCA_H", 1),
+            ("HAVE_ARPA_INET_H", 1),
+            ("HAVE_ERRNO_H", 1),
+            ("HAVE_FCNTL_H", 1),
+            ("HAVE_GETTIMEOFDAY", 1),
+            ("HAVE_GETTIMEOFDAY", 1),
+            ("HAVE_INTTYPES_H", 1),
+            ("HAVE_LONGLONG", 1),
+            ("HAVE_NETINET_IN_H", 1),
+            ("HAVE_O_NONBLOCK", 1),
+            ("HAVE_SELECT", 1),
+            ("HAVE_STDINT_H", 1),
+            ("HAVE_STDIO_H", 1),
+            ("HAVE_STDLIB_H", 1),
+            ("HAVE_STRINGS_H", 1),
+            ("HAVE_STRING_H", 1),
+            ("HAVE_STRTOLL", 1),
+            ("HAVE_SYS_IOCTL_H", 1),
+            ("HAVE_SYS_SOCKET_H", 1),
+            ("HAVE_SYS_STAT_H", 1),
+            ("HAVE_SYS_TIME_H", 1),
+            ("HAVE_SYS_TYPES_H", 1),
+            ("HAVE_SYS_UIO_H", 1),
+            ("HAVE_SYS_UN_H", 1),
+            ("HAVE_UNISTD_H", 1),
+            ("LIBSSH2_CLEAR_MEMORY", 1),
+            ("LIBSSH2_DH_GEX_NEW", 1),
+            ("LIBSSH2_OPENSSL", 1),
+            ("LT_OBJDIR", ".libs/"),
+            ("STDC_HEADERS", 1)
+        ]
+    )
+
+if env_ssh2["platform"] == "osx":
+    env_ssh2.Append(CPPPATH=[env_ssh2["macos_openssl"] + "include/"])
+    static_ssl = File(env_ssh2["macos_openssl_static_ssl"])
+    static_crypto = File(env_ssh2["macos_openssl_static_crypto"])
+    env_ssh2.Append(LIBS=[static_ssl, static_crypto])
+
+env_ssh2.StaticLibrary(target="../bin/" + "ssh2", source=libssh2_sources)

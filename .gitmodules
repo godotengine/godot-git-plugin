@@ -2,3 +2,9 @@
 	path = godot-cpp
 	url = https://github.com/godotengine/godot-cpp
 	branch = 3.x
+[submodule "libgit2"]
+	path = thirdparty/git2/libgit2
+	url = https://github.com/libgit2/libgit2
+[submodule "thirdparty/ssh2/libssh2"]
+	path = thirdparty/ssh2/libssh2
+	url = https://github.com/libssh2/libssh2

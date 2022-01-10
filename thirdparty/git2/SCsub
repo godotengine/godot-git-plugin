@@ -1,0 +1,135 @@
+#!/usr/bin/env python
+
+# Adopted from https://github.com/goostengine/goost/blob/20d8ce4c7d74c26832d69283305b25a72165784a/modules/git/SCsub
+
+Import("env")
+
+env_git = env.Clone()
+
+# Thirdparty source files.
+libgit2_sources = []
+libgit2_sources += Glob("libgit2/src/" + "*.c")
+libgit2_sources += Glob("libgit2/src/allocators/" + "*.c")
+libgit2_sources += Glob("libgit2/src/hash/sha1/sha1dc/sha1.c")
+libgit2_sources += Glob("libgit2/src/hash/sha1/sha1dc/ubc_check.c")
+libgit2_sources += Glob("libgit2/src/hash/sha1/collisiondetect.c")
+libgit2_sources += Glob("libgit2/src/transports/" + "*.c")
+libgit2_sources += Glob("libgit2/src/hash/transports/" + "*.c")
+libgit2_sources += Glob("libgit2/src/hash/xdiff/" + "*.c")
+libgit2_sources += Glob("libgit2/src/xdiff/" + "*.c")
+libgit2_sources += Glob("libgit2/src/streams/" + "*.c")
+
+libgit2_sources += Glob("libgit2/deps/http-parser/" + "*.c")
+libgit2_sources += Glob("libgit2/deps/pcre/" + "*.c")
+libgit2_sources += Glob("libgit2/deps/zlib/" + "*.c")
+
+if env_git["bits"] == 64:
+    env_git.Prepend(CPPDEFINES=["GIT_ARCH_64"])
+elif env_git["bits"] == 32:
+    env_git.Prepend(CPPDEFINES=["GIT_ARCH_32"])
+
+env_git.Prepend(
+    CPPPATH=[
+        "libgit2/include/",
+        "libgit2/src/",
+        "libgit2/deps/http-parser/",
+        "libgit2/deps/pcre/",
+        "libgit2/deps/zlib/",
+        "libgit2/deps/ntlmclient/",
+        "../ssh2/libssh2/include/",
+    ]
+)
+
+env_git.Prepend(
+    CPPDEFINES=[
+        "GIT_THREADS",
+        "GIT_SSH",
+        "GIT_SSH_MEMORY_CREDENTIALS",
+        "LIBGIT2_NO_FEATURES_H",
+        "GIT_SHA1_COLLISIONDETECT",
+        "GIT_HTTPS",
+        "SRC_UTIL_H_",
+        "GIT_REGEX_BUILTIN",
+    ]
+)
+
+if env_git["platform"] == "windows":
+    libgit2_sources += Glob("libgit2/src/win32/" + "*.c")
+    env_git.Prepend(
+        CPPDEFINES=[
+            "GIT_WINHTTP",
+            "HAVE_SYS_STAT_H",
+            "HAVE_SYS_TYPES_H",
+            "HAVE_WINDOWS_H",
+            "HAVE_STDINT_H",
+            "HAVE_INTTYPES_H",
+            "HAVE_MEMMOVE",
+            "HAVE_STRERROR",
+            "HAVE_STRTOLL",
+            "HAVE__STRTOI64",
+            "SUPPORT_PCRE8",
+            "NO_RECURSE",
+            "HAVE_LONG_LONG",
+            "HAVE_UNSIGNED_LONG_LONG",
+            ("NEWLINE", "10"),
+            ("POSIX_MALLOC_THRESHOLD", "10"),
+            ("LINK_SIZE", "2"),
+            ("PARENS_NEST_LIMIT", "250"),
+            ("MATCH_LIMIT", "10000000"),
+            ("MATCH_LIMIT_RECURSION", "10000000"),
+            "PCREGREP_BUFSIZE",
+            ("MAX_NAME_SIZE", "32"),
+            ("MAX_NAME_COUNT", "10000"),
+            "HAVE_WINCNG",
+            "LIBSSH2_WINCNG"
+        ]
+    )
+
+if env_git["platform"] in ["linux", "osx"]:
+    env_git.Append(CCFLAGS="-fPIC")
+    libgit2_sources += Glob("libgit2/src/unix/" + "*.c")
+    libgit2_sources += [
+        "libgit2/deps/ntlmclient/crypt_openssl.c",
+        "libgit2/deps/ntlmclient/unicode_builtin.c"
+    ]
+    env_git.Prepend(
+        CPPDEFINES=[
+            "HAVE_DIRENT_H",
+            "HAVE_SYS_STAT_H",
+            "HAVE_SYS_TYPES_H",
+            "HAVE_UNISTD_H",
+            "HAVE_STDINT_H",
+            "HAVE_INTTYPES_H",
+            "HAVE_BCOPY",
+            "HAVE_MEMMOVE",
+            "HAVE_STRERROR",
+            "HAVE_STRTOLL",
+            "HAVE_STRTOQ",
+            "SUPPORT_PCRE8",
+            "NO_RECURSE",
+            "HAVE_LONG_LONG",
+            "HAVE_UNSIGNED_LONG_LONG",
+            ("NEWLINE", "10"),
+            ("POSIX_MALLOC_THRESHOLD", "10"),
+            ("LINK_SIZE", "2"),
+            ("PARENS_NEST_LIMIT", "250"),
+            ("MATCH_LIMIT", "10000000"),
+            ("MATCH_LIMIT_RECURSION", "10000000"),
+            "PCREGREP_BUFSIZE",
+            ("MAX_NAME_SIZE", "32"),
+            ("MAX_NAME_COUNT", "10000"),
+            "GIT_OPENSSL",
+            "GIT_USE_FUTIMENS",
+            "GIT_USE_STAT_MTIM",
+            "CRYPT_OPENSSL",
+            "UNICODE_BUILTIN"
+        ]
+    )
+
+if env_git["platform"] == "osx":
+    env_git.Prepend(CPPPATH=[env_git["macos_openssl"] + "include/"])
+    static_ssl = File(env_git["macos_openssl_static_ssl"])
+    static_crypto = File(env_git["macos_openssl_static_crypto"])
+    env_git.Append(LIBS=[static_ssl, static_crypto])
+
+env_git.StaticLibrary(target="../bin/" + "git2", source=libgit2_sources)

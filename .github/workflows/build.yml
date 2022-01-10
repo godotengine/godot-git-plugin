@@ -3,40 +3,25 @@ name: C/C++ CI
 on: [push, pull_request]
 
 jobs:
-  ubuntu-debug:
-    runs-on: ubuntu-latest
+  linux-x64:
+    runs-on: ubuntu-18.04
     steps:
       - uses: actions/checkout@v2
-      - name: build-ubuntu-debug
+      - name: build-linux-release-x64
         run: |
+          git submodule update --init --recursive
           pip3 install --user scons
-          . ./build_libs.sh Debug
-          scons platform=x11 target=debug
+          scons platform=linux target=release bits=64 godot_cpp=yes generate_bindings=yes use_custom_api_file=yes custom_api_file=api.ci.json -j $(nproc)
+          ldd demo/addons/godot-git-plugin/linux/libgitapi.so
       - uses: actions/upload-artifact@v2
         with:
-          name: godot-git-plugin-ubuntu-debug-${{ github.sha }}
+          name: godot-git-plugin-linux-release-x64-${{ github.sha }}
           if-no-files-found: error
           path: |
             demo/
 
-  ubuntu-release:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v2
-      - name: build-ubuntu-release
-        run: |
-          pip3 install --user scons
-          . ./build_libs.sh Release
-          scons platform=x11 target=release
-      - uses: actions/upload-artifact@v2
-        with:
-          name: godot-git-plugin-ubuntu-release-${{ github.sha }}
-          if-no-files-found: error
-          path: |
-            demo/
-
-  windows-debug:
-    runs-on: windows-latest
+  windows-x64:
+    runs-on: windows-2019
     steps:
       - uses: actions/checkout@v2
       - uses: actions/setup-python@v2
@@ -44,67 +29,34 @@ jobs:
           python-version: "3.x"
           architecture: "x64"
       - uses: ilammy/msvc-dev-cmd@v1
-      - name: build-windows-debug
+      - name: build-windows-release-x64
         run: |
+          git submodule update --init --recursive
           pip3 install --user scons
-          ./build_libs.bat Debug
-          scons platform=windows target=debug
+          scons platform=windows target=release bits=64 godot_cpp=yes generate_bindings=yes use_custom_api_file=yes custom_api_file=api.ci.json -j $env:NUMBER_OF_PROCESSORS
+          dumpbin /dependents .\demo\addons\godot-git-plugin\win64\libgitapi.dll
       - uses: actions/upload-artifact@v2
         with:
-          name: godot-git-plugin-windows-debug-${{ github.sha }}
+          name: godot-git-plugin-windows-release-x64-${{ github.sha }}
           if-no-files-found: error
           path: |
             demo/
 
-  windows-release:
-    runs-on: windows-latest
-    steps:
-      - uses: actions/checkout@v2
-      - uses: actions/setup-python@v2
-        with:
-          python-version: "3.x"
-          architecture: "x64"
-      - uses: ilammy/msvc-dev-cmd@v1
-      - name: build-windows-release
-        run: |
-          pip3 install --user scons
-          ./build_libs.bat Release
-          scons platform=windows target=release
-      - uses: actions/upload-artifact@v2
-        with:
-          name: godot-git-plugin-windows-release-${{ github.sha }}
-          if-no-files-found: error
-          path: |
-            demo/
-
-  macos-debug:
+  macos-x64:
     runs-on: macos-11
     steps:
       - uses: actions/checkout@v2
-      - name: build-macos-debug
+      - name: build-macos-release-x64
         run: |
+          git submodule update --init --recursive
           brew install scons
-          . ./build_libs_mac.sh Debug
-          scons platform=osx target=debug use_llvm=yes
+          scons platform=osx target=release bits=64 godot_cpp=yes generate_bindings=yes use_custom_api_file=yes custom_api_file=api.ci.json macos_arch=universal use_llvm=yes -j $(sysctl -n hw.logicalcpu)
+          otool -L demo/addons/godot-git-plugin/osx/libgitapi.dylib
       - uses: actions/upload-artifact@v2
         with:
-          name: godot-git-plugin-macos-debug-${{ github.sha }}
+          name: godot-git-plugin-macos-release-x64-${{ github.sha }}
           if-no-files-found: error
           path: |
             demo/
-
-  macos-release:
-    runs-on: macos-11
-    steps:
-      - uses: actions/checkout@v2
-      - name: build-macos-release
-        run: |
-          brew install scons
-          . ./build_libs_mac.sh Release
-          scons platform=osx target=release use_llvm=yes
-      - uses: actions/upload-artifact@v2
-        with:
-          name: godot-git-plugin-macos-release-${{ github.sha }}
-          if-no-files-found: error
-          path: |
-            demo/
+            libssl.a
+            libcrypto.a
