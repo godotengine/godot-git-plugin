@@ -169,11 +169,22 @@ void GitAPI::_unstage_file(const String file_path) {
 	git_strarray array = { paths, 1 };
 
 	git_reference_ptr head;
-	GIT2_CALL(git_repository_head(Capture(head), repo.get()), "Could not get repository HEAD");
+	GIT2_CALL_IGNORE(git_repository_head(Capture(head), repo.get()), "Could not find repository HEAD", { GIT_ENOTFOUND COMMA GIT_EUNBORNBRANCH });
 
-	git_object_ptr head_commit;
-	GIT2_CALL(git_reference_peel(Capture(head_commit), head.get(), GIT_OBJ_COMMIT), "Could not peel HEAD reference");
-	GIT2_CALL(git_reset_default(repo.get(), head_commit.get(), &array), "Could not reset " + file_path + " to state at HEAD");
+	if (head) {
+		git_object_ptr head_commit;
+		GIT2_CALL(git_reference_peel(Capture(head_commit), head.get(), GIT_OBJ_COMMIT), "Could not peel HEAD reference");
+		GIT2_CALL(git_reset_default(repo.get(), head_commit.get(), &array), "Could not reset " + file_path + " to state at HEAD");
+	} else {
+		// If there is no HEAD commit, we should just remove the file from the index.
+
+		CString c_path(file_path);
+
+		git_index_ptr index;
+		GIT2_CALL(git_repository_index(Capture(index), repo.get()), "Could not get repository index");
+		GIT2_CALL(git_index_remove_bypath(index.get(), c_path.data), "Could not add " + file_path + " to index");
+		GIT2_CALL(git_index_write(index.get()), "Could not write changes to disk");
+	}
 }
 
 void GitAPI::create_gitignore_and_gitattributes() {
@@ -623,10 +634,14 @@ Array GitAPI::_get_diff(const String identifier, const int64_t area) {
 		} break;
 		case TREE_AREA_STAGED: {
 			git_object_ptr obj;
-			GIT2_CALL_R(git_revparse_single(Capture(obj), repo.get(), "HEAD^{tree}"), "Could not get HEAD^{tree} object", diff_contents);
+
+			// Ignore the case when HEAD is not found. We need to compare with a null tree in the case where the HEAD reference object is empty.
+			GIT2_CALL_R_IGNORE(git_revparse_single(Capture(obj), repo.get(), "HEAD^{tree}"), "Could not get HEAD^{tree} object", diff_contents, { GIT_ENOTFOUND });
 
 			git_tree_ptr tree;
-			GIT2_CALL_R(git_tree_lookup(Capture(tree), repo.get(), git_object_id(obj.get())), "Could not lookup HEAD^{tree}", diff_contents);
+			if (obj) {
+				GIT2_CALL_R_IGNORE(git_tree_lookup(Capture(tree), repo.get(), git_object_id(obj.get())), "Could not lookup HEAD^{tree}", diff_contents, { GIT_ENOTFOUND });
+			}
 
 			GIT2_CALL_R(git_diff_tree_to_index(Capture(diff), repo.get(), tree.get(), nullptr, &opts), "Could not create diff for tree from index directory", diff_contents);
 		} break;
@@ -640,6 +655,8 @@ Array GitAPI::_get_diff(const String identifier, const int64_t area) {
 			GIT2_CALL_R(git_commit_lookup(Capture(commit), repo.get(), git_object_id(obj.get())), "Could not get commit " + identifier, diff_contents);
 
 			git_commit_ptr parent;
+
+			// We ignore the case when the parent is not found to handle the case when this commit is the root commit. We only need to diff against a null tree in that case.
 			GIT2_CALL_R_IGNORE(git_commit_parent(Capture(parent), commit.get(), 0), "Could not get parent commit of " + identifier, diff_contents, { GIT_ENOTFOUND });
 
 			git_tree_ptr commit_tree;
