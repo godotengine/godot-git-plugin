@@ -46,7 +46,7 @@ To build using custom GDNative API definition JSON files, run the below helper c
 scons platform=<platform> target=debug godot_cpp=yes generate_bindings=yes bits=64 use_custom_api_file=yes custom_api_file=path/to/api.json -j 6
 ```
 
-Once this command can completed successfully, the standard build commands in the above section can be run without recompiling godot-cpp. To stop godot-cpp from recompiling, do not use the `godot_cpp` option in SCons arguments. To view more options available while recompiling godot-cpp, run `scons platform=<platform> godot_cpp=yes -h`.
+Once this command is completed successfully, the standard build commands in the above section can be run without recompiling godot-cpp. Once compiled, to stop godot-cpp from recompiling, do not use the `godot_cpp` option in SCons arguments. To view more options available while recompiling godot-cpp, run `scons platform=<platform> godot_cpp=yes -h`.
 
 ---
 
