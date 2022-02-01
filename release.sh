@@ -43,7 +43,15 @@ sed -i "s/version=\"[^\"]*\"/version=\"v${version}\"/g" $pluginPath/plugin.cfg
 cp LICENSE $pluginPath/LICENSE
 cp THIRDPARTY.md $pluginPath/THIRDPARTY.md
 
-zip -r $releasePath.zip $addonsPath 
+rm -f $pluginPath/x11/libgit2.a
+rm -f $pluginPath/osx/libgit2.a
+rm -f $pluginPath/win64/git2.lib
+
+pushd $releasePath
+zip -r $releasePath.zip addons/
+popd
+
+mv $releasePath/$releasePath.zip ./
 
 rm -rf $releasePath
 rm -rf windows
