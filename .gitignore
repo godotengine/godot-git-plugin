@@ -16,3 +16,10 @@ api.json
 # Binaries
 build/
 *.obj
+*.os
+*.so
+*.dll
+*.exp
+*.lib
+*.a
+*.dylib
