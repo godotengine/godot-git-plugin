@@ -143,7 +143,6 @@ public:
 	bool check_errors(int error, String function, String file, int line, String message, const std::vector<git_error_code> &ignores = {});
 	void create_gitignore_and_gitattributes();
 	bool create_initial_commit();
-	String get_commit_date(const git_time *intime);
 
 	void _init();
 };
