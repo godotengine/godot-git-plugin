@@ -233,31 +233,6 @@ void GitAPI::create_gitignore_and_gitattributes() {
 	file->free();
 }
 
-String GitAPI::get_commit_date(const git_time *intime) {
-	char sign, out[32];
-	struct tm *intm;
-	int offset, hours, minutes;
-	time_t t;
-
-	offset = intime->offset;
-	if (offset < 0) {
-		sign = '-';
-		offset = -offset;
-	} else {
-		sign = '+';
-	}
-
-	hours = offset / 60;
-	minutes = offset % 60;
-
-	t = (time_t)intime->time + (intime->offset * 60);
-
-	intm = gmtime(&t);
-	strftime(out, sizeof(out), "%a %b %e %T %Y", intm);
-
-	return String(out) + " " + sign + (hours < 10 ? "0" : "") + String::num(hours) + ":" + (minutes < 10 ? "0" : "") + String::num(minutes);
-}
-
 Array GitAPI::_get_modified_files_data() {
 	Array stats_files;
 
@@ -442,7 +417,7 @@ Array GitAPI::_get_previous_commits(const int64_t max_commits) {
 		const git_signature *sig = git_commit_author(commit.get());
 		String author = String() + sig->name + " <" + sig->email + ">";
 
-		commits.push_back(create_commit(msg, author, commit_id, get_commit_date(&sig->when)));
+		commits.push_back(create_commit(msg, author, commit_id, sig->when.time, sig->when.offset));
 	}
 
 	return commits;
