@@ -53,6 +53,7 @@ elif env["platform"] == "linux":
         env.Append(CCFLAGS=["-fPIC", "-g", "-O3", "-std=c++17"])
 
 elif env["platform"] == "windows":
+    env.Append(CPPDEFINES=["TYPED_METHOD_BIND"]) # TODO: Make this only apply when using MSVC
     env["target_path"] += "win64/"
     cpp_library += ".windows"
     # This makes sure to keep the session environment variables on windows,
@@ -80,8 +81,11 @@ else:
     cpp_library += "." + str(bits)
 
 env.Append(CPPPATH=[".", "src/"])
-env.Append(CPPPATH=[godot_headers_path, cpp_bindings_path + "include/",
-           cpp_bindings_path + "include/core/", cpp_bindings_path + "include/gen/"])
+env.Append(CPPPATH=[
+    godot_headers_path,
+    cpp_bindings_path + "include/",
+    cpp_bindings_path + "gen/include/"
+])
 env.Append(CPPPATH=["../thirdparty/git2/libgit2/include/"])
 env.Append(LIBPATH=[cpp_bindings_path + "bin/", "../thirdparty/bin/"])
 env.Prepend(LIBS=[cpp_library, "git2", "ssh2"])

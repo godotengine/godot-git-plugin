@@ -1,18 +1,13 @@
-#ifndef GIT_COMMON_H
-#define GIT_COMMON_H
+#pragma once
 
-#include <cstdio>
+#include "godot_cpp/variant/array.hpp"
+#include "git2.h"
 
-#include <Godot.hpp>
+class GitPlugin;
 
-#include <git2.h>
-
-struct Credentials {
-	godot::String username;
-	godot::String password;
-	godot::String ssh_public_key_path;
-	godot::String ssh_private_key_path;
-	godot::String ssh_passphrase;
+struct DiffHelper {
+	godot::Array *diff_hunks;
+	GitPlugin *git_plugin;
 };
 
 extern "C" int progress_cb(const char *str, int len, void *data);
@@ -23,5 +18,3 @@ extern "C" int credentials_cb(git_cred **out, const char *url, const char *usern
 extern "C" int push_transfer_progress_cb(unsigned int current, unsigned int total, size_t bytes, void *payload);
 extern "C" int push_update_reference_cb(const char *refname, const char *status, void *data);
 extern "C" int diff_hunk_cb(const git_diff_delta *delta, const git_diff_hunk *range, void *payload);
-
-#endif // !GIT_COMMON_H

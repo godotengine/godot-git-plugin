@@ -1,4 +1,7 @@
-#include "git_api.h"
+#include "git_plugin.h"
+
+#include "godot_cpp/core/class_db.hpp"
+#include "godot_cpp/classes/file.hpp"
 
 #define GIT2_CALL(error, msg)                                         \
 	if (check_errors(error, __FUNCTION__, __FILE__, __LINE__, msg)) { \
@@ -22,35 +25,47 @@
 
 #define COMMA ,
 
-namespace godot {
-
-void GitAPI::_register_methods() {
-	register_method("_commit", &GitAPI::_commit);
-	register_method("_get_modified_files_data", &GitAPI::_get_modified_files_data);
-	register_method("_get_remotes", &GitAPI::_get_remotes);
-	register_method("_get_diff", &GitAPI::_get_diff);
-	register_method("_get_vcs_name", &GitAPI::_get_vcs_name);
-	register_method("_initialize", &GitAPI::_initialize);
-	register_method("_shut_down", &GitAPI::_shut_down);
-	register_method("_stage_file", &GitAPI::_stage_file);
-	register_method("_discard_file", &GitAPI::_discard_file);
-	register_method("_unstage_file", &GitAPI::_unstage_file);
-	register_method("_get_previous_commits", &GitAPI::_get_previous_commits);
-	register_method("_get_branch_list", &GitAPI::_get_branch_list);
-	register_method("_create_branch", &GitAPI::_create_branch);
-	register_method("_create_remote", &GitAPI::_create_remote);
-	register_method("_remove_branch", &GitAPI::_remove_branch);
-	register_method("_remove_remote", &GitAPI::_remove_remote);
-	register_method("_get_current_branch_name", &GitAPI::_get_current_branch_name);
-	register_method("_checkout_branch", &GitAPI::_checkout_branch);
-	register_method("_fetch", &GitAPI::_fetch);
-	register_method("_pull", &GitAPI::_pull);
-	register_method("_push", &GitAPI::_push);
-	register_method("_get_line_diff", &GitAPI::_get_line_diff);
-	register_method("_set_credentials", &GitAPI::_set_credentials);
+void GitPlugin::_bind_methods() {
+	godot::ClassDB::bind_method(godot::D_METHOD("_commit", "msg"), &GitPlugin::_commit);
+	godot::ClassDB::bind_method(godot::D_METHOD("_get_modified_files_data"), &GitPlugin::_get_modified_files_data);
+	godot::ClassDB::bind_method(godot::D_METHOD("_get_remotes"), &GitPlugin::_get_remotes);
+	godot::ClassDB::bind_method(godot::D_METHOD("_get_diff", "identifier", "area"), &GitPlugin::_get_diff);
+	godot::ClassDB::bind_method(godot::D_METHOD("_get_vcs_name"), &GitPlugin::_get_vcs_name);
+	godot::ClassDB::bind_method(godot::D_METHOD("_initialize", "project_path"), &GitPlugin::_initialize);
+	godot::ClassDB::bind_method(godot::D_METHOD("_shut_down"), &GitPlugin::_shut_down);
+	godot::ClassDB::bind_method(godot::D_METHOD("_stage_file", "file_path"), &GitPlugin::_stage_file);
+	godot::ClassDB::bind_method(godot::D_METHOD("_discard_file", "file_path"), &GitPlugin::_discard_file);
+	godot::ClassDB::bind_method(godot::D_METHOD("_unstage_file", "file_path"), &GitPlugin::_unstage_file);
+	godot::ClassDB::bind_method(godot::D_METHOD("_get_previous_commits", "max_commits"), &GitPlugin::_get_previous_commits);
+	godot::ClassDB::bind_method(godot::D_METHOD("_get_branch_list"), &GitPlugin::_get_branch_list);
+	godot::ClassDB::bind_method(godot::D_METHOD("_create_branch", "branch_name"), &GitPlugin::_create_branch);
+	godot::ClassDB::bind_method(godot::D_METHOD("_create_remote", "remote_url"), &GitPlugin::_create_remote);
+	godot::ClassDB::bind_method(godot::D_METHOD("_remove_branch", "branch_name"), &GitPlugin::_remove_branch);
+	godot::ClassDB::bind_method(godot::D_METHOD("_remove_remote", "remote_name"), &GitPlugin::_remove_remote);
+	godot::ClassDB::bind_method(godot::D_METHOD("_get_current_branch_name"), &GitPlugin::_get_current_branch_name);
+	godot::ClassDB::bind_method(godot::D_METHOD("_checkout_branch", "branch_name"), &GitPlugin::_checkout_branch);
+	godot::ClassDB::bind_method(godot::D_METHOD("_fetch", "remote"), &GitPlugin::_fetch);
+	godot::ClassDB::bind_method(godot::D_METHOD("_pull", "remote"), &GitPlugin::_pull);
+	godot::ClassDB::bind_method(godot::D_METHOD("_push", "remote", "force"), &GitPlugin::_push);
+	godot::ClassDB::bind_method(godot::D_METHOD("_get_line_diff", "file_path", "text"), &GitPlugin::_get_line_diff);
+	godot::ClassDB::bind_method(godot::D_METHOD("_set_credentials", "username", "password", "ssh_public_key_path", "ssh_private_key_path", "ssh_passphrase"), &GitPlugin::_set_credentials);
 }
 
-bool GitAPI::check_errors(int error, String function, String file, int line, String message, const std::vector<git_error_code> &ignores) {
+GitPlugin::GitPlugin() {
+	map_changes[GIT_STATUS_WT_NEW] = CHANGE_TYPE_NEW;
+	map_changes[GIT_STATUS_INDEX_NEW] = CHANGE_TYPE_NEW;
+	map_changes[GIT_STATUS_WT_MODIFIED] = CHANGE_TYPE_MODIFIED;
+	map_changes[GIT_STATUS_INDEX_MODIFIED] = CHANGE_TYPE_MODIFIED;
+	map_changes[GIT_STATUS_WT_RENAMED] = CHANGE_TYPE_RENAMED;
+	map_changes[GIT_STATUS_INDEX_RENAMED] = CHANGE_TYPE_RENAMED;
+	map_changes[GIT_STATUS_WT_DELETED] = CHANGE_TYPE_DELETED;
+	map_changes[GIT_STATUS_INDEX_DELETED] = CHANGE_TYPE_DELETED;
+	map_changes[GIT_STATUS_WT_TYPECHANGE] = CHANGE_TYPE_TYPECHANGE;
+	map_changes[GIT_STATUS_INDEX_TYPECHANGE] = CHANGE_TYPE_TYPECHANGE;
+	map_changes[GIT_STATUS_CONFLICTED] = CHANGE_TYPE_UNMERGED;
+}
+
+bool GitPlugin::check_errors(int error, godot::String function, godot::String file, int line, godot::String message, const std::vector<git_error_code> &ignores) {
 	const git_error *lg2err;
 
 	if (error == 0) {
@@ -63,18 +78,18 @@ bool GitAPI::check_errors(int error, String function, String file, int line, Str
 		}
 	}
 
-	message += ".";
+	message = message + ".";
 	if ((lg2err = git_error_last()) != nullptr && lg2err->message != nullptr) {
-		message += " Error " + String::num_int64(error) + ": ";
-		message += String(lg2err->message);
+		message = message + " Error " + godot::String::num_int64(error) + ": ";
+		message = message + godot::String(lg2err->message);
 	}
 
-	Godot::print_error("GitAPI: " + message, function, file, line);
+	std::cout << "GitPlugin: " << CString(message).data << " in " << CString(file).data << ":" << CString(function).data << "#L" << line << std::endl;
 	popup_error(message);
 	return true;
 }
 
-void GitAPI::_set_credentials(const String username, const String password, const String ssh_public_key_path, const String ssh_private_key_path, const String ssh_passphrase) {
+void GitPlugin::_set_credentials(const godot::String &username, const godot::String &password, const godot::String &ssh_public_key_path, const godot::String &ssh_private_key_path, const godot::String &ssh_passphrase) {
 	creds.username = username;
 	creds.password = password;
 	creds.ssh_public_key_path = ssh_public_key_path;
@@ -82,7 +97,7 @@ void GitAPI::_set_credentials(const String username, const String password, cons
 	creds.ssh_passphrase = ssh_passphrase;
 }
 
-void GitAPI::_discard_file(const String file_path) {
+void GitPlugin::_discard_file(const godot::String &file_path) {
 	git_checkout_options opts = GIT_CHECKOUT_OPTIONS_INIT;
 	CString c_path(file_path);
 	char *paths[] = { c_path.data };
@@ -92,7 +107,7 @@ void GitAPI::_discard_file(const String file_path) {
 	GIT2_CALL(git_checkout_index(repo.get(), nullptr, &opts), "Could not checkout index");
 }
 
-void GitAPI::_commit(const String msg) {
+void GitPlugin::_commit(const godot::String &msg) {
 	git_index_ptr repo_index;
 	GIT2_CALL(git_repository_index(Capture(repo_index), repo.get()), "Could not get repository index");
 
@@ -152,7 +167,7 @@ void GitAPI::_commit(const String msg) {
 	}
 }
 
-void GitAPI::_stage_file(const String file_path) {
+void GitPlugin::_stage_file(const godot::String &file_path) {
 	CString c_path(file_path);
 	char *paths[] = { c_path.data };
 	git_strarray array = { paths, 1 };
@@ -163,7 +178,7 @@ void GitAPI::_stage_file(const String file_path) {
 	GIT2_CALL(git_index_write(index.get()), "Could not write changes to disk");
 }
 
-void GitAPI::_unstage_file(const String file_path) {
+void GitPlugin::_unstage_file(const godot::String &file_path) {
 	CString c_path(file_path);
 	char *paths[] = { c_path.data };
 	git_strarray array = { paths, 1 };
@@ -187,12 +202,11 @@ void GitAPI::_unstage_file(const String file_path) {
 	}
 }
 
-void GitAPI::create_gitignore_and_gitattributes() {
-	File *file = File::_new();
-
-	if (!file->file_exists("res://.gitignore")) {
-		file->open("res://.gitignore", File::ModeFlags::WRITE);
-		file->store_string(
+void GitPlugin::create_gitignore_and_gitattributes() {
+	if (!godot::File::file_exists("res://.gitignore")) {
+		godot::File file;
+		file.open("res://.gitignore", godot::File::ModeFlags::WRITE);
+		file.store_string(
 				"# Godot-specific ignores\n"
 				".import/\n"
 				"export.cfg\n"
@@ -204,12 +218,13 @@ void GitAPI::create_gitignore_and_gitattributes() {
 				"# Mono-specific ignores\n"
 				".mono/\n"
 				"data_*/\n");
-		file->close();
+		file.close();
 	}
 
-	if (!file->file_exists("res://.gitattributes")) {
-		file->open("res://.gitattributes", File::ModeFlags::WRITE);
-		file->store_string(
+	if (!godot::File::file_exists("res://.gitattributes")) {
+		godot::File file;
+		file.open("res://.gitattributes", godot::File::ModeFlags::WRITE);
+		file.store_string(
 				"# Set the default behavior, in case people don't have core.autocrlf set.\n"
 				"* text=auto\n\n"
 
@@ -227,14 +242,12 @@ void GitAPI::create_gitignore_and_gitattributes() {
 				"# Denote all files that are truly binary and should not be modified.\n"
 				"*.png binary\n"
 				"*.jpg binary\n");
-		file->close();
+		file.close();
 	}
-
-	file->free();
 }
 
-Array GitAPI::_get_modified_files_data() {
-	Array stats_files;
+godot::Array GitPlugin::_get_modified_files_data() {
+	godot::Array stats_files;
 
 	git_status_options opts = GIT_STATUS_OPTIONS_INIT;
 	opts.show = GIT_STATUS_SHOW_INDEX_AND_WORKDIR;
@@ -242,45 +255,32 @@ Array GitAPI::_get_modified_files_data() {
 	opts.flags |= GIT_STATUS_OPT_INCLUDE_UNTRACKED | GIT_STATUS_OPT_RENAMES_HEAD_TO_INDEX | GIT_STATUS_OPT_SORT_CASE_SENSITIVELY | GIT_STATUS_OPT_RECURSE_UNTRACKED_DIRS;
 
 	git_status_list_ptr statuses;
-	GIT2_CALL_R(git_status_list_new(Capture(statuses), repo.get(), &opts), "Could not get status information from repository", Array());
+	GIT2_CALL_R(git_status_list_new(Capture(statuses), repo.get(), &opts), "Could not get status information from repository", godot::Array());
 
 	size_t count = git_status_list_entrycount(statuses.get());
 	for (size_t i = 0; i < count; ++i) {
 		const git_status_entry *entry = git_status_byindex(statuses.get(), i);
-		String path;
+		godot::String path;
 		if (entry->index_to_workdir) {
 			path = entry->index_to_workdir->new_file.path;
 		} else {
 			path = entry->head_to_index->new_file.path;
 		}
 
-		static Dictionary map_changes = Dictionary::make(
-				GIT_STATUS_WT_NEW, CHANGE_TYPE_NEW,
-				GIT_STATUS_INDEX_NEW, CHANGE_TYPE_NEW,
-				GIT_STATUS_WT_MODIFIED, CHANGE_TYPE_MODIFIED,
-				GIT_STATUS_INDEX_MODIFIED, CHANGE_TYPE_MODIFIED,
-				GIT_STATUS_WT_RENAMED, CHANGE_TYPE_RENAMED,
-				GIT_STATUS_INDEX_RENAMED, CHANGE_TYPE_RENAMED,
-				GIT_STATUS_WT_DELETED, CHANGE_TYPE_DELETED,
-				GIT_STATUS_INDEX_DELETED, CHANGE_TYPE_DELETED,
-				GIT_STATUS_WT_TYPECHANGE, CHANGE_TYPE_TYPECHANGE,
-				GIT_STATUS_INDEX_TYPECHANGE, CHANGE_TYPE_TYPECHANGE,
-				GIT_STATUS_CONFLICTED, CHANGE_TYPE_UNMERGED);
-
 		const static int git_status_wt = GIT_STATUS_WT_NEW | GIT_STATUS_WT_MODIFIED | GIT_STATUS_WT_DELETED | GIT_STATUS_WT_TYPECHANGE | GIT_STATUS_WT_RENAMED | GIT_STATUS_CONFLICTED;
 		const static int git_status_index = GIT_STATUS_INDEX_NEW | GIT_STATUS_INDEX_MODIFIED | GIT_STATUS_INDEX_DELETED | GIT_STATUS_INDEX_RENAMED | GIT_STATUS_INDEX_TYPECHANGE;
 
 		if (entry->status & git_status_wt) {
-			stats_files.push_back(create_status_file(path, map_changes[entry->status & git_status_wt], TREE_AREA_UNSTAGED));
+			stats_files.push_back(create_status_file(path, map_changes[git_status_t(entry->status & git_status_wt)], TREE_AREA_UNSTAGED));
 		}
 
 		if (entry->status & git_status_index) {
 			if (entry->status == GIT_STATUS_INDEX_RENAMED) {
-				String old_path = entry->head_to_index->old_file.path;
-				stats_files.push_back(create_status_file(old_path, map_changes[GIT_STATUS_INDEX_DELETED], TREE_AREA_STAGED));
-				stats_files.push_back(create_status_file(path, map_changes[GIT_STATUS_INDEX_NEW], TREE_AREA_STAGED));
+				godot::String old_path = entry->head_to_index->old_file.path;
+				stats_files.push_back(create_status_file(old_path, map_changes.at(GIT_STATUS_INDEX_DELETED), TREE_AREA_STAGED));
+				stats_files.push_back(create_status_file(path, map_changes.at(GIT_STATUS_INDEX_NEW), TREE_AREA_STAGED));
 			} else {
-				stats_files.push_back(create_status_file(path, map_changes[entry->status & git_status_index], TREE_AREA_STAGED));
+				stats_files.push_back(create_status_file(path, map_changes.at(git_status_t(entry->status & git_status_index)), TREE_AREA_STAGED));
 			}
 		}
 	}
@@ -288,31 +288,31 @@ Array GitAPI::_get_modified_files_data() {
 	return stats_files;
 }
 
-Array GitAPI::_get_branch_list() {
+godot::Array GitPlugin::_get_branch_list() {
 	git_branch_iterator_ptr it;
-	GIT2_CALL_R(git_branch_iterator_new(Capture(it), repo.get(), GIT_BRANCH_LOCAL), "Could not create branch iterator", Array());
+	GIT2_CALL_R(git_branch_iterator_new(Capture(it), repo.get(), GIT_BRANCH_LOCAL), "Could not create branch iterator", godot::Array());
 
-	Array branch_names;
+	godot::Array branch_names;
 
 	git_reference_ptr ref;
 	git_branch_t type;
 	while (git_branch_next(Capture(ref), &type, it.get()) != GIT_ITEROVER) {
 		const char *name = nullptr;
 
-		GIT2_CALL_R(git_branch_name(&name, ref.get()), "Could not get branch name", Array());
+		GIT2_CALL_R(git_branch_name(&name, ref.get()), "Could not get branch name", godot::Array());
 
 		if (git_branch_is_head(ref.get())) {
 			// Always send the current branch as the first branch in list
 			branch_names.push_front(name);
 		} else {
-			branch_names.push_back(String(name));
+			branch_names.push_back(godot::String(name));
 		}
 	}
 
 	return branch_names;
 }
 
-void GitAPI::_create_branch(const String branch_name) {
+void GitPlugin::_create_branch(const godot::String &branch_name) {
 	git_oid head_commit_id;
 	GIT2_CALL(git_reference_name_to_id(&head_commit_id, repo.get(), "HEAD"), "Could not get HEAD commit ID");
 
@@ -323,51 +323,51 @@ void GitAPI::_create_branch(const String branch_name) {
 	GIT2_CALL(git_branch_create(Capture(branch_ref), repo.get(), CString(branch_name).data, head_commit.get(), 0), "Could not create branch from HEAD");
 }
 
-void GitAPI::_create_remote(const String remote_name, const String remote_url) {
+void GitPlugin::_create_remote(const godot::String &remote_name, const godot::String &remote_url) {
 	git_remote_ptr remote;
 	GIT2_CALL(git_remote_create(Capture(remote), repo.get(), CString(remote_name).data, CString(remote_url).data), "Could not create remote");
 }
 
-void GitAPI::_remove_branch(const String branch_name) {
+void GitPlugin::_remove_branch(const godot::String &branch_name) {
 	git_reference_ptr branch;
 	GIT2_CALL(git_branch_lookup(Capture(branch), repo.get(), CString(branch_name).data, GIT_BRANCH_LOCAL), "Could not find branch " + branch_name);
 	GIT2_CALL(git_branch_delete(branch.get()), "Could not delete branch reference of " + branch_name);
 }
 
-void GitAPI::_remove_remote(const String remote_name) {
+void GitPlugin::_remove_remote(const godot::String &remote_name) {
 	GIT2_CALL(git_remote_delete(repo.get(), CString(remote_name).data), "Could not delete remote " + remote_name);
 }
 
-Array GitAPI::_get_line_diff(String file_path, String text) {
+godot::Array GitPlugin::_get_line_diff(const godot::String &file_path, const godot::String &text) {
 	git_diff_options opts = GIT_DIFF_OPTIONS_INIT;
 
 	opts.context_lines = 0;
 	opts.flags = GIT_DIFF_DISABLE_PATHSPEC_MATCH | GIT_DIFF_INCLUDE_UNTRACKED;
 
 	git_index_ptr index;
-	GIT2_CALL_R(git_repository_index(Capture(index), repo.get()), "Failed to get repository index", Array());
-	GIT2_CALL_R(git_index_read(index.get(), 0), "Failed to read index", Array());
+	GIT2_CALL_R(git_repository_index(Capture(index), repo.get()), "Failed to get repository index", godot::Array());
+	GIT2_CALL_R(git_index_read(index.get(), 0), "Failed to read index", godot::Array());
 
 	const git_index_entry *entry = git_index_get_bypath(index.get(), CString(file_path).data, GIT_INDEX_STAGE_NORMAL);
 	if (!entry) {
-		return Array();
+		return godot::Array();
 	}
 
 	git_reference_ptr head;
-	GIT2_CALL_R(git_repository_head(Capture(head), repo.get()), "Failed to load repository head", Array());
+	GIT2_CALL_R(git_repository_head(Capture(head), repo.get()), "Failed to load repository head", godot::Array());
 
 	git_blob_ptr blob;
-	GIT2_CALL_R(git_blob_lookup(Capture(blob), repo.get(), &entry->id), "Failed to load head blob", Array());
+	GIT2_CALL_R(git_blob_lookup(Capture(blob), repo.get(), &entry->id), "Failed to load head blob", godot::Array());
 
-	Array diff_contents;
+	godot::Array diff_contents;
 
 	DiffHelper diff_helper = { &diff_contents, this };
-	GIT2_CALL_R(git_diff_blob_to_buffer(blob.get(), nullptr, CString(text).data, text.length(), nullptr, &opts, nullptr, nullptr, diff_hunk_cb, nullptr, &diff_helper), "Failed to make diff", Array());
+	GIT2_CALL_R(git_diff_blob_to_buffer(blob.get(), nullptr, CString(text).data, text.length(), nullptr, &opts, nullptr, nullptr, diff_hunk_cb, nullptr, &diff_helper), "Failed to make diff", godot::Array());
 
 	return diff_contents;
 }
 
-String GitAPI::_get_current_branch_name() {
+godot::String GitPlugin::_get_current_branch_name() {
 	git_reference_ptr head;
 	GIT2_CALL_R_IGNORE(git_repository_head(Capture(head), repo.get()), "Could not find repository HEAD", "", { GIT_ENOTFOUND COMMA GIT_EUNBORNBRANCH });
 
@@ -385,11 +385,11 @@ String GitAPI::_get_current_branch_name() {
 	return name;
 }
 
-Array GitAPI::_get_remotes() {
+godot::Array GitPlugin::_get_remotes() {
 	git_strarray remote_array;
-	GIT2_CALL_R(git_remote_list(&remote_array, repo.get()), "Could not get list of remotes", Array());
+	GIT2_CALL_R(git_remote_list(&remote_array, repo.get()), "Could not get list of remotes", godot::Array());
 
-	Array remotes;
+	godot::Array remotes;
 	for (int i = 0; i < remote_array.count; i++) {
 		remotes.push_back(remote_array.strings[i]);
 	}
@@ -397,25 +397,25 @@ Array GitAPI::_get_remotes() {
 	return remotes;
 }
 
-Array GitAPI::_get_previous_commits(const int64_t max_commits) {
+godot::Array GitPlugin::_get_previous_commits(int64_t max_commits) {
 	git_revwalk_ptr walker;
-	GIT2_CALL_R(git_revwalk_new(Capture(walker), repo.get()), "Could not create new revwalk", Array());
-	GIT2_CALL_R(git_revwalk_sorting(walker.get(), GIT_SORT_TIME), "Could not sort revwalk by time", Array());
+	GIT2_CALL_R(git_revwalk_new(Capture(walker), repo.get()), "Could not create new revwalk", godot::Array());
+	GIT2_CALL_R(git_revwalk_sorting(walker.get(), GIT_SORT_TIME), "Could not sort revwalk by time", godot::Array());
 
-	GIT2_CALL_R_IGNORE(git_revwalk_push_head(walker.get()), "Could not push HEAD to revwalk", Array(), { GIT_ENOTFOUND COMMA GIT_ERROR });
+	GIT2_CALL_R_IGNORE(git_revwalk_push_head(walker.get()), "Could not push HEAD to revwalk", godot::Array(), { GIT_ENOTFOUND COMMA GIT_ERROR });
 
 	git_oid oid;
-	Array commits;
+	godot::Array commits;
 	char commit_id[GIT_OID_HEXSZ + 1];
 	for (int i = 0; !git_revwalk_next(&oid, walker.get()) && i <= max_commits; i++) {
 		git_commit_ptr commit;
 		GIT2_CALL_R(git_commit_lookup(Capture(commit), repo.get(), &oid), "Failed to lookup the commit", commits);
 
 		git_oid_tostr(commit_id, GIT_OID_HEXSZ + 1, git_commit_id(commit.get()));
-		String msg = git_commit_message(commit.get());
+		godot::String msg = git_commit_message(commit.get());
 
 		const git_signature *sig = git_commit_author(commit.get());
-		String author = String() + sig->name + " <" + sig->email + ">";
+		godot::String author = godot::String() + sig->name + " <" + sig->email + ">";
 
 		commits.push_back(create_commit(msg, author, commit_id, sig->when.time, sig->when.offset));
 	}
@@ -423,8 +423,8 @@ Array GitAPI::_get_previous_commits(const int64_t max_commits) {
 	return commits;
 }
 
-void GitAPI::_fetch(String remote) {
-	Godot::print("GitAPI: Performing fetch from " + remote);
+void GitPlugin::_fetch(const godot::String &remote) {
+	std::cout << "GitPlugin: Performing fetch from " << CString(remote).data << std::endl;
 
 	git_remote_ptr remote_object;
 	GIT2_CALL(git_remote_lookup(Capture(remote_object), repo.get(), CString(remote).data), "Could not lookup remote \"" + remote + "\"");
@@ -444,11 +444,11 @@ void GitAPI::_fetch(String remote) {
 	opts.callbacks = remote_cbs;
 	GIT2_CALL(git_remote_fetch(remote_object.get(), nullptr, &opts, "fetch"), "Could not fetch data from remote");
 
-	Godot::print("GitAPI: Fetch ended");
+	std::cout << "GitPlugin: Fetch ended" << std::endl;
 }
 
-void GitAPI::_pull(String remote) {
-	Godot::print("GitAPI: Performing pull from " + remote);
+void GitPlugin::_pull(const godot::String &remote) {
+	std::cout << "GitPlugin: Performing pull from " << CString(remote).data << std::endl;
 
 	git_remote_ptr remote_object;
 	GIT2_CALL(git_remote_lookup(Capture(remote_object), repo.get(), CString(remote).data), "Could not lookup remote \"" + remote + "\"");
@@ -467,7 +467,7 @@ void GitAPI::_pull(String remote) {
 	git_fetch_options fetch_opts = GIT_FETCH_OPTIONS_INIT;
 	fetch_opts.callbacks = remote_cbs;
 
-	String branch_name = _get_current_branch_name();
+	godot::String branch_name = _get_current_branch_name();
 
 	CString ref_spec_str("refs/heads/" + branch_name);
 
@@ -480,7 +480,7 @@ void GitAPI::_pull(String remote) {
 	GIT2_CALL(git_repository_fetchhead_foreach(repo.get(), fetchhead_foreach_cb, &pull_merge_oid), "Could not read \"FETCH_HEAD\" file");
 
 	if (git_oid_is_zero(&pull_merge_oid)) {
-		popup_error("GitAPI: Could not find remote branch HEAD for " + branch_name + ". Try pushing the branch first.");
+		popup_error("GitPlugin: Could not find remote branch HEAD for " + branch_name + ". Try pushing the branch first.");
 		return;
 	}
 
@@ -501,7 +501,7 @@ void GitAPI::_pull(String remote) {
 		GIT2_CALL(git_repository_head(Capture(target_ref), repo.get()), "Failed to get HEAD reference");
 
 		git_object_ptr target;
-		GIT2_CALL(git_object_lookup(Capture(target), repo.get(), &pull_merge_oid, GIT_OBJECT_COMMIT), "Failed to lookup OID " + String(git_oid_tostr_s(&pull_merge_oid)));
+		GIT2_CALL(git_object_lookup(Capture(target), repo.get(), &pull_merge_oid, GIT_OBJECT_COMMIT), "Failed to lookup OID " + godot::String(git_oid_tostr_s(&pull_merge_oid)));
 
 		ff_checkout_options.checkout_strategy = GIT_CHECKOUT_SAFE;
 		GIT2_CALL(git_checkout_tree(repo.get(), target.get(), &ff_checkout_options), "Failed to checkout HEAD reference");
@@ -509,7 +509,7 @@ void GitAPI::_pull(String remote) {
 		git_reference_ptr new_target_ref;
 		GIT2_CALL(git_reference_set_target(Capture(new_target_ref), target_ref.get(), &pull_merge_oid, nullptr), "Failed to move HEAD reference");
 
-		Godot::print("GitAPI: Fast Forwarded");
+		std::cout << "GitPlugin: Fast Forwarded" << std::endl;
 		GIT2_CALL(git_repository_state_cleanup(repo.get()), "Could not clean repository state");
 
 	} else if (merge_analysis & GIT_MERGE_ANALYSIS_NORMAL) {
@@ -525,27 +525,27 @@ void GitAPI::_pull(String remote) {
 		GIT2_CALL(git_repository_index(Capture(index), repo.get()), "Could not get repository index");
 
 		if (git_index_has_conflicts(index.get())) {
-			popup_error("GitAPI: Index has conflicts, Solve conflicts and make a merge commit.");
+			popup_error("GitPlugin: Index has conflicts, Solve conflicts and make a merge commit.");
 		} else {
-			popup_error("GitAPI: Change are staged, make a merge commit.");
+			popup_error("GitPlugin: Change are staged, make a merge commit.");
 		}
 
 		has_merge = true;
 
 	} else if (merge_analysis & GIT_MERGE_ANALYSIS_UP_TO_DATE) {
-		Godot::print("GitAPI: Already up to date");
+		std::cout << "GitPlugin: Already up to date" << std::endl;
 
 		GIT2_CALL(git_repository_state_cleanup(repo.get()), "Could not clean repository state");
 
 	} else {
-		Godot::print("GitAPI: Can not merge");
+		std::cout << "GitPlugin: Can not merge" << std::endl;
 	}
 
-	Godot::print("GitAPI: Pull ended");
+	std::cout << "GitPlugin: Pull ended" << std::endl;
 }
 
-void GitAPI::_push(const String remote, const bool force) {
-	Godot::print("GitAPI: Performing push to " + remote);
+void GitPlugin::_push(const godot::String &remote, bool force) {
+	std::cout << "GitPlugin: Performing push to " << CString(remote).data << std::endl;
 
 	git_remote_ptr remote_object;
 	GIT2_CALL(git_remote_lookup(Capture(remote_object), repo.get(), CString(remote).data), "Could not lookup remote \"" + remote + "\"");
@@ -561,9 +561,9 @@ void GitAPI::_push(const String remote, const bool force) {
 
 	GIT2_CALL(git_remote_connect(remote_object.get(), GIT_DIRECTION_PUSH, &remote_cbs, nullptr, nullptr), "Could not connect to remote \"" + remote + "\". Are your credentials correct? Try using a PAT token (in case you are using Github) as your password");
 
-	String branch_name = _get_current_branch_name();
+	godot::String branch_name = _get_current_branch_name();
 
-	CString pushspec(String() + (force ? "+" : "") + "refs/heads/" + branch_name);
+	CString pushspec(godot::String() + (force ? "+" : "") + "refs/heads/" + branch_name);
 	const git_strarray refspec = { &pushspec.data, 1 };
 
 	git_push_options push_options = GIT_PUSH_OPTIONS_INIT;
@@ -571,10 +571,10 @@ void GitAPI::_push(const String remote, const bool force) {
 
 	GIT2_CALL(git_remote_push(remote_object.get(), &refspec, &push_options), "Failed to push");
 
-	Godot::print("GitAPI: Push ended");
+	std::cout << "GitPlugin: Push ended" << std::endl;
 }
 
-bool GitAPI::_checkout_branch(String branch_name) {
+bool GitPlugin::_checkout_branch(const godot::String &branch_name) {
 	git_reference_ptr branch;
 	GIT2_CALL_R(git_branch_lookup(Capture(branch), repo.get(), CString(branch_name).data, GIT_BRANCH_LOCAL), "Could not find branch", false);
 	const char *branch_ref_name = git_reference_name(branch.get());
@@ -590,9 +590,9 @@ bool GitAPI::_checkout_branch(String branch_name) {
 	return true;
 }
 
-Array GitAPI::_get_diff(const String identifier, const int64_t area) {
+godot::Array GitPlugin::_get_diff(const godot::String &identifier, const int64_t area) {
 	git_diff_options opts = GIT_DIFF_OPTIONS_INIT;
-	Array diff_contents;
+	godot::Array diff_contents;
 
 	opts.context_lines = 2;
 	opts.interhunk_lines = 0;
@@ -651,34 +651,36 @@ Array GitAPI::_get_diff(const String identifier, const int64_t area) {
 	return diff_contents;
 }
 
-Array GitAPI::_parse_diff(git_diff *diff) {
-	Array diff_contents;
+godot::Array GitPlugin::_parse_diff(git_diff *diff) {
+	godot::Array diff_contents;
 	for (int i = 0; i < git_diff_num_deltas(diff); i++) {
 		const git_diff_delta *delta = git_diff_get_delta(diff, i);
 
 		git_patch_ptr patch;
-		GIT2_CALL_R(git_patch_from_diff(Capture(patch), diff, i), "Could not create patch from diff", Array());
+		GIT2_CALL_R(git_patch_from_diff(Capture(patch), diff, i), "Could not create patch from diff", godot::Array());
 
-		Dictionary diff_file = create_diff_file(delta->new_file.path, delta->old_file.path);
+		godot::Dictionary diff_file = create_diff_file(delta->new_file.path, delta->old_file.path);
 
-		Array diff_hunks;
+		godot::Array diff_hunks;
 		for (int j = 0; j < git_patch_num_hunks(patch.get()); j++) {
 			const git_diff_hunk *git_hunk;
 			size_t line_count;
-			GIT2_CALL_R(git_patch_get_hunk(&git_hunk, &line_count, patch.get(), j), "Could not get hunk from patch", Array());
+			GIT2_CALL_R(git_patch_get_hunk(&git_hunk, &line_count, patch.get(), j), "Could not get hunk from patch", godot::Array());
 
-			Dictionary diff_hunk = create_diff_hunk(git_hunk->old_start, git_hunk->new_start, git_hunk->old_lines, git_hunk->new_lines);
+			godot::Dictionary diff_hunk = create_diff_hunk(git_hunk->old_start, git_hunk->new_start, git_hunk->old_lines, git_hunk->new_lines);
 
-			Array diff_lines;
+			godot::Array diff_lines;
 			for (int k = 0; k < line_count; k++) {
 				const git_diff_line *git_diff_line;
-				GIT2_CALL_R(git_patch_get_line_in_hunk(&git_diff_line, patch.get(), j, k), "Could not get line from hunk in patch", Array());
+				GIT2_CALL_R(git_patch_get_line_in_hunk(&git_diff_line, patch.get(), j, k), "Could not get line from hunk in patch", godot::Array());
 
 				char *content = new char[git_diff_line->content_len + 1];
 				memcpy(content, git_diff_line->content, git_diff_line->content_len);
 				content[git_diff_line->content_len] = '\0';
 
-				diff_lines.push_back(create_diff_line(git_diff_line->new_lineno, git_diff_line->old_lineno, String(content), String(git_diff_line->origin)));
+				godot::String status = " "; // We reserve 1 null terminated space to fill the + or the - character at git_diff_line->origin
+				status[0] = git_diff_line->origin;
+				diff_lines.push_back(create_diff_line(git_diff_line->new_lineno, git_diff_line->old_lineno, godot::String(content), status));
 
 				delete[] content;
 			}
@@ -692,11 +694,13 @@ Array GitAPI::_parse_diff(git_diff *diff) {
 	return diff_contents;
 }
 
-String GitAPI::_get_vcs_name() {
+godot::String GitPlugin::_get_vcs_name() {
 	return "Git";
 }
 
-bool GitAPI::_initialize(String project_path) {
+bool GitPlugin::_initialize(const godot::String &project_path) {
+	using namespace godot;
+
 	ERR_FAIL_COND_V(project_path == "", false);
 
 	int init = git_libgit2_init();
@@ -716,13 +720,8 @@ bool GitAPI::_initialize(String project_path) {
 	return true;
 }
 
-bool GitAPI::_shut_down() {
+bool GitPlugin::_shut_down() {
 	repo.reset(); // Destroy repo object before libgit2 shuts down
 	GIT2_CALL_R(git_libgit2_shutdown(), "Could not shutdown Git Plugin", false);
 	return true;
 }
-
-void GitAPI::_init() {
-}
-
-} // namespace godot

@@ -12,7 +12,7 @@ jobs:
           git submodule update --init --recursive
           pip3 install --user scons
           scons platform=linux target=release bits=64 godot_cpp=yes generate_bindings=yes use_custom_api_file=yes custom_api_file=api.ci.json -j $(nproc)
-          ldd demo/addons/godot-git-plugin/linux/libgitapi.so
+          ldd demo/addons/godot-git-plugin/linux/libgit_plugin.so
       - uses: actions/upload-artifact@v2
         with:
           name: godot-git-plugin-linux-release-x64-${{ github.sha }}
@@ -34,7 +34,7 @@ jobs:
           git submodule update --init --recursive
           pip3 install --user scons
           scons platform=windows target=release bits=64 godot_cpp=yes generate_bindings=yes use_custom_api_file=yes custom_api_file=api.ci.json -j $env:NUMBER_OF_PROCESSORS
-          dumpbin /dependents .\demo\addons\godot-git-plugin\win64\libgitapi.dll
+          dumpbin /dependents .\demo\addons\godot-git-plugin\win64\libgit_plugin.dll
       - uses: actions/upload-artifact@v2
         with:
           name: godot-git-plugin-windows-release-x64-${{ github.sha }}
@@ -51,7 +51,7 @@ jobs:
           git submodule update --init --recursive
           brew install scons
           scons platform=osx target=release bits=64 godot_cpp=yes generate_bindings=yes use_custom_api_file=yes custom_api_file=api.ci.json macos_arch=universal use_llvm=yes -j $(sysctl -n hw.logicalcpu)
-          otool -L demo/addons/godot-git-plugin/osx/libgitapi.dylib
+          otool -L demo/addons/godot-git-plugin/osx/libgit_plugin.dylib
       - uses: actions/upload-artifact@v2
         with:
           name: godot-git-plugin-macos-release-x64-${{ github.sha }}

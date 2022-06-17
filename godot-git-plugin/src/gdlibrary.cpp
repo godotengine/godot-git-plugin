@@ -1,20 +1,31 @@
-#include "git_api.h"
+#include "git_plugin.h"
 
-#include <Godot.hpp>
+#include "godot_cpp/core/class_db.hpp"
+#include "godot_cpp/godot.hpp"
 
-extern "C" void GDN_EXPORT godot_gdnative_init(godot_gdnative_init_options *o) {
-	godot::Godot::gdnative_init(o);
+void initialize_git_plugin_module(godot::ModuleInitializationLevel p_level) {
+	if (p_level != godot::MODULE_INITIALIZATION_LEVEL_EDITOR) {
+		return;
+	}
+
+	godot::ClassDB::register_class<GitPlugin>();
 }
 
-extern "C" void GDN_EXPORT godot_gdnative_singleton(godot_gdnative_init_options *o) {
+void uninitialize_git_plugin_module(godot::ModuleInitializationLevel p_level) {
+	if (p_level != godot::MODULE_INITIALIZATION_LEVEL_EDITOR) {
+		return;
+	}
 }
 
-extern "C" void GDN_EXPORT godot_gdnative_terminate(godot_gdnative_terminate_options *o) {
-	godot::Godot::gdnative_terminate(o);
+extern "C" {
+
+GDNativeBool GDN_EXPORT git_plugin_init(const GDNativeInterface *p_interface, const GDNativeExtensionClassLibraryPtr p_library, GDNativeInitialization *r_initialization) {
+	godot::GDExtensionBinding::InitObject init_obj(p_interface, p_library, r_initialization);
+
+	init_obj.register_initializer(initialize_git_plugin_module);
+	init_obj.register_terminator(uninitialize_git_plugin_module);
+	init_obj.set_minimum_library_initialization_level(godot::MODULE_INITIALIZATION_LEVEL_EDITOR);
+
+	return init_obj.init();
 }
-
-extern "C" void GDN_EXPORT godot_nativescript_init(void *handle) {
-	godot::Godot::nativescript_init(handle);
-
-	godot::register_tool_class<godot::GitAPI>();
 }

@@ -23,7 +23,7 @@ opts.Add(BoolVariable("use_llvm",
 opts.Add(PathVariable("target_path",
          "The path where the lib is installed.", "demo/addons/godot-git-plugin/"))
 opts.Add(PathVariable("target_name", "The library name.",
-         "libgitapi", PathVariable.PathAccept))
+         "libgit_plugin", PathVariable.PathAccept))
 opts.Add(EnumVariable("bits", "The bit architecture.", "64", ["64"]))
 opts.Add(EnumVariable("macos_arch", "Target macOS architecture",
          "universal", ["universal", "x86_64", "arm64"]))

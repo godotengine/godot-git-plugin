@@ -10,12 +10,12 @@ config_version=4
 
 _global_script_classes=[ {
 "base": "EditorVCSInterface",
-"class": "GitAPI",
+"class": "GitPlugin",
 "language": "NativeScript",
-"path": "res://addons/godot-git-plugin/git_api.gdns"
+"path": "res://addons/godot-git-plugin/git_plugin.gdns"
 } ]
 _global_script_class_icons={
-"GitAPI": ""
+"GitPlugin": ""
 }
 
 [application]
@@ -27,7 +27,7 @@ config/icon="res://icon.png"
 [editor]
 
 version_control/autoload_on_startup=true
-version_control/plugin_name="GitAPI"
+version_control/plugin_name="GitPlugin"
 
 [rendering]
 
