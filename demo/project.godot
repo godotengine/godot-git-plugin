@@ -6,29 +6,13 @@
 ;   [section] ; section goes between []
 ;   param=value ; assign values to parameters
 
-config_version=4
-
-_global_script_classes=[ {
-"base": "EditorVCSInterface",
-"class": "GitPlugin",
-"language": "NativeScript",
-"path": "res://addons/godot-git-plugin/git_plugin.gdns"
-} ]
-_global_script_class_icons={
-"GitPlugin": ""
-}
+config_version=5
 
 [application]
 
-config/name="demo"
-run/main_scene="res://demo.tscn"
-config/icon="res://icon.png"
+config/features=PackedStringArray("4.0")
 
 [editor]
 
-version_control/autoload_on_startup=true
 version_control/plugin_name="GitPlugin"
-
-[rendering]
-
-environment/default_environment="res://default_env.tres"
+version_control/autoload_on_startup=true

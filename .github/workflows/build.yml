@@ -15,7 +15,7 @@ jobs:
           ldd demo/addons/godot-git-plugin/linux/libgit_plugin.so
       - uses: actions/upload-artifact@v2
         with:
-          name: godot-git-plugin-linux-release-x64-${{ github.sha }}
+          name: libgit_plugin.linux.x86_64.release.dll-${{ github.sha }}
           if-no-files-found: error
           path: |
             demo/
@@ -37,7 +37,7 @@ jobs:
           dumpbin /dependents .\demo\addons\godot-git-plugin\win64\libgit_plugin.dll
       - uses: actions/upload-artifact@v2
         with:
-          name: godot-git-plugin-windows-release-x64-${{ github.sha }}
+          name: libgit_plugin.windows.x86_64.release.dll-${{ github.sha }}
           if-no-files-found: error
           path: |
             demo/
@@ -54,7 +54,7 @@ jobs:
           otool -L demo/addons/godot-git-plugin/osx/libgit_plugin.dylib
       - uses: actions/upload-artifact@v2
         with:
-          name: godot-git-plugin-macos-release-x64-${{ github.sha }}
+          name: libgit_plugin.osx.x86_64.release.dylib-${{ github.sha }}
           if-no-files-found: error
           path: |
             demo/

@@ -26,29 +26,7 @@
 #define COMMA ,
 
 void GitPlugin::_bind_methods() {
-	godot::ClassDB::bind_method(godot::D_METHOD("_commit", "msg"), &GitPlugin::_commit);
-	godot::ClassDB::bind_method(godot::D_METHOD("_get_modified_files_data"), &GitPlugin::_get_modified_files_data);
-	godot::ClassDB::bind_method(godot::D_METHOD("_get_remotes"), &GitPlugin::_get_remotes);
-	godot::ClassDB::bind_method(godot::D_METHOD("_get_diff", "identifier", "area"), &GitPlugin::_get_diff);
-	godot::ClassDB::bind_method(godot::D_METHOD("_get_vcs_name"), &GitPlugin::_get_vcs_name);
-	godot::ClassDB::bind_method(godot::D_METHOD("_initialize", "project_path"), &GitPlugin::_initialize);
-	godot::ClassDB::bind_method(godot::D_METHOD("_shut_down"), &GitPlugin::_shut_down);
-	godot::ClassDB::bind_method(godot::D_METHOD("_stage_file", "file_path"), &GitPlugin::_stage_file);
-	godot::ClassDB::bind_method(godot::D_METHOD("_discard_file", "file_path"), &GitPlugin::_discard_file);
-	godot::ClassDB::bind_method(godot::D_METHOD("_unstage_file", "file_path"), &GitPlugin::_unstage_file);
-	godot::ClassDB::bind_method(godot::D_METHOD("_get_previous_commits", "max_commits"), &GitPlugin::_get_previous_commits);
-	godot::ClassDB::bind_method(godot::D_METHOD("_get_branch_list"), &GitPlugin::_get_branch_list);
-	godot::ClassDB::bind_method(godot::D_METHOD("_create_branch", "branch_name"), &GitPlugin::_create_branch);
-	godot::ClassDB::bind_method(godot::D_METHOD("_create_remote", "remote_url"), &GitPlugin::_create_remote);
-	godot::ClassDB::bind_method(godot::D_METHOD("_remove_branch", "branch_name"), &GitPlugin::_remove_branch);
-	godot::ClassDB::bind_method(godot::D_METHOD("_remove_remote", "remote_name"), &GitPlugin::_remove_remote);
-	godot::ClassDB::bind_method(godot::D_METHOD("_get_current_branch_name"), &GitPlugin::_get_current_branch_name);
-	godot::ClassDB::bind_method(godot::D_METHOD("_checkout_branch", "branch_name"), &GitPlugin::_checkout_branch);
-	godot::ClassDB::bind_method(godot::D_METHOD("_fetch", "remote"), &GitPlugin::_fetch);
-	godot::ClassDB::bind_method(godot::D_METHOD("_pull", "remote"), &GitPlugin::_pull);
-	godot::ClassDB::bind_method(godot::D_METHOD("_push", "remote", "force"), &GitPlugin::_push);
-	godot::ClassDB::bind_method(godot::D_METHOD("_get_line_diff", "file_path", "text"), &GitPlugin::_get_line_diff);
-	godot::ClassDB::bind_method(godot::D_METHOD("_set_credentials", "username", "password", "ssh_public_key_path", "ssh_private_key_path", "ssh_passphrase"), &GitPlugin::_set_credentials);
+	// Doesn't seem to require binding functions for now
 }
 
 GitPlugin::GitPlugin() {
@@ -207,17 +185,8 @@ void GitPlugin::create_gitignore_and_gitattributes() {
 		godot::File file;
 		file.open("res://.gitignore", godot::File::ModeFlags::WRITE);
 		file.store_string(
-				"# Godot-specific ignores\n"
-				".import/\n"
-				"export.cfg\n"
-				"export_presets.cfg\n\n"
-
-				"# Imported translations (automatically generated from CSV files)\n"
-				"*.translation\n\n"
-
-				"# Mono-specific ignores\n"
-				".mono/\n"
-				"data_*/\n");
+				"# Godot 4+ specific ignores\n"
+				".godot/\n");
 		file.close();
 	}
 

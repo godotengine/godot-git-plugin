@@ -1,0 +1,16 @@
+[configuration]
+
+entry_symbol = "git_plugin_init"
+
+[libraries]
+
+macos.debug = "osx/libgit_plugin.osx.universal.debug.dylib"
+macos.release = "osx/libgit_plugin.osx.universal.release.dylib"
+windows.debug.x86_64 = "win64/libgit_plugin.windows.x86_64.debug.dll"
+windows.release.x86_64 = "win64/libgit_plugin.windows.x86_64.release.dll"
+linux.debug.x86_64 = "linux/libgit_plugin.linux.x86_64.debug.so"
+linux.release.x86_64 = "linux/libgit_plugin.linux.x86_64.release.so"
+linux.debug.arm64 = "linux/libgit_plugin.linux.arm64.debug.so"
+linux.release.arm64 = "linux/libgit_plugin.linux.arm64.release.so"
+linux.debug.rv64 = ""
+linux.release.rv64 = ""

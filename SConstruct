@@ -37,6 +37,9 @@ opts.Add(PathVariable("macos_openssl_static_crypto", "Path to OpenSSL libcrypto.
 # Updates the environment with the option variables.
 opts.Update(env)
 
+if env["p"] != "":
+    env["platform"] = env["p"]
+
 if env["platform"] == "osx":
     # Use only clang on osx because we need to do universal builds
     env["CXX"] = "clang++"
@@ -54,7 +57,7 @@ Export("env")
 SConscript("thirdparty/SCsub")
 
 if env["godot_cpp"]:
-    if ARGUMENTS.get("use_custom_api_file", False) and ARGUMENTS.get("custom_api_file", "") != "":
+    if ARGUMENTS.get("custom_api_file", "") != "":
         ARGUMENTS["custom_api_file"] = "../" + ARGUMENTS["custom_api_file"]
 
     SConscript("godot-cpp/SConstruct")

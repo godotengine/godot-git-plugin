@@ -38,15 +38,9 @@ extern "C" int transfer_progress_cb(const git_indexer_progress *stats, void *pay
 	(void)payload;
 
 	if (stats->received_objects == stats->total_objects) {
-		std::cout << "Resolving deltas " << stats->indexed_deltas << "/" << stats->total_deltas << std::endl;
+		printf("Resolving deltas %d/%d\n", stats->indexed_deltas, stats->total_deltas);
 	} else if (stats->total_objects > 0) {
-		std::cout << "Received %d/%d objects (%d) in %d bytes"
-				  << stats->received_objects << "/"
-				  << stats->total_objects << " objects ("
-				  << stats->indexed_objects << ") in "
-				  << static_cast<int>(stats->received_bytes)
-				  << " bytes"
-				  << std::endl;
+		printf("Received %d/%d objects (%d) in %zu bytes\n", stats->received_objects, stats->total_objects, stats->indexed_objects, stats->received_bytes);
 	}
 	return 0;
 }
