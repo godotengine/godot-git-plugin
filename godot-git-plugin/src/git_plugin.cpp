@@ -1,5 +1,7 @@
 #include "git_plugin.h"
 
+#include <cstring>
+
 #include "godot_cpp/core/class_db.hpp"
 #include "godot_cpp/classes/file.hpp"
 
@@ -644,7 +646,7 @@ godot::Array GitPlugin::_parse_diff(git_diff *diff) {
 				GIT2_CALL_R(git_patch_get_line_in_hunk(&git_diff_line, patch.get(), j, k), "Could not get line from hunk in patch", godot::Array());
 
 				char *content = new char[git_diff_line->content_len + 1];
-				memcpy(content, git_diff_line->content, git_diff_line->content_len);
+				std::memcpy(content, git_diff_line->content, git_diff_line->content_len);
 				content[git_diff_line->content_len] = '\0';
 
 				godot::String status = " "; // We reserve 1 null terminated space to fill the + or the - character at git_diff_line->origin

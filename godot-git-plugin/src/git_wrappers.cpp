@@ -6,7 +6,7 @@ CString::CString(const godot::String &string) {
 	godot::CharString godot_char_str = string.utf8();
 
 	data = new char[godot_char_str.length() + 1];
-	memcpy(data, (void *)godot_char_str.get_data(), godot_char_str.length());
+	std::memcpy(data, (void *)godot_char_str.get_data(), godot_char_str.length());
 	data[godot_char_str.length()] = '\0';
 }
 

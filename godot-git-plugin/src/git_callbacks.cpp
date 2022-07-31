@@ -1,4 +1,5 @@
 #include <iostream>
+#include <cstring>
 
 #include "git_callbacks.h"
 
@@ -9,7 +10,7 @@ extern "C" int progress_cb(const char *str, int len, void *data) {
 	(void)data;
 
 	char *progress_str = new char[len + 1];
-	memcpy(progress_str, str, len);
+	std::memcpy(progress_str, str, len);
 	progress_str[len] = '\0';
 	std::cout << "remote: " << CString(godot::String(progress_str).strip_edges()).data << std::endl;
 	delete[] progress_str;
