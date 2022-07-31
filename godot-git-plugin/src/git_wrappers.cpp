@@ -1,5 +1,7 @@
 #include "git_wrappers.h"
 
+#include <cstring>
+
 CString::CString(const godot::String &string) {
 	godot::CharString godot_char_str = string.utf8();
 
