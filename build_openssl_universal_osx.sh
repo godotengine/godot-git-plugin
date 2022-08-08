@@ -12,7 +12,7 @@ cd openssl_arm64
 make
 cd ../
 cd openssl_x86_64
-./Configure darwin64-x86_64-cc
+./Configure darwin64-x86_64-cc -mmacosx-version-min=10.13
 make
 cd ../
 lipo -create openssl_arm64/libcrypto.a openssl_x86_64/libcrypto.a -output libcrypto.a
