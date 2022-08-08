@@ -15,6 +15,7 @@ cd openssl_x86_64
 ./Configure darwin64-x86_64-cc -mmacosx-version-min=10.13
 make
 cd ../
-lipo -create openssl_arm64/libcrypto.a openssl_x86_64/libcrypto.a -output libcrypto.a
-lipo -create openssl_arm64/libssl.a openssl_x86_64/libssl.a -output libssl.a
+pwd
+lipo -create openssl_arm64/libcrypto.a openssl_x86_64/libcrypto.a -output thirdparty/openssl/libcrypto.a
+lipo -create openssl_arm64/libssl.a openssl_x86_64/libssl.a -output thirdparty/openssl/libssl.a
 rm openssl-$OPENSSL_VERSION.tar.gz
