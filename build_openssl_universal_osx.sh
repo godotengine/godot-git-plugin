@@ -1,6 +1,7 @@
 #!/bin/bash
 
 OPENSSL_VERSION="1.1.1i"
+MACOSX_DEPLOYMENT_TARGET="10.13"
 
 curl -OL http://www.openssl.org/source/openssl-$OPENSSL_VERSION.tar.gz
 tar -xzvf openssl-$OPENSSL_VERSION.tar.gz
