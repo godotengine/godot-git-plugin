@@ -27,6 +27,7 @@ public:
 	bool has_merge = false;
 	git_repository_ptr repo;
 	git_oid pull_merge_oid = {};
+	godot::String repo_project_path;
 	std::unordered_map<git_status_t, ChangeType> map_changes;
 
 	GitPlugin();

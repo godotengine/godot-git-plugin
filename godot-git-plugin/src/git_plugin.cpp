@@ -2,6 +2,7 @@
 
 #include <cstring>
 
+#include <git2/tree.h>
 #include "godot_cpp/core/class_db.hpp"
 #include "godot_cpp/classes/file.hpp"
 
@@ -183,18 +184,18 @@ void GitPlugin::_unstage_file(const godot::String &file_path) {
 }
 
 void GitPlugin::create_gitignore_and_gitattributes() {
-	if (!godot::File::file_exists("res://.gitignore")) {
+	if (!godot::File::file_exists(repo_project_path + "/.gitignore")) {
 		godot::File file;
-		file.open("res://.gitignore", godot::File::ModeFlags::WRITE);
+		file.open(repo_project_path + "/.gitignore", godot::File::ModeFlags::WRITE);
 		file.store_string(
 				"# Godot 4+ specific ignores\n"
 				".godot/\n");
 		file.close();
 	}
 
-	if (!godot::File::file_exists("res://.gitattributes")) {
+	if (!godot::File::file_exists(repo_project_path + "/.gitattributes")) {
 		godot::File file;
-		file.open("res://.gitattributes", godot::File::ModeFlags::WRITE);
+		file.open(repo_project_path + "/.gitattributes", godot::File::ModeFlags::WRITE);
 		file.store_string(
 				"# Set the default behavior, in case people don't have core.autocrlf set.\n"
 				"* text=auto\n\n"
@@ -673,6 +674,8 @@ bool GitPlugin::_initialize(const godot::String &project_path) {
 	using namespace godot;
 
 	ERR_FAIL_COND_V(project_path == "", false);
+
+	repo_project_path = project_path;
 
 	int init = git_libgit2_init();
 	if (init > 1) {

@@ -71,3 +71,4 @@ using git_revwalk_ptr = unique_ptr_deleter<git_revwalk, git_revwalk_free>;
 using git_signature_ptr = unique_ptr_deleter<git_signature, git_signature_free>;
 using git_status_list_ptr = unique_ptr_deleter<git_status_list, git_status_list_free>;
 using git_tree_ptr = unique_ptr_deleter<git_tree, git_tree_free>;
+using git_tree_entry_ptr = unique_ptr_deleter<git_tree_entry, git_tree_entry_free>;
