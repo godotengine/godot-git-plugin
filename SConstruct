@@ -13,9 +13,9 @@ env = Environment(ENV=os.environ)
 opts.Add(EnumVariable("target", "Compilation target",
          "debug", ["d", "debug", "r", "release"]))
 opts.Add(EnumVariable("platform", "Compilation platform",
-         "", ["", "windows", "linux", "osx"]))
+         "", ["", "windows", "linux", "macos"]))
 opts.Add(EnumVariable("p", "Compilation target, alias for \"platform\"",
-         "", ["", "windows", "linux", "osx"]))
+         "", ["", "windows", "linux", "macos"]))
 opts.Add(BoolVariable(
     "godot_cpp", "Build godot-cpp by forwarding arguments to it.", "no"))
 opts.Add(BoolVariable("use_llvm",
@@ -40,8 +40,8 @@ opts.Update(env)
 if env["p"] != "":
     env["platform"] = env["p"]
 
-if env["platform"] == "osx":
-    # Use only clang on osx because we need to do universal builds
+if env["platform"] == "macos":
+    # Use only clang on macos because we need to do universal builds
     env["CXX"] = "clang++"
     env["CC"] = "clang"
 

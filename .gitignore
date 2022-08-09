@@ -19,7 +19,7 @@ extension_api.json
 # Binaries
 build/
 bin/
-osx/
+macos/
 linux/
 win64/
 *.lib

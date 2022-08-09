@@ -26,7 +26,7 @@ This section onwards is only meant to be used if you intend to compile the plugi
   - Windows
     - No extra steps required other than setting up the compilers.
   - MacOS
-    - For making universal builds targeting both Apple Silicon and x86_64, you can optionally run `build_openssl_universal_osx.sh` to build OpenSSL yourself and replace the already prebuilt libraries provided inside `thirdparty/openssl/`, otherwise, just run `brew install openssl@1.1` to use the prebuilt libraries provided in this repository.
+    - For making universal builds targeting both Apple Silicon and x86_64, you can optionally run `build_openssl_universal_macos.sh` to build OpenSSL yourself and replace the already prebuilt libraries provided inside `thirdparty/openssl/`, otherwise, just run `brew install openssl@1.1` to use the prebuilt libraries provided in this repository.
   - Linux
     - Run `sudo apt-get install libssl-dev`, or your local package manager's equivalent.
 

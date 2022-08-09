@@ -29,9 +29,9 @@ if not os.path.isdir(env["target_path"]):
     os.mkdir(env["target_path"])
 
 # Check our platform specifics
-if env["platform"] == "osx":
-    env["target_path"] += "osx/"
-    cpp_library += ".osx"
+if env["platform"] == "macos":
+    env["target_path"] += "macos/"
+    cpp_library += ".macos"
     dynamic_lib_extension = "dylib"
     target_arch = env["macos_arch"]
 
@@ -81,7 +81,7 @@ if env["target"] in ("debug", "d"):
 else:
     cpp_library += ".release"
 
-if env['platform'] == 'osx' and env['macos_arch'] != 'universal':
+if env['platform'] == 'macos' and env['macos_arch'] != 'universal':
     cpp_library += "." + env['macos_arch']
 else:
     cpp_library += "." + "x86_64"
