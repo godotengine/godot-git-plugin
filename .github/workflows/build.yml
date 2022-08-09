@@ -50,11 +50,8 @@ jobs:
         run: |
           git submodule update --init --recursive
           brew install scons
-          chmod +x build_openssl_universal_osx.sh
-          ./build_openssl_universal_osx.sh
           scons platform=osx target=release bits=64 godot_cpp=yes generate_bindings=yes use_custom_api_file=yes custom_api_file=api.ci.json macos_arch=universal macos_deployment_target=10.13 use_llvm=yes -j $(sysctl -n hw.logicalcpu)
           otool -L demo/addons/godot-git-plugin/osx/libgitapi.dylib
-          cp -r thirdparty/openssl/ demo/
       - uses: actions/upload-artifact@v2
         with:
           name: godot-git-plugin-macos-release-x64-${{ github.sha }}
