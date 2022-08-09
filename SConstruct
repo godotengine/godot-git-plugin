@@ -33,6 +33,7 @@ opts.Add(PathVariable("macos_openssl_static_ssl", "Path to OpenSSL libssl.a libr
          os.path.join(os.path.abspath(os.getcwd()), "thirdparty/openssl/libssl.a"), PathVariable.PathAccept))
 opts.Add(PathVariable("macos_openssl_static_crypto", "Path to OpenSSL libcrypto.a library - only used in macOS builds.",
          os.path.join(os.path.abspath(os.getcwd()), "thirdparty/openssl/libcrypto.a"), PathVariable.PathAccept))
+opts.Add("macos_deployment_target", "macOS deployment target", "default")
 
 # Updates the environment with the option variables.
 opts.Update(env)
@@ -48,6 +49,12 @@ if env["platform"] == "osx":
     else:
         env.Append(LINKFLAGS=["-arch", env["macos_arch"]])
         env.Append(CCFLAGS=["-arch", env["macos_arch"]])
+
+    if env["macos_deployment_target"] != "default":
+        env.Append(CCFLAGS=["-mmacosx-version-min=" +
+                            env["macos_deployment_target"]])
+        env.Append(LINKFLAGS=["-mmacosx-version-min=" +
+                              env["macos_deployment_target"]])
 
 Export("env")
 
