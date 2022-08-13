@@ -57,7 +57,7 @@ if env_ssh2["platform"] == "windows":
     )
     env_ssh2.Append(LIBS=["crypt32", "user32"])
 
-if env_ssh2["platform"] in ["linux", "osx"]:
+if env_ssh2["platform"] in ["linux", "macos"]:
     env_ssh2.Append(CCFLAGS="-fPIC")
     env_ssh2.Append(
         CPPPATH=[
@@ -104,7 +104,7 @@ if env_ssh2["platform"] in ["linux", "osx"]:
         ]
     )
 
-if env_ssh2["platform"] == "osx":
+if env_ssh2["platform"] == "macos":
     env_ssh2.Append(CPPPATH=[env_ssh2["macos_openssl"] + "include/"])
     static_ssl = File(env_ssh2["macos_openssl_static_ssl"])
     static_crypto = File(env_ssh2["macos_openssl_static_crypto"])

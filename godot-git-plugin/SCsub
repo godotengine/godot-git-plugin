@@ -8,7 +8,7 @@ Import("env")
 godot_headers_path = "../godot-cpp/godot-headers/"
 cpp_bindings_path = "../godot-cpp/"
 cpp_library = "libgodot-cpp"
-target_arch = env["bits"]
+target_arch = ""
 dynamic_lib_extension = ""
 
 # Process some arguments
@@ -81,10 +81,7 @@ if env["target"] in ("debug", "d"):
 else:
     cpp_library += ".release"
 
-if env['platform'] == 'macos' and env['macos_arch'] != 'universal':
-    cpp_library += "." + env['macos_arch']
-else:
-    cpp_library += "." + "x86_64"
+cpp_library += "." + target_arch
 
 env.Append(CPPPATH=[".", "src/"])
 env.Append(CPPPATH=[

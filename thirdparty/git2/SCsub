@@ -85,7 +85,7 @@ if env_git["platform"] == "windows":
         ]
     )
 
-if env_git["platform"] in ["linux", "osx"]:
+if env_git["platform"] in ["linux", "macos"]:
     env_git.Append(CCFLAGS="-fPIC")
     libgit2_sources += Glob("libgit2/src/unix/" + "*.c")
     libgit2_sources += [
@@ -126,7 +126,7 @@ if env_git["platform"] in ["linux", "osx"]:
         ]
     )
 
-if env_git["platform"] == "osx":
+if env_git["platform"] == "macos":
     env_git.Prepend(CPPPATH=[env_git["macos_openssl"] + "include/"])
     static_ssl = File(env_git["macos_openssl_static_ssl"])
     static_crypto = File(env_git["macos_openssl_static_crypto"])
