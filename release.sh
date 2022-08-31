@@ -35,9 +35,9 @@ addonsPath=$releasePath/addons
 pluginPath=$addonsPath/godot-git-plugin
 
 mkdir $pluginPath/linux
-mkdir $pluginPath/osx
+mkdir $pluginPath/macos
 cp -r linux/addons/godot-git-plugin/linux/ $pluginPath/
-cp -r mac/addons/godot-git-plugin/osx/ $pluginPath/
+cp -r mac/addons/godot-git-plugin/macos/ $pluginPath/
 
 sed -i "s/version=\"[^\"]*\"/version=\"v${version}\"/g" $pluginPath/plugin.cfg
 cp LICENSE $pluginPath/LICENSE

@@ -1,9 +1,0 @@
-[gd_resource type="NativeScript" load_steps=2 format=2]
-
-[ext_resource path="res://addons/godot-git-plugin/git_api.gdnlib" type="GDNativeLibrary" id=1]
-
-[resource]
-resource_name = "GitAPI"
-class_name = "GitAPI"
-library = ExtResource( 1 )
-script_class_name = "GitAPI"

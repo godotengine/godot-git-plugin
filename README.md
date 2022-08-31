@@ -26,29 +26,37 @@ This section onwards is only meant to be used if you intend to compile the plugi
   - Windows
     - No extra steps required other than setting up the compilers.
   - MacOS
-    - For making universal builds targeting both Apple Silicon and x86_64, you can optionally run `build_openssl_universal_osx.sh` to build OpenSSL yourself and replace the already prebuilt libraries provided inside `thirdparty/openssl/`, otherwise, just run `brew install openssl@1.1`.
+    - For making universal builds targeting both Apple Silicon and x86_64, you can optionally run `build_openssl_universal_macos.sh` to build OpenSSL yourself and replace the already prebuilt libraries provided inside `thirdparty/openssl/`, otherwise, just run `brew install openssl@1.1` to use the prebuilt libraries provided in this repository.
   - Linux
-    - Run `sudo apt-get install libssl-dev`, or local package manager equivalent.
+    - Run `sudo apt-get install libssl-dev`, or your local package manager's equivalent.
 
-### Build
+### Release Build
 
 ```
-scons platform=<platform> target=release bits=64 -j 6
+scons platform=<platform> target=release -j 6
 ```
 
 For more build options, run `scons platform=<platform> -h`
 
-## Bleeding Edge
+## Dev builds
 
-Most of the times when new features are being worked on for the Godot VCS Integration, it requires developers to make changes in the Godot Editor source code along with this plugin. This means we need to manually generate the GDNative API from the custom Godot builds and then use it to compile godot-cpp.
+When new features are being worked on for the Godot VCS Integration, the build process sometimes requires developers to make changes in the GDExtension API along with this plugin. This means we need to manually generate the GDExtension API from the custom Godot builds and then use it to compile godot-cpp.
 
-To build using custom GDNative API definition JSON files, run the below helper command:
+If you need to use a custom GDExtension API:
 
 ```
-scons platform=<platform> target=debug godot_cpp=yes generate_bindings=yes bits=64 use_custom_api_file=yes custom_api_file=path/to/api.json -j 6
+scons platform=<platform> target=debug godot_cpp=yes generate_bindings=yes bits=64 use_custom_api_file=yes custom_api_file=path/to/extension_api.json -j 6
 ```
 
-Once this command is completed successfully, the standard build commands in the above section can be run without recompiling godot-cpp. Once compiled, to stop godot-cpp from recompiling, do not use the `godot_cpp` option in SCons arguments. To view more options available while recompiling godot-cpp, run `scons platform=<platform> godot_cpp=yes -h`.
+You only need to build godot-cpp once every change in the GDExtension API, hence, this command should only be run the first time after generating a new JSON API file.
+
+To reuse the once-built godot-cpp library:
+
+```
+scons platform=<platform> target=debug -j 6
+```
+
+To view more options available while recompiling godot-cpp, run `scons platform=<platform> godot_cpp=yes -h`.
 
 ---
 

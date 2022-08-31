@@ -13,9 +13,9 @@ env = Environment(ENV=os.environ)
 opts.Add(EnumVariable("target", "Compilation target",
          "debug", ["d", "debug", "r", "release"]))
 opts.Add(EnumVariable("platform", "Compilation platform",
-         "", ["", "windows", "linux", "osx"]))
+         "", ["", "windows", "linux", "macos"]))
 opts.Add(EnumVariable("p", "Compilation target, alias for \"platform\"",
-         "", ["", "windows", "linux", "osx"]))
+         "", ["", "windows", "linux", "macos"]))
 opts.Add(BoolVariable(
     "godot_cpp", "Build godot-cpp by forwarding arguments to it.", "no"))
 opts.Add(BoolVariable("use_llvm",
@@ -23,7 +23,7 @@ opts.Add(BoolVariable("use_llvm",
 opts.Add(PathVariable("target_path",
          "The path where the lib is installed.", "demo/addons/godot-git-plugin/"))
 opts.Add(PathVariable("target_name", "The library name.",
-         "libgitapi", PathVariable.PathAccept))
+         "libgit_plugin", PathVariable.PathAccept))
 opts.Add(EnumVariable("bits", "The bit architecture.", "64", ["64"]))
 opts.Add(EnumVariable("macos_arch", "Target macOS architecture",
          "universal", ["universal", "x86_64", "arm64"]))
@@ -37,8 +37,11 @@ opts.Add(PathVariable("macos_openssl_static_crypto", "Path to OpenSSL libcrypto.
 # Updates the environment with the option variables.
 opts.Update(env)
 
-if env["platform"] == "osx":
-    # Use only clang on osx because we need to do universal builds
+if env["p"] != "":
+    env["platform"] = env["p"]
+
+if env["platform"] == "macos":
+    # Use only clang on macos because we need to do universal builds
     env["CXX"] = "clang++"
     env["CC"] = "clang"
 
@@ -54,7 +57,7 @@ Export("env")
 SConscript("thirdparty/SCsub")
 
 if env["godot_cpp"]:
-    if ARGUMENTS.get("use_custom_api_file", False) and ARGUMENTS.get("custom_api_file", "") != "":
+    if ARGUMENTS.get("custom_api_file", "") != "":
         ARGUMENTS["custom_api_file"] = "../" + ARGUMENTS["custom_api_file"]
 
     SConscript("godot-cpp/SConstruct")

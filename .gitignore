@@ -1,8 +1,11 @@
 # SConstruct db
 *.dblite
 
+# Godot ignores
+demo/.godot/
+
 # Godot Serialisations
-api.json
+extension_api.json
 
 # Visual Studio Cache
 .vs/
@@ -16,7 +19,7 @@ api.json
 # Binaries
 build/
 bin/
-osx/
+macos/
 linux/
 win64/
 *.lib
