@@ -23,10 +23,10 @@ libgit2_sources += Glob("libgit2/deps/http-parser/" + "*.c")
 libgit2_sources += Glob("libgit2/deps/pcre/" + "*.c")
 libgit2_sources += Glob("libgit2/deps/zlib/" + "*.c")
 
-if env_git["bits"] == 64:
-    env_git.Prepend(CPPDEFINES=["GIT_ARCH_64"])
-elif env_git["bits"] == 32:
+if "32" in env["arch"]:
     env_git.Prepend(CPPDEFINES=["GIT_ARCH_32"])
+else:
+    env_git.Prepend(CPPDEFINES=["GIT_ARCH_64"])
 
 env_git.Prepend(
     CPPPATH=[
