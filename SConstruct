@@ -26,6 +26,8 @@ opts.Add(PathVariable("target_path",
          "The path where the lib is installed.", "demo/addons/godot-git-plugin/"))
 opts.Add(PathVariable("target_name", "The library name.",
          "libgit_plugin", PathVariable.PathAccept))
+opts.Add(PathVariable("gdextension_dir", "Path to extension and interface APIs.",
+                      ".", PathVariable.PathAccept))
 opts.Add(EnumVariable("bits", "The bit architecture.", "64", ["64"]))
 opts.Add(EnumVariable("macos_arch", "Target macOS architecture",
          "universal", ["universal", "x86_64", "arm64"]))
@@ -59,7 +61,9 @@ Export("env")
 SConscript("thirdparty/SCsub")
 
 if env["godot_cpp"]:
-    SConscript("godot-cpp/SConstruct")
+    cpp_env = env.Clone()
+    cpp_env["gdextension_dir"] = "../" + env["gdextension_dir"]
+    SConscript("godot-cpp/SConstruct", cpp_env)
 
 SConscript("godot-git-plugin/SCsub")
 

@@ -85,7 +85,8 @@ env.Append(CPPPATH=[".", "src/"])
 env.Append(CPPPATH=[
     godot_headers_path,
     cpp_bindings_path + "include/",
-    cpp_bindings_path + "gen/include/"
+    cpp_bindings_path + "gen/include/",
+    "../" + env["gdextension_dir"]
 ])
 
 env.Append(CPPPATH=["../thirdparty/git2/libgit2/include/"])
