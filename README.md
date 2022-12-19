@@ -45,7 +45,7 @@ When new features are being worked on for the Godot VCS Integration, the build p
 If you need to use a custom GDExtension API:
 
 ```
-scons platform=<platform> target=debug godot_cpp=yes generate_bindings=yes bits=64 use_custom_api_file=yes custom_api_file=path/to/extension_api.json -j 6
+scons platform=<platform> target=editor godot_cpp=yes generate_bindings=yes bits=64 use_custom_api_file=yes custom_api_file=path/to/extension_api.json -j 6
 ```
 
 You only need to build godot-cpp once every change in the GDExtension API, hence, this command should only be run the first time after generating a new JSON API file.
@@ -53,7 +53,7 @@ You only need to build godot-cpp once every change in the GDExtension API, hence
 To reuse the once-built godot-cpp library:
 
 ```
-scons platform=<platform> target=debug -j 6
+scons platform=<platform> target=editor -j 6
 ```
 
 To view more options available while recompiling godot-cpp, run `scons platform=<platform> godot_cpp=yes -h`.

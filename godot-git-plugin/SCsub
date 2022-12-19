@@ -40,7 +40,7 @@ if env["platform"] == "macos":
     static_crypto = File(env["macos_openssl_static_crypto"])
     env.Append(LIBS=[static_ssl, static_crypto])
 
-    if env["target"] in ("debug", "d"):
+    if env["dev_build"]:
         env.Append(CCFLAGS=["-g", "-O2", "-std=c++17"])
     else:
         env.Append(CCFLAGS=["-g", "-O3", "-std=c++17"])
@@ -51,7 +51,7 @@ elif env["platform"] == "linux":
     env.Append(LIBS=["ssl", "crypto"])
     dynamic_lib_extension = "so"
 
-    if env["target"] in ("debug", "d"):
+    if env["dev_build"]:
         env.Append(CCFLAGS=["-fPIC", "-g3", "-Og", "-std=c++17"])
     else:
         env.Append(CCFLAGS=["-fPIC", "-g", "-O3", "-std=c++17"])
@@ -70,16 +70,14 @@ elif env["platform"] == "windows":
                "-W3", "-GR", "-D_CRT_SECURE_NO_WARNINGS", "/std:c++17"])
     env.Append(LIBS=["Advapi32", "Winhttp", "Rpcrt4",
                "crypt32", "OLE32", "user32"])
-    if env["target"] in ("debug", "d"):
+    if env["dev_build"]:
         env.Append(CCFLAGS=["-EHsc", "-D_DEBUG", "-MDd", "/DEBUG"])
         env["PDB"] = env["target_name"] + ".pdb"
     else:
         env.Append(CCFLAGS=["-O2", "-EHsc", "-DNDEBUG", "-MD"])
 
-if env["target"] in ("debug", "d"):
-    cpp_library += ".debug"
-else:
-    cpp_library += ".release"
+if env["dev_build"]:
+    cpp_library += ".dev"
 
 cpp_library += "." + target_arch
 

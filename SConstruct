@@ -10,8 +10,10 @@ opts = Variables([], ARGUMENTS)
 env = Environment(ENV=os.environ)
 
 # Define our options
-opts.Add(EnumVariable("target", "Compilation target",
-         "debug", ["d", "debug", "r", "release"]))
+opts.Add(EnumVariable("target", "Compilation target (Only `editor` is supported)",
+         "editor", ["editor"]))
+opts.Add(BoolVariable("dev_build", "Debugging build",
+         "no"))
 opts.Add(EnumVariable("platform", "Compilation platform",
          "", ["", "windows", "linux", "macos"]))
 opts.Add(EnumVariable("p", "Compilation target, alias for \"platform\"",
@@ -57,9 +59,6 @@ Export("env")
 SConscript("thirdparty/SCsub")
 
 if env["godot_cpp"]:
-    if ARGUMENTS.get("custom_api_file", "") != "":
-        ARGUMENTS["custom_api_file"] = "../" + ARGUMENTS["custom_api_file"]
-
     SConscript("godot-cpp/SConstruct")
 
 SConscript("godot-git-plugin/SCsub")
