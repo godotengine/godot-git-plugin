@@ -15,7 +15,7 @@ jobs:
           ldd demo/addons/godot-git-plugin/linux/*.so
       - uses: actions/upload-artifact@v2
         with:
-          name: libgit_plugin.linux.x86_64.editor.dll-${{ github.sha }}
+          name: libgit_plugin.linux.x86_64.editor.so-${{ github.sha }}
           if-no-files-found: error
           path: |
             demo/
@@ -54,7 +54,7 @@ jobs:
           otool -L demo/addons/godot-git-plugin/macos/*.dylib
       - uses: actions/upload-artifact@v2
         with:
-          name: libgit_plugin.macos.x86_64.editor.dylib-${{ github.sha }}
+          name: libgit_plugin.macos.universal.editor.dylib-${{ github.sha }}
           if-no-files-found: error
           path: |
             demo/
