@@ -19,7 +19,7 @@ void uninitialize_git_plugin_module(godot::ModuleInitializationLevel p_level) {
 
 extern "C" {
 
-GDNativeBool GDN_EXPORT git_plugin_init(const GDNativeInterface *p_interface, const GDNativeExtensionClassLibraryPtr p_library, GDNativeInitialization *r_initialization) {
+GDExtensionBool GDE_EXPORT git_plugin_init(const GDExtensionInterface *p_interface, const GDExtensionClassLibraryPtr p_library, GDExtensionInitialization *r_initialization) {
 	godot::GDExtensionBinding::InitObject init_obj(p_interface, p_library, r_initialization);
 
 	init_obj.register_initializer(initialize_git_plugin_module);

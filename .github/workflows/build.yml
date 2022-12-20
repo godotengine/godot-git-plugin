@@ -7,15 +7,15 @@ jobs:
     runs-on: ubuntu-18.04
     steps:
       - uses: actions/checkout@v2
-      - name: build-linux-release-x64
+      - name: build-linux-editor-x64
         run: |
           git submodule update --init --recursive
           pip3 install --user scons
-          scons platform=linux target=release bits=64 godot_cpp=yes generate_bindings=yes use_custom_api_file=yes custom_api_file=extension_api.ci.json -j $(nproc)
+          scons platform=linux bits=64 godot_cpp=yes generate_bindings=yes use_custom_api_file=yes -j $(nproc)
           ldd demo/addons/godot-git-plugin/linux/*.so
       - uses: actions/upload-artifact@v2
         with:
-          name: libgit_plugin.linux.x86_64.release.dll-${{ github.sha }}
+          name: libgit_plugin.linux.x86_64.editor.dll-${{ github.sha }}
           if-no-files-found: error
           path: |
             demo/
@@ -29,15 +29,15 @@ jobs:
           python-version: "3.x"
           architecture: "x64"
       - uses: ilammy/msvc-dev-cmd@v1
-      - name: build-windows-release-x64
+      - name: build-windows-editor-x64
         run: |
           git submodule update --init --recursive
           pip3 install --user scons
-          scons platform=windows target=release bits=64 godot_cpp=yes generate_bindings=yes use_custom_api_file=yes custom_api_file=extension_api.ci.json -j $env:NUMBER_OF_PROCESSORS
+          scons platform=windows bits=64 godot_cpp=yes generate_bindings=yes use_custom_api_file=yes -j $env:NUMBER_OF_PROCESSORS
           dumpbin /dependents .\demo\addons\godot-git-plugin\win64\*.dll
       - uses: actions/upload-artifact@v2
         with:
-          name: libgit_plugin.windows.x86_64.release.dll-${{ github.sha }}
+          name: libgit_plugin.windows.x86_64.editor.dll-${{ github.sha }}
           if-no-files-found: error
           path: |
             demo/
@@ -46,15 +46,15 @@ jobs:
     runs-on: macos-11
     steps:
       - uses: actions/checkout@v2
-      - name: build-macos-release-x64
+      - name: build-macos-editor-x64
         run: |
           git submodule update --init --recursive
           brew install scons
-          scons platform=macos target=release bits=64 godot_cpp=yes generate_bindings=yes use_custom_api_file=yes custom_api_file=extension_api.ci.json macos_arch=universal use_llvm=yes -j $(sysctl -n hw.logicalcpu)
+          scons platform=macos bits=64 godot_cpp=yes generate_bindings=yes use_custom_api_file=yes macos_arch=universal use_llvm=yes -j $(sysctl -n hw.logicalcpu)
           otool -L demo/addons/godot-git-plugin/macos/*.dylib
       - uses: actions/upload-artifact@v2
         with:
-          name: libgit_plugin.macos.x86_64.release.dylib-${{ github.sha }}
+          name: libgit_plugin.macos.x86_64.editor.dylib-${{ github.sha }}
           if-no-files-found: error
           path: |
             demo/

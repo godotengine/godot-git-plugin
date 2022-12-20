@@ -10,23 +10,10 @@ opts = Variables([], ARGUMENTS)
 env = Environment(ENV=os.environ)
 
 # Define our options
-opts.Add(EnumVariable("target", "Compilation target",
-         "debug", ["d", "debug", "r", "release"]))
-opts.Add(EnumVariable("platform", "Compilation platform",
-         "", ["", "windows", "linux", "macos"]))
-opts.Add(EnumVariable("p", "Compilation target, alias for \"platform\"",
-         "", ["", "windows", "linux", "macos"]))
-opts.Add(BoolVariable(
-    "godot_cpp", "Build godot-cpp by forwarding arguments to it.", "no"))
-opts.Add(BoolVariable("use_llvm",
-         "Use the LLVM / Clang compiler - only effective when targeting Linux or FreeBSD.", "no"))
 opts.Add(PathVariable("target_path",
          "The path where the lib is installed.", "demo/addons/godot-git-plugin/"))
 opts.Add(PathVariable("target_name", "The library name.",
          "libgit_plugin", PathVariable.PathAccept))
-opts.Add(EnumVariable("bits", "The bit architecture.", "64", ["64"]))
-opts.Add(EnumVariable("macos_arch", "Target macOS architecture",
-         "universal", ["universal", "x86_64", "arm64"]))
 opts.Add(PathVariable("macos_openssl", "Path to OpenSSL library root - only used in macOS builds.",
                       "/usr/local/opt/openssl@1.1/", PathVariable.PathAccept))  # TODO: Find a way to configure this to use the cloned OpenSSL source code, based on `macos_arch`.
 opts.Add(PathVariable("macos_openssl_static_ssl", "Path to OpenSSL libssl.a library - only used in macOS builds.",
@@ -37,30 +24,16 @@ opts.Add(PathVariable("macos_openssl_static_crypto", "Path to OpenSSL libcrypto.
 # Updates the environment with the option variables.
 opts.Update(env)
 
-if env["p"] != "":
-    env["platform"] = env["p"]
+if ARGUMENTS.get("custom_api_file", "") != "":
+    ARGUMENTS["custom_api_file"] = "../" + ARGUMENTS["custom_api_file"]
 
-if env["platform"] == "macos":
-    # Use only clang on macos because we need to do universal builds
-    env["CXX"] = "clang++"
-    env["CC"] = "clang"
-
-    if env["macos_arch"] == "universal":
-        env.Append(LINKFLAGS=["-arch", "x86_64", "-arch", "arm64"])
-        env.Append(CCFLAGS=["-arch", "x86_64", "-arch", "arm64"])
-    else:
-        env.Append(LINKFLAGS=["-arch", env["macos_arch"]])
-        env.Append(CCFLAGS=["-arch", env["macos_arch"]])
+ARGUMENTS["target"] = "editor"
+env = SConscript("godot-cpp/SConstruct").Clone()
+opts.Update(env)
 
 Export("env")
 
 SConscript("thirdparty/SCsub")
-
-if env["godot_cpp"]:
-    if ARGUMENTS.get("custom_api_file", "") != "":
-        ARGUMENTS["custom_api_file"] = "../" + ARGUMENTS["custom_api_file"]
-
-    SConscript("godot-cpp/SConstruct")
 
 SConscript("godot-git-plugin/SCsub")
 

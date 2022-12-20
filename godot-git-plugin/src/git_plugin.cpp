@@ -4,7 +4,7 @@
 
 #include <git2/tree.h>
 #include "godot_cpp/core/class_db.hpp"
-#include "godot_cpp/classes/file.hpp"
+#include "godot_cpp/classes/file_access.hpp"
 
 #define GIT2_CALL(error, msg)                                         \
 	if (check_errors(error, __FUNCTION__, __FILE__, __LINE__, msg)) { \
@@ -184,19 +184,18 @@ void GitPlugin::_unstage_file(const godot::String &file_path) {
 }
 
 void GitPlugin::create_gitignore_and_gitattributes() {
-	if (!godot::File::file_exists(repo_project_path + "/.gitignore")) {
-		godot::File file;
-		file.open(repo_project_path + "/.gitignore", godot::File::ModeFlags::WRITE);
-		file.store_string(
+	if (!godot::FileAccess::file_exists(repo_project_path + "/.gitignore")) {
+		godot::Ref<godot::FileAccess> file = godot::FileAccess::open(repo_project_path + "/.gitignore", godot::FileAccess::ModeFlags::WRITE);
+		ERR_FAIL_COND(file.is_null());
+		file->store_string(
 				"# Godot 4+ specific ignores\n"
 				".godot/\n");
-		file.close();
 	}
 
-	if (!godot::File::file_exists(repo_project_path + "/.gitattributes")) {
-		godot::File file;
-		file.open(repo_project_path + "/.gitattributes", godot::File::ModeFlags::WRITE);
-		file.store_string(
+	if (!godot::FileAccess::file_exists(repo_project_path + "/.gitattributes")) {
+		godot::Ref<godot::FileAccess> file = godot::FileAccess::open(repo_project_path + "/.gitattributes", godot::FileAccess::ModeFlags::WRITE);
+		ERR_FAIL_COND(file.is_null());
+		file->store_string(
 				"# Set the default behavior, in case people don't have core.autocrlf set.\n"
 				"* text=auto\n\n"
 
@@ -214,12 +213,11 @@ void GitPlugin::create_gitignore_and_gitattributes() {
 				"# Denote all files that are truly binary and should not be modified.\n"
 				"*.png binary\n"
 				"*.jpg binary\n");
-		file.close();
 	}
 }
 
-godot::Array GitPlugin::_get_modified_files_data() {
-	godot::Array stats_files;
+godot::TypedArray<godot::Dictionary> GitPlugin::_get_modified_files_data() {
+	godot::TypedArray<godot::Dictionary> stats_files;
 
 	git_status_options opts = GIT_STATUS_OPTIONS_INIT;
 	opts.show = GIT_STATUS_SHOW_INDEX_AND_WORKDIR;
@@ -227,7 +225,7 @@ godot::Array GitPlugin::_get_modified_files_data() {
 	opts.flags |= GIT_STATUS_OPT_INCLUDE_UNTRACKED | GIT_STATUS_OPT_RENAMES_HEAD_TO_INDEX | GIT_STATUS_OPT_SORT_CASE_SENSITIVELY | GIT_STATUS_OPT_RECURSE_UNTRACKED_DIRS;
 
 	git_status_list_ptr statuses;
-	GIT2_CALL_R(git_status_list_new(Capture(statuses), repo.get(), &opts), "Could not get status information from repository", godot::Array());
+	GIT2_CALL_R(git_status_list_new(Capture(statuses), repo.get(), &opts), "Could not get status information from repository", godot::TypedArray<godot::Dictionary>());
 
 	size_t count = git_status_list_entrycount(statuses.get());
 	for (size_t i = 0; i < count; ++i) {
@@ -260,18 +258,18 @@ godot::Array GitPlugin::_get_modified_files_data() {
 	return stats_files;
 }
 
-godot::Array GitPlugin::_get_branch_list() {
+godot::TypedArray<godot::Dictionary> GitPlugin::_get_branch_list() {
 	git_branch_iterator_ptr it;
-	GIT2_CALL_R(git_branch_iterator_new(Capture(it), repo.get(), GIT_BRANCH_LOCAL), "Could not create branch iterator", godot::Array());
+	GIT2_CALL_R(git_branch_iterator_new(Capture(it), repo.get(), GIT_BRANCH_LOCAL), "Could not create branch iterator", godot::TypedArray<godot::Dictionary>());
 
-	godot::Array branch_names;
+	godot::TypedArray<godot::Dictionary> branch_names;
 
 	git_reference_ptr ref;
 	git_branch_t type;
 	while (git_branch_next(Capture(ref), &type, it.get()) != GIT_ITEROVER) {
 		const char *name = nullptr;
 
-		GIT2_CALL_R(git_branch_name(&name, ref.get()), "Could not get branch name", godot::Array());
+		GIT2_CALL_R(git_branch_name(&name, ref.get()), "Could not get branch name", godot::TypedArray<godot::Dictionary>());
 
 		if (git_branch_is_head(ref.get())) {
 			// Always send the current branch as the first branch in list
@@ -310,31 +308,31 @@ void GitPlugin::_remove_remote(const godot::String &remote_name) {
 	GIT2_CALL(git_remote_delete(repo.get(), CString(remote_name).data), "Could not delete remote " + remote_name);
 }
 
-godot::Array GitPlugin::_get_line_diff(const godot::String &file_path, const godot::String &text) {
+godot::TypedArray<godot::Dictionary> GitPlugin::_get_line_diff(const godot::String &file_path, const godot::String &text) {
 	git_diff_options opts = GIT_DIFF_OPTIONS_INIT;
 
 	opts.context_lines = 0;
 	opts.flags = GIT_DIFF_DISABLE_PATHSPEC_MATCH | GIT_DIFF_INCLUDE_UNTRACKED;
 
 	git_index_ptr index;
-	GIT2_CALL_R(git_repository_index(Capture(index), repo.get()), "Failed to get repository index", godot::Array());
-	GIT2_CALL_R(git_index_read(index.get(), 0), "Failed to read index", godot::Array());
+	GIT2_CALL_R(git_repository_index(Capture(index), repo.get()), "Failed to get repository index", godot::TypedArray<godot::Dictionary>());
+	GIT2_CALL_R(git_index_read(index.get(), 0), "Failed to read index", godot::TypedArray<godot::Dictionary>());
 
 	const git_index_entry *entry = git_index_get_bypath(index.get(), CString(file_path).data, GIT_INDEX_STAGE_NORMAL);
 	if (!entry) {
-		return godot::Array();
+		return godot::TypedArray<godot::Dictionary>();
 	}
 
 	git_reference_ptr head;
-	GIT2_CALL_R(git_repository_head(Capture(head), repo.get()), "Failed to load repository head", godot::Array());
+	GIT2_CALL_R(git_repository_head(Capture(head), repo.get()), "Failed to load repository head", godot::TypedArray<godot::Dictionary>());
 
 	git_blob_ptr blob;
-	GIT2_CALL_R(git_blob_lookup(Capture(blob), repo.get(), &entry->id), "Failed to load head blob", godot::Array());
+	GIT2_CALL_R(git_blob_lookup(Capture(blob), repo.get(), &entry->id), "Failed to load head blob", godot::TypedArray<godot::Dictionary>());
 
-	godot::Array diff_contents;
+	godot::TypedArray<godot::Dictionary> diff_contents;
 
 	DiffHelper diff_helper = { &diff_contents, this };
-	GIT2_CALL_R(git_diff_blob_to_buffer(blob.get(), nullptr, CString(text).data, text.length(), nullptr, &opts, nullptr, nullptr, diff_hunk_cb, nullptr, &diff_helper), "Failed to make diff", godot::Array());
+	GIT2_CALL_R(git_diff_blob_to_buffer(blob.get(), nullptr, CString(text).data, text.length(), nullptr, &opts, nullptr, nullptr, diff_hunk_cb, nullptr, &diff_helper), "Failed to make diff", godot::TypedArray<godot::Dictionary>());
 
 	return diff_contents;
 }
@@ -357,11 +355,11 @@ godot::String GitPlugin::_get_current_branch_name() {
 	return name;
 }
 
-godot::Array GitPlugin::_get_remotes() {
+godot::TypedArray<godot::Dictionary> GitPlugin::_get_remotes() {
 	git_strarray remote_array;
-	GIT2_CALL_R(git_remote_list(&remote_array, repo.get()), "Could not get list of remotes", godot::Array());
+	GIT2_CALL_R(git_remote_list(&remote_array, repo.get()), "Could not get list of remotes", godot::TypedArray<godot::Dictionary>());
 
-	godot::Array remotes;
+	godot::TypedArray<godot::Dictionary> remotes;
 	for (int i = 0; i < remote_array.count; i++) {
 		remotes.push_back(remote_array.strings[i]);
 	}
@@ -369,15 +367,15 @@ godot::Array GitPlugin::_get_remotes() {
 	return remotes;
 }
 
-godot::Array GitPlugin::_get_previous_commits(int64_t max_commits) {
+godot::TypedArray<godot::Dictionary> GitPlugin::_get_previous_commits(int64_t max_commits) {
 	git_revwalk_ptr walker;
-	GIT2_CALL_R(git_revwalk_new(Capture(walker), repo.get()), "Could not create new revwalk", godot::Array());
-	GIT2_CALL_R(git_revwalk_sorting(walker.get(), GIT_SORT_TIME), "Could not sort revwalk by time", godot::Array());
+	GIT2_CALL_R(git_revwalk_new(Capture(walker), repo.get()), "Could not create new revwalk", godot::TypedArray<godot::Dictionary>());
+	GIT2_CALL_R(git_revwalk_sorting(walker.get(), GIT_SORT_TIME), "Could not sort revwalk by time", godot::TypedArray<godot::Dictionary>());
 
-	GIT2_CALL_R_IGNORE(git_revwalk_push_head(walker.get()), "Could not push HEAD to revwalk", godot::Array(), { GIT_ENOTFOUND COMMA GIT_ERROR });
+	GIT2_CALL_R_IGNORE(git_revwalk_push_head(walker.get()), "Could not push HEAD to revwalk", godot::TypedArray<godot::Dictionary>(), { GIT_ENOTFOUND COMMA GIT_ERROR });
 
 	git_oid oid;
-	godot::Array commits;
+	godot::TypedArray<godot::Dictionary> commits;
 	char commit_id[GIT_OID_HEXSZ + 1];
 	for (int i = 0; !git_revwalk_next(&oid, walker.get()) && i <= max_commits; i++) {
 		git_commit_ptr commit;
@@ -562,9 +560,9 @@ bool GitPlugin::_checkout_branch(const godot::String &branch_name) {
 	return true;
 }
 
-godot::Array GitPlugin::_get_diff(const godot::String &identifier, const int64_t area) {
+godot::TypedArray<godot::Dictionary> GitPlugin::_get_diff(const godot::String &identifier, const int64_t area) {
 	git_diff_options opts = GIT_DIFF_OPTIONS_INIT;
-	godot::Array diff_contents;
+	godot::TypedArray<godot::Dictionary> diff_contents;
 
 	opts.context_lines = 2;
 	opts.interhunk_lines = 0;
@@ -623,28 +621,28 @@ godot::Array GitPlugin::_get_diff(const godot::String &identifier, const int64_t
 	return diff_contents;
 }
 
-godot::Array GitPlugin::_parse_diff(git_diff *diff) {
-	godot::Array diff_contents;
+godot::TypedArray<godot::Dictionary> GitPlugin::_parse_diff(git_diff *diff) {
+	godot::TypedArray<godot::Dictionary> diff_contents;
 	for (int i = 0; i < git_diff_num_deltas(diff); i++) {
 		const git_diff_delta *delta = git_diff_get_delta(diff, i);
 
 		git_patch_ptr patch;
-		GIT2_CALL_R(git_patch_from_diff(Capture(patch), diff, i), "Could not create patch from diff", godot::Array());
+		GIT2_CALL_R(git_patch_from_diff(Capture(patch), diff, i), "Could not create patch from diff", godot::TypedArray<godot::Dictionary>());
 
 		godot::Dictionary diff_file = create_diff_file(delta->new_file.path, delta->old_file.path);
 
-		godot::Array diff_hunks;
+		godot::TypedArray<godot::Dictionary> diff_hunks;
 		for (int j = 0; j < git_patch_num_hunks(patch.get()); j++) {
 			const git_diff_hunk *git_hunk;
 			size_t line_count;
-			GIT2_CALL_R(git_patch_get_hunk(&git_hunk, &line_count, patch.get(), j), "Could not get hunk from patch", godot::Array());
+			GIT2_CALL_R(git_patch_get_hunk(&git_hunk, &line_count, patch.get(), j), "Could not get hunk from patch", godot::TypedArray<godot::Dictionary>());
 
 			godot::Dictionary diff_hunk = create_diff_hunk(git_hunk->old_start, git_hunk->new_start, git_hunk->old_lines, git_hunk->new_lines);
 
-			godot::Array diff_lines;
+			godot::TypedArray<godot::Dictionary> diff_lines;
 			for (int k = 0; k < line_count; k++) {
 				const git_diff_line *git_diff_line;
-				GIT2_CALL_R(git_patch_get_line_in_hunk(&git_diff_line, patch.get(), j, k), "Could not get line from hunk in patch", godot::Array());
+				GIT2_CALL_R(git_patch_get_line_in_hunk(&git_diff_line, patch.get(), j, k), "Could not get line from hunk in patch", godot::TypedArray<godot::Dictionary>());
 
 				char *content = new char[git_diff_line->content_len + 1];
 				std::memcpy(content, git_diff_line->content, git_diff_line->content_len);
