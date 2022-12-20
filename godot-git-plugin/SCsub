@@ -24,18 +24,19 @@ if env["platform"] == "macos":
     env["target_path"] += "macos/"
 
     # Force static linkage (https://stackoverflow.com/a/2995999/7370948)
-    static_ssl = File(env["macos_openssl_static_ssl"])
-    static_crypto = File(env["macos_openssl_static_crypto"])
-    env.Append(LIBS=[static_ssl, static_crypto])
+    env.Append(LIBS=[File(env["macos_openssl_static_ssl"]),
+                     File(env["macos_openssl_static_crypto"])])
 
 elif env["platform"] == "linux":
     env["target_path"] += "linux/"
-    env.Append(LIBS=["ssl", "crypto"])
+    env.Append(LIBS=[File(env["linux_openssl_static_ssl"]),
+                     File(env["linux_openssl_static_crypto"])])
 
 elif env["platform"] == "windows":
     env["target_path"] += "win64/"
 
-    env.Append(LIBS=["advapi32", "winhttp", "rpcrt4", "crypt32", "ole32", "user32", "wsock32", "ws2_32", "bcrypt"])
+    env.Append(LIBS=["advapi32", "winhttp", "rpcrt4", "crypt32",
+               "ole32", "user32", "wsock32", "ws2_32", "bcrypt"])
 
 env.Append(CPPPATH=[".", "src/"])
 
@@ -44,7 +45,8 @@ env.Append(LIBPATH=["../thirdparty/bin/"])
 env.Prepend(LIBS=["git2", "ssh2"])
 
 library = env.SharedLibrary(
-    target=env["target_path"] + "{}{}{}".format(env["target_name"], env["suffix"], env["SHLIBSUFFIX"]),
+    target=env["target_path"] +
+    "{}{}{}".format(env["target_name"], env["suffix"], env["SHLIBSUFFIX"]),
     source=Glob("src/*.cpp")
 )
 Default(library)
