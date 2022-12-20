@@ -33,30 +33,37 @@ This section onwards is only meant to be used if you intend to compile the plugi
 ### Release Build
 
 ```
-scons platform=<platform> target=release -j 6
+scons platform=<platform> target=editor gdextension_dir="../path/to/gdextension/dump/" -j 6
 ```
+
+> You may get the gdextension dump yourself from Godot using the instructions in the next section, or use the ones provided in `godot-cpp/gdextension` or `ci/`.
 
 For more build options, run `scons platform=<platform> -h`
 
 ## Dev builds
 
-When new features are being worked on for the Godot VCS Integration, the build process sometimes requires developers to make changes in the GDExtension API along with this plugin. This means we need to manually generate the GDExtension API from the custom Godot builds and then use it to compile godot-cpp.
+When new features are being worked on for the Godot VCS Integration, the build process sometimes requires developers to make changes in the GDExtension API along with this plugin. This means we need to manually generate the GDExtension API from the custom Godot builds and use it to compile godot-cpp, and then finally link the resulting godot-cpp binary into this plugin.
 
 If you need to use a custom GDExtension API:
 
-```
-scons platform=<platform> target=debug godot_cpp=yes generate_bindings=yes bits=64 use_custom_api_file=yes custom_api_file=path/to/extension_api.json -j 6
-```
+1. Dump the new bindings from the custom Godot build.
 
-You only need to build godot-cpp once every change in the GDExtension API, hence, this command should only be run the first time after generating a new JSON API file.
-
-To reuse the once-built godot-cpp library:
-
-```
-scons platform=<platform> target=debug -j 6
+```shell
+cd local/copy/of/godot/source
+.\bin\godot.xxx --headless --dump-gdextension-interface --dump-extension-api
 ```
 
-To view more options available while recompiling godot-cpp, run `scons platform=<platform> godot_cpp=yes -h`.
+2. Build the plugin along with the godot-cpp library.
+
+```
+scons platform=<platform> target=editor generate_bindings=yes dev_build=yes gdextension_dir="path/to/gdextension/dump" -j 6
+```
+
+> You only need to build godot-cpp once every change in the GDExtension API, hence, `generate_bindings=yes` should only be passed in during the first time after generating a new GDExtension API dump.
+
+3. Open the project provided inside `demo/` in the custom Godot build.
+
+To view more options available while recompiling godot-git-plugin, run `scons platform=<platform> -h`.
 
 ---
 

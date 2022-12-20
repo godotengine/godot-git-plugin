@@ -44,8 +44,8 @@ public:
 	bool _shut_down() override;
 	godot::String _get_vcs_name() override;
 	godot::TypedArray<godot::Dictionary> _get_previous_commits(int64_t max_commits) override;
-	godot::TypedArray<godot::Dictionary> _get_branch_list() override;
-	godot::TypedArray<godot::Dictionary> _get_remotes() override;
+	godot::TypedArray<godot::String> _get_branch_list() override;
+	godot::TypedArray<godot::String> _get_remotes() override;
 	void _create_branch(const godot::String &branch_name) override;
 	void _remove_branch(const godot::String &branch_name) override;
 	void _create_remote(const godot::String &remote_name, const godot::String &remote_url) override;

@@ -6,6 +6,7 @@ demo/.godot/
 
 # Godot Serialisations
 extension_api.json
+!/ci/extension_api.json
 
 # Visual Studio Cache
 .vs/
