@@ -5,6 +5,7 @@
 #include <git2/tree.h>
 #include "godot_cpp/core/class_db.hpp"
 #include "godot_cpp/classes/file_access.hpp"
+#include "godot_cpp/variant/utility_functions.hpp"
 
 #define GIT2_CALL(error, msg)                                         \
 	if (check_errors(error, __FUNCTION__, __FILE__, __LINE__, msg)) { \
@@ -65,8 +66,7 @@ bool GitPlugin::check_errors(int error, godot::String function, godot::String fi
 		message = message + godot::String(lg2err->message);
 	}
 
-	std::cout << "GitPlugin: " << CString(message).data << " in " << CString(file).data << ":" << CString(function).data << "#L" << line << std::endl;
-	popup_error(message);
+	godot::UtilityFunctions::push_error("GitPlugin: ", CString(message).data, " in ", CString(file).data, ":", CString(function).data, "#L", line);
 	return true;
 }
 
@@ -258,18 +258,18 @@ godot::TypedArray<godot::Dictionary> GitPlugin::_get_modified_files_data() {
 	return stats_files;
 }
 
-godot::TypedArray<godot::Dictionary> GitPlugin::_get_branch_list() {
+godot::TypedArray<godot::String> GitPlugin::_get_branch_list() {
 	git_branch_iterator_ptr it;
 	GIT2_CALL_R(git_branch_iterator_new(Capture(it), repo.get(), GIT_BRANCH_LOCAL), "Could not create branch iterator", godot::TypedArray<godot::Dictionary>());
 
-	godot::TypedArray<godot::Dictionary> branch_names;
+	godot::TypedArray<godot::String> branch_names;
 
 	git_reference_ptr ref;
 	git_branch_t type;
 	while (git_branch_next(Capture(ref), &type, it.get()) != GIT_ITEROVER) {
 		const char *name = nullptr;
 
-		GIT2_CALL_R(git_branch_name(&name, ref.get()), "Could not get branch name", godot::TypedArray<godot::Dictionary>());
+		GIT2_CALL_R(git_branch_name(&name, ref.get()), "Could not get branch name", godot::TypedArray<godot::String>());
 
 		if (git_branch_is_head(ref.get())) {
 			// Always send the current branch as the first branch in list
@@ -355,11 +355,11 @@ godot::String GitPlugin::_get_current_branch_name() {
 	return name;
 }
 
-godot::TypedArray<godot::Dictionary> GitPlugin::_get_remotes() {
+godot::TypedArray<godot::String> GitPlugin::_get_remotes() {
 	git_strarray remote_array;
 	GIT2_CALL_R(git_remote_list(&remote_array, repo.get()), "Could not get list of remotes", godot::TypedArray<godot::Dictionary>());
 
-	godot::TypedArray<godot::Dictionary> remotes;
+	godot::TypedArray<godot::String> remotes;
 	for (int i = 0; i < remote_array.count; i++) {
 		remotes.push_back(remote_array.strings[i]);
 	}
@@ -394,7 +394,7 @@ godot::TypedArray<godot::Dictionary> GitPlugin::_get_previous_commits(int64_t ma
 }
 
 void GitPlugin::_fetch(const godot::String &remote) {
-	std::cout << "GitPlugin: Performing fetch from " << CString(remote).data << std::endl;
+	godot::UtilityFunctions::print("GitPlugin: Performing fetch from ", CString(remote).data);
 
 	git_remote_ptr remote_object;
 	GIT2_CALL(git_remote_lookup(Capture(remote_object), repo.get(), CString(remote).data), "Could not lookup remote \"" + remote + "\"");
@@ -414,11 +414,11 @@ void GitPlugin::_fetch(const godot::String &remote) {
 	opts.callbacks = remote_cbs;
 	GIT2_CALL(git_remote_fetch(remote_object.get(), nullptr, &opts, "fetch"), "Could not fetch data from remote");
 
-	std::cout << "GitPlugin: Fetch ended" << std::endl;
+	godot::UtilityFunctions::print("GitPlugin: Fetch ended");
 }
 
 void GitPlugin::_pull(const godot::String &remote) {
-	std::cout << "GitPlugin: Performing pull from " << CString(remote).data << std::endl;
+	godot::UtilityFunctions::print("GitPlugin: Performing pull from ", CString(remote).data);
 
 	git_remote_ptr remote_object;
 	GIT2_CALL(git_remote_lookup(Capture(remote_object), repo.get(), CString(remote).data), "Could not lookup remote \"" + remote + "\"");
@@ -450,7 +450,7 @@ void GitPlugin::_pull(const godot::String &remote) {
 	GIT2_CALL(git_repository_fetchhead_foreach(repo.get(), fetchhead_foreach_cb, &pull_merge_oid), "Could not read \"FETCH_HEAD\" file");
 
 	if (git_oid_is_zero(&pull_merge_oid)) {
-		popup_error("GitPlugin: Could not find remote branch HEAD for " + branch_name + ". Try pushing the branch first.");
+		godot::UtilityFunctions::push_error("GitPlugin: Could not find remote branch HEAD for " + branch_name + ". Try pushing the branch first.");
 		return;
 	}
 
@@ -479,7 +479,7 @@ void GitPlugin::_pull(const godot::String &remote) {
 		git_reference_ptr new_target_ref;
 		GIT2_CALL(git_reference_set_target(Capture(new_target_ref), target_ref.get(), &pull_merge_oid, nullptr), "Failed to move HEAD reference");
 
-		std::cout << "GitPlugin: Fast Forwarded" << std::endl;
+		godot::UtilityFunctions::print("GitPlugin: Fast Forwarded");
 		GIT2_CALL(git_repository_state_cleanup(repo.get()), "Could not clean repository state");
 
 	} else if (merge_analysis & GIT_MERGE_ANALYSIS_NORMAL) {
@@ -495,27 +495,27 @@ void GitPlugin::_pull(const godot::String &remote) {
 		GIT2_CALL(git_repository_index(Capture(index), repo.get()), "Could not get repository index");
 
 		if (git_index_has_conflicts(index.get())) {
-			popup_error("GitPlugin: Index has conflicts, Solve conflicts and make a merge commit.");
+			godot::UtilityFunctions::push_error("GitPlugin: Index has conflicts. Solve conflicts and make a merge commit.");
 		} else {
-			popup_error("GitPlugin: Change are staged, make a merge commit.");
+			godot::UtilityFunctions::push_error("GitPlugin: Changes are staged. Make a merge commit.");
 		}
 
 		has_merge = true;
 
 	} else if (merge_analysis & GIT_MERGE_ANALYSIS_UP_TO_DATE) {
-		std::cout << "GitPlugin: Already up to date" << std::endl;
+		godot::UtilityFunctions::print("GitPlugin: Already up to date");
 
 		GIT2_CALL(git_repository_state_cleanup(repo.get()), "Could not clean repository state");
 
 	} else {
-		std::cout << "GitPlugin: Can not merge" << std::endl;
+		godot::UtilityFunctions::push_error("GitPlugin: Can not merge");
 	}
 
-	std::cout << "GitPlugin: Pull ended" << std::endl;
+	godot::UtilityFunctions::print("GitPlugin: Pull ended");
 }
 
 void GitPlugin::_push(const godot::String &remote, bool force) {
-	std::cout << "GitPlugin: Performing push to " << CString(remote).data << std::endl;
+	godot::UtilityFunctions::print("GitPlugin: Performing push to ", CString(remote).data);
 
 	git_remote_ptr remote_object;
 	GIT2_CALL(git_remote_lookup(Capture(remote_object), repo.get(), CString(remote).data), "Could not lookup remote \"" + remote + "\"");
@@ -541,7 +541,7 @@ void GitPlugin::_push(const godot::String &remote, bool force) {
 
 	GIT2_CALL(git_remote_push(remote_object.get(), &refspec, &push_options), "Failed to push");
 
-	std::cout << "GitPlugin: Push ended" << std::endl;
+	godot::UtilityFunctions::print("GitPlugin: Push ended");
 }
 
 bool GitPlugin::_checkout_branch(const godot::String &branch_name) {

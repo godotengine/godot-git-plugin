@@ -2,9 +2,10 @@
 #include <cstring>
 
 #include "git_callbacks.h"
+#include "git_plugin.h"
 
 #include "godot_cpp/godot.hpp"
-#include "git_plugin.h"
+#include "godot_cpp/variant/utility_functions.hpp"
 
 extern "C" int progress_cb(const char *str, int len, void *data) {
 	(void)data;
@@ -12,7 +13,7 @@ extern "C" int progress_cb(const char *str, int len, void *data) {
 	char *progress_str = new char[len + 1];
 	std::memcpy(progress_str, str, len);
 	progress_str[len] = '\0';
-	std::cout << "remote: " << CString(godot::String(progress_str).strip_edges()).data << std::endl;
+	godot::UtilityFunctions::push_warning("remote: ", CString(godot::String(progress_str).strip_edges()).data);
 	delete[] progress_str;
 
 	return 0;
@@ -26,10 +27,10 @@ extern "C" int update_cb(const char *refname, const git_oid *a, const git_oid *b
 
 	git_oid_tostr(b_str, short_commit_length, b);
 	if (git_oid_is_zero(a)) {
-		std::cout << "* [new] " << CString(godot::String(b_str)).data << " " << CString(godot::String(refname)).data << std::endl;
+		godot::UtilityFunctions::print("* [new] ", CString(godot::String(b_str)).data, " ", CString(godot::String(refname)).data);
 	} else {
 		git_oid_tostr(a_str, short_commit_length, a);
-		std::cout << "[updated] " << CString(godot::String(a_str)).data << "..." << CString(godot::String(b_str)).data << " " << CString(godot::String(refname)).data << std::endl;
+		godot::UtilityFunctions::print("[updated] ", CString(godot::String(a_str)).data, "...", CString(godot::String(b_str)).data, " ", CString(godot::String(refname)).data);
 	}
 
 	return 0;
@@ -39,9 +40,11 @@ extern "C" int transfer_progress_cb(const git_indexer_progress *stats, void *pay
 	(void)payload;
 
 	if (stats->received_objects == stats->total_objects) {
-		printf("Resolving deltas %d/%d\n", stats->indexed_deltas, stats->total_deltas);
+		godot::UtilityFunctions::print("Resolving deltas ", uint32_t(stats->indexed_deltas), "/", uint32_t(stats->total_deltas));
 	} else if (stats->total_objects > 0) {
-		printf("Received %d/%d objects (%d) in %zu bytes\n", stats->received_objects, stats->total_objects, stats->indexed_objects, stats->received_bytes);
+		godot::UtilityFunctions::print(
+				"Received ", uint32_t(stats->received_objects), "/", uint32_t(stats->total_objects),
+				" objects (", uint32_t(stats->indexed_objects), ") in ", uint32_t(stats->received_bytes), " bytes");
 	}
 	return 0;
 }
@@ -60,19 +63,16 @@ extern "C" int push_transfer_progress_cb(unsigned int current, unsigned int tota
 		progress = (current * 100) / total;
 	}
 
-	std::cout << "Writing Objects: "
-			  << progress << "% (" << current << "/" << total << ", "
-			  << bytes << " bytes done."
-			  << std::endl;
+	godot::UtilityFunctions::print("Writing Objects: ", uint32_t(progress), "% (", uint32_t(current), "/", uint32_t(total), ", ", uint32_t(bytes), " bytes done.");
 	return 0;
 }
 
 extern "C" int push_update_reference_cb(const char *refname, const char *status, void *data) {
 	godot::String status_str = status;
 	if (status_str == "") {
-		std::cout << "[rejected] " << CString(godot::String(refname)).data << " " << CString(status_str).data << std::endl;
+		godot::UtilityFunctions::print("[rejected] ", CString(godot::String(refname)).data, " ", CString(status_str).data);
 	} else {
-		std::cout << "[updated] " << CString(godot::String(refname)).data << std::endl;
+		godot::UtilityFunctions::print("[updated] ", CString(godot::String(refname)).data);
 	}
 	return 0;
 }

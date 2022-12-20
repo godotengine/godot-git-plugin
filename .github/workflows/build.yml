@@ -11,7 +11,7 @@ jobs:
         run: |
           git submodule update --init --recursive
           pip3 install --user scons
-          scons platform=linux bits=64 godot_cpp=yes generate_bindings=yes use_custom_api_file=yes -j $(nproc)
+          scons platform=linux target=editor generate_bindings=yes gdextension_dir="../ci/" -j $(nproc)
           ldd demo/addons/godot-git-plugin/linux/*.so
       - uses: actions/upload-artifact@v2
         with:
@@ -33,7 +33,7 @@ jobs:
         run: |
           git submodule update --init --recursive
           pip3 install --user scons
-          scons platform=windows bits=64 godot_cpp=yes generate_bindings=yes use_custom_api_file=yes -j $env:NUMBER_OF_PROCESSORS
+          scons platform=windows target=editor generate_bindings=yes gdextension_dir="../ci/" -j $env:NUMBER_OF_PROCESSORS
           dumpbin /dependents .\demo\addons\godot-git-plugin\win64\*.dll
       - uses: actions/upload-artifact@v2
         with:
@@ -50,7 +50,7 @@ jobs:
         run: |
           git submodule update --init --recursive
           brew install scons
-          scons platform=macos bits=64 godot_cpp=yes generate_bindings=yes use_custom_api_file=yes macos_arch=universal use_llvm=yes -j $(sysctl -n hw.logicalcpu)
+          scons platform=macos target=editor generate_bindings=yes gdextension_dir="../ci/" macos_arch=universal use_llvm=yes -j $(sysctl -n hw.logicalcpu)
           otool -L demo/addons/godot-git-plugin/macos/*.dylib
       - uses: actions/upload-artifact@v2
         with:
