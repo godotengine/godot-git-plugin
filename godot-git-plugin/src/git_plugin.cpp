@@ -673,14 +673,25 @@ bool GitPlugin::_initialize(const godot::String &project_path) {
 
 	ERR_FAIL_COND_V(project_path == "", false);
 
-	repo_project_path = project_path;
-
 	int init = git_libgit2_init();
 	if (init > 1) {
 		WARN_PRINT("Multiple libgit2 instances are running");
 	}
 
-	GIT2_CALL_R(git_repository_init(Capture(repo), CString(project_path).data, 0), "Could not initialize repository", false);
+	git_buf discovered_repo_path = {};
+	if (git_repository_discover(&discovered_repo_path, CString(project_path).data, 1, nullptr) == 0) {
+		repo_project_path = godot::String(discovered_repo_path.ptr);
+
+		godot::UtilityFunctions::print("Found a higher level repository at " + godot::String(discovered_repo_path.ptr) + ".");
+		git_buf_dispose(&discovered_repo_path);
+	} else {
+		repo_project_path = project_path;
+
+		godot::UtilityFunctions::push_warning("Creating a new repository at " + godot::String(project_path) + ".");
+		godot::UtilityFunctions::push_warning("Could not find any higher level repositories.");
+	}
+
+	GIT2_CALL_R(git_repository_init(Capture(repo), CString(repo_project_path).data, 0), "Could not initialize repository", false);
 
 	git_reference_ptr head;
 	GIT2_CALL_R_IGNORE(git_repository_head(Capture(head), repo.get()), "Could not get repository HEAD", false, { GIT_EUNBORNBRANCH COMMA GIT_ENOTFOUND });
