@@ -5,6 +5,7 @@
 #include <git2/tree.h>
 #include "godot_cpp/core/class_db.hpp"
 #include "godot_cpp/classes/file_access.hpp"
+#include "godot_cpp/classes/editor_interface.hpp"
 #include "godot_cpp/variant/utility_functions.hpp"
 
 #define GIT2_CALL(error, msg)                                         \
@@ -666,6 +667,18 @@ godot::TypedArray<godot::Dictionary> GitPlugin::_parse_diff(git_diff *diff) {
 
 godot::String GitPlugin::_get_vcs_name() {
 	return "Git";
+}
+
+void GitPlugin::_attach_ui(godot::EditorPlugin *vcs_plugin_editor_plugin) {
+	_make_commit_dock();
+
+	vcs_plugin_editor_plugin->add_control_to_bottom_panel(bottom_button, "Git Diff");
+	vcs_plugin_editor_plugin->add_control_to_dock(godot::EditorPlugin::DOCK_SLOT_RIGHT_UR, side_button);
+}
+
+void GitPlugin::_remove_ui(godot::EditorPlugin *vcs_plugin_editor_plugin) {
+	vcs_plugin_editor_plugin->remove_control_from_bottom_panel(bottom_button);
+	vcs_plugin_editor_plugin->remove_control_from_docks(side_button);
 }
 
 bool GitPlugin::_initialize(const godot::String &project_path) {
