@@ -27,6 +27,12 @@ if env["platform"] == "macos":
     env.Append(LIBS=[File(env["macos_openssl_static_ssl"]),
                      File(env["macos_openssl_static_crypto"])])
 
+    if env["macos_deployment_target"] != "default":
+        env.Append(CCFLAGS=["-mmacosx-version-min=" +
+                            env["macos_deployment_target"]])
+        env.Append(LINKFLAGS=["-mmacosx-version-min=" +
+                              env["macos_deployment_target"]])
+
 elif env["platform"] == "linux":
     env["target_path"] += "linux/"
     env.Append(LIBS=[File(env["linux_openssl_static_ssl"]),

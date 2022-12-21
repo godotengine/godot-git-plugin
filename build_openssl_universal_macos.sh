@@ -1,6 +1,6 @@
 #!/bin/bash
 
-OPENSSL_VERSION="1.1.1i"
+OPENSSL_VERSION="1.1.1s"
 
 curl -OL http://www.openssl.org/source/openssl-$OPENSSL_VERSION.tar.gz
 tar -xzvf openssl-$OPENSSL_VERSION.tar.gz
@@ -12,9 +12,9 @@ cd openssl_arm64
 make
 cd ../
 cd openssl_x86_64
-./Configure darwin64-x86_64-cc
+./Configure darwin64-x86_64-cc -mmacosx-version-min=10.13
 make
 cd ../
-lipo -create openssl_arm64/libcrypto.a openssl_x86_64/libcrypto.a -output libcrypto.a
-lipo -create openssl_arm64/libssl.a openssl_x86_64/libssl.a -output libssl.a
+lipo -create openssl_arm64/libcrypto.a openssl_x86_64/libcrypto.a -output thirdparty/openssl/libcrypto.a
+lipo -create openssl_arm64/libssl.a openssl_x86_64/libssl.a -output thirdparty/openssl/libssl.a
 rm openssl-$OPENSSL_VERSION.tar.gz

@@ -42,15 +42,15 @@ jobs:
           path: |
             demo/
 
-  macos-x64:
+  macos-universal:
     runs-on: macos-11
     steps:
       - uses: actions/checkout@v2
-      - name: build-macos-editor-x64
+      - name: build-macos-editor-universal
         run: |
           git submodule update --init --recursive
           brew install scons
-          scons platform=macos target=editor generate_bindings=yes gdextension_dir="../ci/" macos_arch=universal use_llvm=yes -j $(sysctl -n hw.logicalcpu)
+          scons platform=macos target=editor generate_bindings=yes gdextension_dir="../ci/" macos_arch=universal use_llvm=yes macos_deployment_target=10.13 -j $(sysctl -n hw.logicalcpu)
           otool -L demo/addons/godot-git-plugin/macos/*.dylib
       - uses: actions/upload-artifact@v2
         with:
