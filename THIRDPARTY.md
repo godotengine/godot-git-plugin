@@ -8,7 +8,7 @@ The Godot Git Plugin source code uses the following third-party source code:
 
 We also link to these third-party libraries (only in the compiled binary form):
 
-1. OpenSSL - Only on Linux and MacOS - OpenSSL License - http://www.openssl.org/source/openssl-1.1.1i.tar.gz
+1. OpenSSL - Only on Linux and MacOS - OpenSSL License - http://www.openssl.org/source/openssl-1.1.1s.tar.gz
 
 ## License Texts
 
