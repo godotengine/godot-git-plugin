@@ -2,7 +2,7 @@
 
 The Godot Git Plugin source code uses the following third-party source code:
 
-1. godotengine/godot-cpp - MIT License - https://github.com/godotengine/godot-cpp/tree/8ba1c059da5e97428d40612dd0afc2be4079b5c6
+1. godotengine/godot-cpp - MIT License - https://github.com/godotengine/godot-cpp/tree/02336831735fd6affbe0a6fa252ec98d3e78120c
 2. libgit2/libgit2 - GPLv2 with a special Linking Exception - https://github.com/libgit2/libgit2/tree/b7bad55e4bb0a285b073ba5e02b01d3f522fc95d
 3. libssh2/libssh2 - BSD-3-Clause License - https://github.com/libssh2/libssh2/tree/635caa90787220ac3773c1d5ba11f1236c22eae8
 
