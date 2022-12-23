@@ -682,15 +682,15 @@ bool GitPlugin::_initialize(const godot::String &project_path) {
 	if (git_repository_discover(&discovered_repo_path, CString(project_path).data, 1, nullptr) == 0) {
 		repo_project_path = godot::String(discovered_repo_path.ptr);
 
-		godot::UtilityFunctions::print("Found a higher level repository at " + godot::String(discovered_repo_path.ptr) + ".");
+		godot::UtilityFunctions::print("Found a repository at " + godot::String(discovered_repo_path.ptr) + ".");
 		git_buf_dispose(&discovered_repo_path);
 	} else {
 		repo_project_path = project_path;
 
-		godot::UtilityFunctions::push_warning("Creating a new repository at " + godot::String(project_path) + ".");
 		godot::UtilityFunctions::push_warning("Could not find any higher level repositories.");
 	}
 
+	godot::UtilityFunctions::print("Selected repository path: " + godot::String(repo_project_path) + ".");
 	GIT2_CALL_R(git_repository_init(Capture(repo), CString(repo_project_path).data, 0), "Could not initialize repository", false);
 
 	git_reference_ptr head;
