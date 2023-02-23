@@ -33,7 +33,7 @@ This section onwards is only meant to be used if you intend to compile the plugi
 ### Release Build
 
 ```
-scons platform=<platform> target=editor gdextension_dir="../path/to/gdextension/dump/" -j 6
+scons platform=<platform> target=editor -j 6
 ```
 
 > You may get the gdextension dump yourself from Godot using the instructions in the next section, or use the ones provided in `godot-cpp/gdextension` or `ci/`.
@@ -56,7 +56,7 @@ cd local/copy/of/godot/source
 2. Build the plugin along with the godot-cpp library.
 
 ```
-scons platform=<platform> target=editor generate_bindings=yes dev_build=yes gdextension_dir="path/to/gdextension/dump" -j 6
+scons platform=<platform> target=editor generate_bindings=yes dev_build=yes -j 6
 ```
 
 > You only need to build godot-cpp once every change in the GDExtension API, hence, `generate_bindings=yes` should only be passed in during the first time after generating a new GDExtension API dump.
