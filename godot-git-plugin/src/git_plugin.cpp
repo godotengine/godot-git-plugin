@@ -367,7 +367,7 @@ godot::TypedArray<godot::String> GitPlugin::_get_remotes() {
 	return remotes;
 }
 
-godot::TypedArray<godot::Dictionary> GitPlugin::_get_previous_commits(int64_t max_commits) {
+godot::TypedArray<godot::Dictionary> GitPlugin::_get_previous_commits(int32_t max_commits) {
 	git_revwalk_ptr walker;
 	GIT2_CALL_R(git_revwalk_new(Capture(walker), repo.get()), "Could not create new revwalk", godot::TypedArray<godot::Dictionary>());
 	GIT2_CALL_R(git_revwalk_sorting(walker.get(), GIT_SORT_TIME), "Could not sort revwalk by time", godot::TypedArray<godot::Dictionary>());
@@ -560,7 +560,7 @@ bool GitPlugin::_checkout_branch(const godot::String &branch_name) {
 	return true;
 }
 
-godot::TypedArray<godot::Dictionary> GitPlugin::_get_diff(const godot::String &identifier, const int64_t area) {
+godot::TypedArray<godot::Dictionary> GitPlugin::_get_diff(const godot::String &identifier, const int32_t area) {
 	git_diff_options opts = GIT_DIFF_OPTIONS_INIT;
 	godot::TypedArray<godot::Dictionary> diff_contents;
 

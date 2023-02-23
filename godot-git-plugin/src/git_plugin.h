@@ -40,10 +40,10 @@ public:
 	void _unstage_file(const godot::String &file_path) override;
 	void _discard_file(const godot::String &file_path) override;
 	void _commit(const godot::String &msg) override;
-	godot::TypedArray<godot::Dictionary> _get_diff(const godot::String &identifier, int64_t area) override;
+	godot::TypedArray<godot::Dictionary> _get_diff(const godot::String &identifier, int32_t area) override;
 	bool _shut_down() override;
 	godot::String _get_vcs_name() override;
-	godot::TypedArray<godot::Dictionary> _get_previous_commits(int64_t max_commits) override;
+	godot::TypedArray<godot::Dictionary> _get_previous_commits(int32_t max_commits) override;
 	godot::TypedArray<godot::String> _get_branch_list() override;
 	godot::TypedArray<godot::String> _get_remotes() override;
 	void _create_branch(const godot::String &branch_name) override;
