@@ -31,6 +31,7 @@ libssh2_sources = [
     "libssh2/src/misc.c",
     "libssh2/src/pem.c",
     "libssh2/src/session.c",
+    "libssh2/src/userauth_kbd_packet.c",
     "libssh2/src/userauth.c",
 ]
 
