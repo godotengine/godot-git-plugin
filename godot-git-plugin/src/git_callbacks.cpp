@@ -96,7 +96,6 @@ extern "C" int credentials_cb(git_cred **out, const char *url, const char *usern
 		return git_cred_userpass_plaintext_new(out, CString(proper_username).data, CString(creds->password).data);
 	}
 
-
 	if (allowed_types & GIT_CREDENTIAL_USERNAME) {
 		return git_credential_username_new(out, CString(proper_username).data);
 	}
