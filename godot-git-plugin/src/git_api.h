@@ -108,6 +108,7 @@ class GitAPI : public EditorVCSInterface {
 	bool has_merge = false;
 	git_repository_ptr repo;
 	git_oid pull_merge_oid = {};
+	String repo_project_path;
 
 	// Endpoints
 	bool _checkout_branch(const String branch_name);

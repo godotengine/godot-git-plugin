@@ -188,10 +188,12 @@ void GitAPI::_unstage_file(const String file_path) {
 }
 
 void GitAPI::create_gitignore_and_gitattributes() {
+	Error error;
 	File *file = File::_new();
 
-	if (!file->file_exists("res://.gitignore")) {
-		file->open("res://.gitignore", File::ModeFlags::WRITE);
+	if (!file->file_exists(repo_project_path + "/.gitignore")) {
+		error = file->open(repo_project_path + "/.gitignore", File::ModeFlags::WRITE);
+		ERR_FAIL_COND(error != Error::OK);
 		file->store_string(
 				"# Godot-specific ignores\n"
 				".import/\n"
@@ -207,8 +209,9 @@ void GitAPI::create_gitignore_and_gitattributes() {
 		file->close();
 	}
 
-	if (!file->file_exists("res://.gitattributes")) {
-		file->open("res://.gitattributes", File::ModeFlags::WRITE);
+	if (!file->file_exists(repo_project_path + "/.gitattributes")) {
+		error = file->open(repo_project_path + "/.gitattributes", File::ModeFlags::WRITE);
+		ERR_FAIL_COND(error != Error::OK);
 		file->store_string(
 				"# Set the default behavior, in case people don't have core.autocrlf set.\n"
 				"* text=auto\n\n"
@@ -704,7 +707,20 @@ bool GitAPI::_initialize(String project_path) {
 		WARN_PRINT("Multiple libgit2 instances are running");
 	}
 
-	GIT2_CALL_R(git_repository_init(Capture(repo), CString(project_path).data, 0), "Could not initialize repository", false);
+	git_buf discovered_repo_path = {};
+	if (git_repository_discover(&discovered_repo_path, CString(project_path).data, 1, nullptr) == 0) {
+		repo_project_path = String(discovered_repo_path.ptr);
+
+		Godot::print("GitAPI: Found a repository at " + String(discovered_repo_path.ptr) + ".");
+		git_buf_dispose(&discovered_repo_path);
+	} else {
+		repo_project_path = project_path;
+
+		WARN_PRINT("Could not find any higher level repositories.");
+	}
+
+	Godot::print("GitAPI: Selected repository path: " + String(repo_project_path) + ".");
+	GIT2_CALL_R(git_repository_init(Capture(repo), CString(repo_project_path).data, 0), "Could not initialize repository", false);
 
 	git_reference_ptr head;
 	GIT2_CALL_R_IGNORE(git_repository_head(Capture(head), repo.get()), "Could not get repository HEAD", false, { GIT_EUNBORNBRANCH COMMA GIT_ENOTFOUND });
