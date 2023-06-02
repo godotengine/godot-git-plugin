@@ -3,6 +3,7 @@
 # Adopted from https://github.com/nodegit/nodegit/blob/4561dcb7c120474a4553baa27e4c4c2f4be23a2b/vendor/libgit2.gyp
 
 Import("env")
+Import("ssl")
 
 env_ssh2 = env.Clone()
 
@@ -104,11 +105,6 @@ if env_ssh2["platform"] in ["linux", "macos"]:
             ("STDC_HEADERS", 1)
         ]
     )
-
-if env_ssh2["platform"] == "macos":
-    env_ssh2.Append(CPPPATH=[env_ssh2["macos_openssl"] + "include/"])
-    static_ssl = File(env_ssh2["macos_openssl_static_ssl"])
-    static_crypto = File(env_ssh2["macos_openssl_static_crypto"])
-    env_ssh2.Append(LIBS=[static_ssl, static_crypto])
+    env_ssh2.Depends(libssh2_sources, ssl)
 
 env_ssh2.StaticLibrary(target="../bin/" + "ssh2", source=libssh2_sources)
