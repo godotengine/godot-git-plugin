@@ -1,6 +1,0 @@
-#!/usr/bin/env python
-
-Import("env")
-
-SConscript("ssh2/SCsub")
-SConscript("git2/SCsub")
