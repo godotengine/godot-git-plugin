@@ -245,7 +245,7 @@ godot::TypedArray<godot::Dictionary> GitPlugin::_get_modified_files_data() {
 		}
 
 		if (entry->status & git_status_index) {
-			if (entry->status == GIT_STATUS_INDEX_RENAMED) {
+			if (entry->status & GIT_STATUS_INDEX_RENAMED) {
 				godot::String old_path = entry->head_to_index->old_file.path;
 				stats_files.push_back(create_status_file(old_path, map_changes.at(GIT_STATUS_INDEX_DELETED), TREE_AREA_STAGED));
 				stats_files.push_back(create_status_file(path, map_changes.at(GIT_STATUS_INDEX_NEW), TREE_AREA_STAGED));
