@@ -2,18 +2,29 @@ name: C/C++ CI
 
 on: [push, pull_request]
 
+env:
+  # Only used for the cache key. Increment version to force clean build.
+  GODOT_BASE_BRANCH: master
+  SCONS_CACHE: ${{ github.workspace }}/.scons-cache/
+
 jobs:
   linux-x64:
     runs-on: ubuntu-20.04
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
+        with:
+          submodules: recursive
+      - name: Setup Godot build cache
+        uses: ./godot-cpp/.github/actions/godot-cache
+        with:
+          cache-name: linux-x86_64
+        continue-on-error: true
       - name: build-linux-editor-x64
         run: |
-          git submodule update --init --recursive
           pip3 install --user scons
           scons platform=linux target=editor generate_bindings=yes -j $(nproc)
           ldd demo/addons/godot-git-plugin/linux/*.so
-      - uses: actions/upload-artifact@v2
+      - uses: actions/upload-artifact@v3
         with:
           name: libgit_plugin.linux.x86_64.editor.so-${{ github.sha }}
           if-no-files-found: error
@@ -23,7 +34,13 @@ jobs:
   windows-x64:
     runs-on: windows-2019
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
+        with:
+          submodules: recursive
+      - name: Setup Godot build cache
+        uses: ./godot-cpp/.github/actions/godot-cache
+        with:
+          cache-name: windows-x86_64
       - uses: actions/setup-python@v2
         with:
           python-version: "3.x"
@@ -31,11 +48,10 @@ jobs:
       - uses: ilammy/msvc-dev-cmd@v1
       - name: build-windows-editor-x64
         run: |
-          git submodule update --init --recursive
           pip3 install --user scons
           scons platform=windows target=editor generate_bindings=yes -j $env:NUMBER_OF_PROCESSORS
           dumpbin /dependents .\demo\addons\godot-git-plugin\win64\*.dll
-      - uses: actions/upload-artifact@v2
+      - uses: actions/upload-artifact@v3
         with:
           name: libgit_plugin.windows.x86_64.editor.dll-${{ github.sha }}
           if-no-files-found: error
@@ -45,14 +61,19 @@ jobs:
   macos-universal:
     runs-on: macos-11
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
+        with:
+          submodules: recursive
+      - name: Setup Godot build cache
+        uses: ./godot-cpp/.github/actions/godot-cache
+        with:
+          cache-name: macos-universal
       - name: build-macos-editor-universal
         run: |
-          git submodule update --init --recursive
           brew install scons
           scons platform=macos target=editor generate_bindings=yes macos_arch=universal use_llvm=yes macos_deployment_target=10.13 -j $(sysctl -n hw.logicalcpu)
           otool -L demo/addons/godot-git-plugin/macos/*.dylib
-      - uses: actions/upload-artifact@v2
+      - uses: actions/upload-artifact@v3
         with:
           name: libgit_plugin.macos.universal.editor.dylib-${{ github.sha }}
           if-no-files-found: error
