@@ -63,7 +63,7 @@ bool GitPlugin::check_errors(int error, godot::String function, godot::String fi
 	message = message + ".";
 	if ((lg2err = git_error_last()) != nullptr && lg2err->message != nullptr) {
 		message = message + " Error " + godot::String::num_int64(error) + ": ";
-		message = message + godot::String(lg2err->message);
+		message = message + godot::String::utf8(lg2err->message);
 	}
 
 	godot::UtilityFunctions::push_error("GitPlugin: ", CString(message).data, " in ", CString(file).data, ":", CString(function).data, "#L", line);
@@ -232,9 +232,9 @@ godot::TypedArray<godot::Dictionary> GitPlugin::_get_modified_files_data() {
 		const git_status_entry *entry = git_status_byindex(statuses.get(), i);
 		godot::String path;
 		if (entry->index_to_workdir) {
-			path = entry->index_to_workdir->new_file.path;
+			path = godot::String::utf8(entry->index_to_workdir->new_file.path);
 		} else {
-			path = entry->head_to_index->new_file.path;
+			path = godot::String::utf8(entry->head_to_index->new_file.path);
 		}
 
 		const static int git_status_wt = GIT_STATUS_WT_NEW | GIT_STATUS_WT_MODIFIED | GIT_STATUS_WT_DELETED | GIT_STATUS_WT_TYPECHANGE | GIT_STATUS_WT_RENAMED | GIT_STATUS_CONFLICTED;
@@ -382,7 +382,7 @@ godot::TypedArray<godot::Dictionary> GitPlugin::_get_previous_commits(int32_t ma
 		GIT2_CALL_R(git_commit_lookup(Capture(commit), repo.get(), &oid), "Failed to lookup the commit", commits);
 
 		git_oid_tostr(commit_id, GIT_OID_HEXSZ + 1, git_commit_id(commit.get()));
-		godot::String msg = git_commit_message(commit.get());
+		godot::String msg = godot::String::utf8(git_commit_message(commit.get()));
 
 		const git_signature *sig = git_commit_author(commit.get());
 		godot::String author = godot::String() + sig->name + " <" + sig->email + ">";
@@ -629,7 +629,7 @@ godot::TypedArray<godot::Dictionary> GitPlugin::_parse_diff(git_diff *diff) {
 		git_patch_ptr patch;
 		GIT2_CALL_R(git_patch_from_diff(Capture(patch), diff, i), "Could not create patch from diff", godot::TypedArray<godot::Dictionary>());
 
-		godot::Dictionary diff_file = create_diff_file(delta->new_file.path, delta->old_file.path);
+		godot::Dictionary diff_file = create_diff_file(godot::String::utf8(delta->new_file.path), godot::String::utf8(delta->old_file.path));
 
 		godot::TypedArray<godot::Dictionary> diff_hunks;
 		for (int j = 0; j < git_patch_num_hunks(patch.get()); j++) {
@@ -650,7 +650,7 @@ godot::TypedArray<godot::Dictionary> GitPlugin::_parse_diff(git_diff *diff) {
 
 				godot::String status = " "; // We reserve 1 null terminated space to fill the + or the - character at git_diff_line->origin
 				status[0] = git_diff_line->origin;
-				diff_lines.push_back(create_diff_line(git_diff_line->new_lineno, git_diff_line->old_lineno, godot::String(content), status));
+				diff_lines.push_back(create_diff_line(git_diff_line->new_lineno, git_diff_line->old_lineno, godot::String::utf8(content), status));
 
 				delete[] content;
 			}
@@ -680,9 +680,9 @@ bool GitPlugin::_initialize(const godot::String &project_path) {
 
 	git_buf discovered_repo_path = {};
 	if (git_repository_discover(&discovered_repo_path, CString(project_path).data, 1, nullptr) == 0) {
-		repo_project_path = godot::String(discovered_repo_path.ptr);
+		repo_project_path = godot::String::utf8(discovered_repo_path.ptr);
 
-		godot::UtilityFunctions::print("Found a repository at " + godot::String(discovered_repo_path.ptr) + ".");
+		godot::UtilityFunctions::print("Found a repository at " + godot::String::utf8(discovered_repo_path.ptr) + ".");
 		git_buf_dispose(&discovered_repo_path);
 	} else {
 		repo_project_path = project_path;
