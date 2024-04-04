@@ -13,7 +13,7 @@ extern "C" int progress_cb(const char *str, int len, void *data) {
 	char *progress_str = new char[len + 1];
 	std::memcpy(progress_str, str, len);
 	progress_str[len] = '\0';
-	godot::UtilityFunctions::push_warning("remote: ", CString(godot::String(progress_str).strip_edges()).data);
+	godot::UtilityFunctions::push_warning("remote: ", godot::String::utf8(progress_str).strip_edges());
 	delete[] progress_str;
 
 	return 0;
@@ -27,10 +27,10 @@ extern "C" int update_cb(const char *refname, const git_oid *a, const git_oid *b
 
 	git_oid_tostr(b_str, short_commit_length, b);
 	if (git_oid_is_zero(a)) {
-		godot::UtilityFunctions::print("* [new] ", CString(godot::String(b_str)).data, " ", CString(godot::String(refname)).data);
+		godot::UtilityFunctions::print("* [new] ", godot::String::utf8(b_str), " ", godot::String::utf8(refname));
 	} else {
 		git_oid_tostr(a_str, short_commit_length, a);
-		godot::UtilityFunctions::print("[updated] ", CString(godot::String(a_str)).data, "...", CString(godot::String(b_str)).data, " ", CString(godot::String(refname)).data);
+		godot::UtilityFunctions::print("[updated] ", godot::String::utf8(a_str), "...", godot::String::utf8(b_str), " ", godot::String::utf8(refname));
 	}
 
 	return 0;
@@ -68,11 +68,11 @@ extern "C" int push_transfer_progress_cb(unsigned int current, unsigned int tota
 }
 
 extern "C" int push_update_reference_cb(const char *refname, const char *status, void *data) {
-	godot::String status_str = status;
-	if (status_str == "") {
-		godot::UtilityFunctions::print("[rejected] ", CString(godot::String(refname)).data, " ", CString(status_str).data);
+	if (status != NULL) {
+		godot::String status_str = godot::String::utf8(status);
+		godot::UtilityFunctions::print("[rejected] ", godot::String::utf8(refname), " ", status_str);
 	} else {
-		godot::UtilityFunctions::print("[updated] ", CString(godot::String(refname)).data);
+		godot::UtilityFunctions::print("[updated] ", godot::String::utf8(refname));
 	}
 	return 0;
 }
