@@ -10,11 +10,7 @@
 extern "C" int progress_cb(const char *str, int len, void *data) {
 	(void)data;
 
-	char *progress_str = new char[len + 1];
-	std::memcpy(progress_str, str, len);
-	progress_str[len] = '\0';
-	godot::UtilityFunctions::push_warning("remote: ", godot::String::utf8(progress_str).strip_edges());
-	delete[] progress_str;
+	godot::UtilityFunctions::print("remote: ", godot::String::utf8(str, len).strip_edges());
 
 	return 0;
 }
@@ -63,7 +59,7 @@ extern "C" int push_transfer_progress_cb(unsigned int current, unsigned int tota
 		progress = (current * 100) / total;
 	}
 
-	godot::UtilityFunctions::print("Writing Objects: ", uint32_t(progress), "% (", uint32_t(current), "/", uint32_t(total), ", ", uint32_t(bytes), " bytes done.");
+	godot::UtilityFunctions::print("Writing Objects: ", uint32_t(progress), "% (", uint32_t(current), "/", uint32_t(total), ", ", uint32_t(bytes), " bytes done.)");
 	return 0;
 }
 
