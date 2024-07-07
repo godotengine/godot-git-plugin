@@ -9,3 +9,6 @@
 [submodule "thirdparty/ssh2/libssh2"]
 	path = thirdparty/ssh2/libssh2
 	url = https://github.com/libssh2/libssh2
+[submodule "thirdparty/openssl"]
+	path = thirdparty/openssl
+	url = https://github.com/openssl/openssl
