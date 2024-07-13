@@ -46,6 +46,7 @@ jobs:
           python-version: "3.x"
           architecture: "x64"
       - uses: ilammy/msvc-dev-cmd@v1
+      - uses: ilammy/setup-nasm@v1
       - name: build-windows-editor-x64
         run: |
           pip3 install --user scons

@@ -17,7 +17,11 @@ extension_api.json
 # Mac stuff
 .DS_Store
 
+# Vim
+*.swp
+
 # Binaries
+__pycache__/
 build/
 bin/
 macos/
@@ -29,4 +33,4 @@ win64/
 *.os
 *.ilk
 *.pdb
-!thirdparty/openssl/*
+*.pyc
