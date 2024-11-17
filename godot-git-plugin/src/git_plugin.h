@@ -1,6 +1,9 @@
 #pragma once
 
 #include <unordered_map>
+#include <thread>
+#include <mutex>
+#include <atomic>
 
 #include "git_callbacks.h"
 #include "git_wrappers.h"
@@ -62,4 +65,11 @@ public:
 	bool check_errors(int error, godot::String function, godot::String file, int line, godot::String message, const std::vector<git_error_code> &ignores = {});
 	void create_gitignore_and_gitattributes();
 	bool create_initial_commit();
+private:
+    std::atomic<bool> is_operation_running{false};
+    std::mutex operation_mutex;
+    std::unique_ptr<std::thread> worker_thread;
+    
+    void cleanup_thread();
+    bool check_operation_running();
 };
