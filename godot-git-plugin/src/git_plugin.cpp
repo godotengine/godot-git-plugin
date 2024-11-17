@@ -47,6 +47,22 @@ GitPlugin::GitPlugin() {
 	map_changes[GIT_STATUS_CONFLICTED] = CHANGE_TYPE_UNMERGED;
 }
 
+void GitPlugin::cleanup_thread() {
+    if (worker_thread && worker_thread->joinable()) {
+        worker_thread->join();
+    }
+    worker_thread.reset();
+    is_operation_running = false;
+}
+
+bool GitPlugin::check_operation_running() {
+    if (is_operation_running) {
+        godot::UtilityFunctions::push_error("GitPlugin: Another operation is already in progress");
+        return true;
+    }
+    return false;
+}
+
 bool GitPlugin::check_errors(int error, godot::String function, godot::String file, int line, godot::String message, const std::vector<git_error_code> &ignores) {
 	const git_error *lg2err;
 
@@ -89,6 +105,13 @@ void GitPlugin::_discard_file(const godot::String &file_path) {
 }
 
 void GitPlugin::_commit(const godot::String &msg) {
+	if (check_operation_running()) return;
+
+    	std::lock_guard<std::mutex> lock(operation_mutex);
+    	is_operation_running = true;
+    
+    	cleanup_thread();
+    	worker_thread = std::make_unique<std::thread>([this, msg]() {
 	git_index_ptr repo_index;
 	GIT2_CALL(git_repository_index(Capture(repo_index), repo.get()), "Could not get repository index");
 
@@ -146,6 +169,8 @@ void GitPlugin::_commit(const godot::String &msg) {
 		has_merge = false;
 		GIT2_CALL(git_repository_state_cleanup(repo.get()), "Could not clean repository state");
 	}
+        	is_operation_running = false;
+    	});
 }
 
 void GitPlugin::_stage_file(const godot::String &file_path) {
@@ -394,6 +419,13 @@ godot::TypedArray<godot::Dictionary> GitPlugin::_get_previous_commits(int32_t ma
 }
 
 void GitPlugin::_fetch(const godot::String &remote) {
+	if (check_operation_running()) return;
+    
+	std::lock_guard<std::mutex> lock(operation_mutex);
+    	is_operation_running = true;
+    
+    	cleanup_thread();
+    	worker_thread = std::make_unique<std::thread>([this, remote]() {
 	godot::UtilityFunctions::print("GitPlugin: Performing fetch from ", remote);
 
 	git_remote_ptr remote_object;
@@ -415,9 +447,19 @@ void GitPlugin::_fetch(const godot::String &remote) {
 	GIT2_CALL(git_remote_fetch(remote_object.get(), nullptr, &opts, "fetch"), "Could not fetch data from remote");
 
 	godot::UtilityFunctions::print("GitPlugin: Fetch ended");
+        is_operation_running = false;
+    	});
+
 }
 
 void GitPlugin::_pull(const godot::String &remote) {
+	if (check_operation_running()) return;
+    
+    	std::lock_guard<std::mutex> lock(operation_mutex);
+    	is_operation_running = true;
+    
+    	cleanup_thread();
+    	worker_thread = std::make_unique<std::thread>([this, remote]() {
 	godot::UtilityFunctions::print("GitPlugin: Performing pull from ", remote);
 
 	git_remote_ptr remote_object;
@@ -512,9 +554,18 @@ void GitPlugin::_pull(const godot::String &remote) {
 	}
 
 	godot::UtilityFunctions::print("GitPlugin: Pull ended");
+        is_operation_running = false;
+    	});
 }
 
 void GitPlugin::_push(const godot::String &remote, bool force) {
+	if (check_operation_running()) return;
+    
+    	std::lock_guard<std::mutex> lock(operation_mutex);
+    	is_operation_running = true;
+    
+    	cleanup_thread();
+    	worker_thread = std::make_unique<std::thread>([this, remote]() {
 	godot::UtilityFunctions::print("GitPlugin: Performing push to ", remote);
 
 	git_remote_ptr remote_object;
@@ -543,6 +594,9 @@ void GitPlugin::_push(const godot::String &remote, bool force) {
 	GIT2_CALL(git_remote_push(remote_object.get(), &refspec, &push_options), "Failed to push");
 
 	godot::UtilityFunctions::print("GitPlugin: Push ended");
+        is_operation_running = false;
+    	});
+
 }
 
 bool GitPlugin::_checkout_branch(const godot::String &branch_name) {
