@@ -9,9 +9,9 @@ env:
 
 jobs:
   linux-x64:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           submodules: recursive
       - name: Setup Godot build cache
@@ -24,7 +24,7 @@ jobs:
           pip3 install --user scons
           scons platform=linux target=editor generate_bindings=yes -j $(nproc)
           ldd demo/addons/godot-git-plugin/linux/*.so
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@v4
         with:
           name: libgit_plugin.linux.x86_64.editor.so-${{ github.sha }}
           if-no-files-found: error
@@ -32,9 +32,9 @@ jobs:
             demo/
 
   windows-x64:
-    runs-on: windows-2019
+    runs-on: windows-2022
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           submodules: recursive
       - name: Setup Godot build cache
@@ -51,7 +51,7 @@ jobs:
           pip3 install --user scons
           scons platform=windows target=editor generate_bindings=yes -j $env:NUMBER_OF_PROCESSORS
           dumpbin /dependents .\demo\addons\godot-git-plugin\win64\*.dll
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@v4
         with:
           name: libgit_plugin.windows.x86_64.editor.dll-${{ github.sha }}
           if-no-files-found: error
@@ -59,9 +59,9 @@ jobs:
             demo/
 
   macos-universal:
-    runs-on: macos-11
+    runs-on: macos-15
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           submodules: recursive
       - name: Setup Godot build cache
@@ -70,10 +70,10 @@ jobs:
           cache-name: macos-universal
       - name: build-macos-editor-universal
         run: |
-          brew install scons
-          scons platform=macos target=editor generate_bindings=yes macos_arch=universal use_llvm=yes macos_deployment_target=10.13 -j $(sysctl -n hw.logicalcpu)
+          brew install scons openssl
+          scons platform=macos target=editor generate_bindings=yes macos_arch=universal use_llvm=yes macos_deployment_target=10.13 macos_openssl=$(brew --prefix openssl)/ -j $(sysctl -n hw.logicalcpu)
           otool -L demo/addons/godot-git-plugin/macos/*.dylib
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@v4
         with:
           name: libgit_plugin.macos.universal.editor.dylib-${{ github.sha }}
           if-no-files-found: error
