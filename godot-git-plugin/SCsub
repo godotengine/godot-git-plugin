@@ -43,9 +43,7 @@ elif env["platform"] == "windows":
 
 env.Append(CPPPATH=[".", "src/"])
 
-env.Append(CPPPATH=["../thirdparty/git2/libgit2/include/"])
-env.Append(LIBPATH=["../thirdparty/bin/"])
-env.Prepend(LIBS=["git2", "ssh2"])
+env.Append(CPPPATH=["#thirdparty/git2/libgit2/include/"])
 
 lib_sources = Glob("src/*.cpp")
 env.Depends(lib_sources, ssl)

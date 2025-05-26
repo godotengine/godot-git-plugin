@@ -2,7 +2,7 @@
 	path = godot-cpp
 	url = https://github.com/godotengine/godot-cpp
 	branch = 3.x
-[submodule "libgit2"]
+[submodule "thirdparty/git2/libgit2"]
 	path = thirdparty/git2/libgit2
 	url = https://github.com/libgit2/libgit2
 	ignore = untracked

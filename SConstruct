@@ -23,21 +23,25 @@ if ARGUMENTS.get("custom_api_file", "") != "":
 
 ARGUMENTS["target"] = "editor"
 env = SConscript("godot-cpp/SConstruct").Clone()
+env.PrependENVPath("PATH", os.getenv("PATH"))  # Prepend PATH, done upstream in recent godot-cpp verions.
 
 # OpenSSL Builder
 env.Tool("openssl", toolpath=["tools"])
 
+# SSH2 Builder
+env.Tool("cmake", toolpath=["tools"])
+env.Tool("ssh2", toolpath=["tools"])
+env.Tool("git2", toolpath=["tools"])
+
 opts.Update(env)
 
-if env["platform"] != "windows":  # Windows does not need OpenSSL
-    ssl = env.OpenSSL()
-else:
-    ssl = []
+ssl = env.OpenSSL()
+ssh2 = env.BuildSSH2(ssl)
+ssl += ssh2
+git2 = env.BuildGIT2(ssl)
 
 Export("ssl")
 Export("env")
-
-SConscript("thirdparty/SCsub")
 
 SConscript("godot-git-plugin/SCsub")
 
