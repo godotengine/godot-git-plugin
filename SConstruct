@@ -29,22 +29,19 @@ env.PrependENVPath("PATH", os.getenv("PATH"))  # Prepend PATH, done upstream in 
 if env["platform"] == "windows" and env.get("is_msvc", False):
     env.AppendUnique(LINKFLAGS=["/LTCG"])
 
-# OpenSSL Builder
-env.Tool("openssl", toolpath=["tools"])
-
-# SSH2 Builder
 env.Tool("cmake", toolpath=["tools"])
+env.Tool("mbedtls", toolpath=["tools"])
 env.Tool("ssh2", toolpath=["tools"])
 env.Tool("git2", toolpath=["tools"])
 
 opts.Update(env)
 
-ssl = env.OpenSSL()
-ssh2 = env.BuildSSH2(ssl)
-ssl += ssh2
-git2 = env.BuildGIT2(ssl)
+mbedtls = env.BuildMbedTLS()
+ssh2 = env.BuildSSH2(mbedtls)
+mbedtls += ssh2
+git2 = env.BuildGIT2(mbedtls)
 
-Export("ssl")
+Export("mbedtls")
 Export("env")
 
 SConscript("godot-git-plugin/SCsub")
