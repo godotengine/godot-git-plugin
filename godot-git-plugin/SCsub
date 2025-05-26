@@ -4,6 +4,7 @@ import os
 
 env = {}
 Import("env")
+Import("ssl")
 
 # Process some arguments
 if env["use_llvm"]:
@@ -24,8 +25,6 @@ if env["platform"] == "macos":
     env["target_path"] += "macos/"
 
     # Force static linkage (https://stackoverflow.com/a/2995999/7370948)
-    env.Append(LIBS=[File(env["macos_openssl_static_ssl"]),
-                     File(env["macos_openssl_static_crypto"])])
 
     if env["macos_deployment_target"] != "default":
         env.Append(CCFLAGS=["-mmacosx-version-min=" +
@@ -35,8 +34,6 @@ if env["platform"] == "macos":
 
 elif env["platform"] == "linux":
     env["target_path"] += "linux/"
-    env.Append(LIBS=[File(env["linux_openssl_static_ssl"]),
-                     File(env["linux_openssl_static_crypto"])])
 
 elif env["platform"] == "windows":
     env["target_path"] += "win64/"
@@ -50,9 +47,11 @@ env.Append(CPPPATH=["../thirdparty/git2/libgit2/include/"])
 env.Append(LIBPATH=["../thirdparty/bin/"])
 env.Prepend(LIBS=["git2", "ssh2"])
 
+lib_sources = Glob("src/*.cpp")
+env.Depends(lib_sources, ssl)
 library = env.SharedLibrary(
     target=env["target_path"] +
     "{}{}{}".format(env["target_name"], env["suffix"], env["SHLIBSUFFIX"]),
-    source=Glob("src/*.cpp")
+    source=lib_sources
 )
 Default(library)

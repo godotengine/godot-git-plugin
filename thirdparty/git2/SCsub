@@ -3,6 +3,7 @@
 # Adopted from https://github.com/goostengine/goost/blob/20d8ce4c7d74c26832d69283305b25a72165784a/modules/git/SCsub
 
 Import("env")
+Import("ssl")
 
 env_git = env.Clone()
 
@@ -125,11 +126,6 @@ if env_git["platform"] in ["linux", "macos"]:
             "UNICODE_BUILTIN"
         ]
     )
-
-if env_git["platform"] == "macos":
-    env_git.Prepend(CPPPATH=[env_git["macos_openssl"] + "include/"])
-    static_ssl = File(env_git["macos_openssl_static_ssl"])
-    static_crypto = File(env_git["macos_openssl_static_crypto"])
-    env_git.Append(LIBS=[static_ssl, static_crypto])
+    env_git.Depends(libgit2_sources, ssl)
 
 env_git.StaticLibrary(target="../bin/" + "git2", source=libgit2_sources)
