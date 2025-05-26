@@ -53,6 +53,8 @@ def build_library(env, deps):
 
     env.Append(CPPPATH=["#thirdparty/git2/libgit2/include"])
     env.Prepend(LIBS=git2[1:])
+    if env["platform"] == "windows":
+        env.PrependUnique(LIBS=["secur32"])
 
     return git2
 
