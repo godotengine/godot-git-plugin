@@ -19,10 +19,10 @@ jobs:
         with:
           cache-name: linux-x86_64
         continue-on-error: true
-      - name: build-linux-editor-x64
+      - name: Build for Linux editor x86_64
         run: |
-          pip3 install --user scons
-          scons platform=linux target=editor generate_bindings=yes -j $(nproc)
+          pip3 install scons
+          scons platform=linux target=editor generate_bindings=yes
           ldd demo/addons/godot-git-plugin/linux/*.so
       - uses: actions/upload-artifact@v4
         with:
@@ -41,16 +41,13 @@ jobs:
         uses: ./godot-cpp/.github/actions/godot-cache
         with:
           cache-name: windows-x86_64
-      - uses: actions/setup-python@v2
-        with:
-          python-version: "3.x"
-          architecture: "x64"
-      - uses: ilammy/msvc-dev-cmd@v1
+      - uses: ilammy/msvc-dev-cmd@v1  # For dumpbin.
       - uses: ilammy/setup-nasm@v1
-      - name: build-windows-editor-x64
+      - name: Build for Windows editor x86_64
+        shell: powershell
         run: |
-          pip3 install --user scons
-          scons platform=windows target=editor generate_bindings=yes -j $env:NUMBER_OF_PROCESSORS
+          pip3 install scons
+          scons platform=windows target=editor generate_bindings=yes
           dumpbin /dependents .\demo\addons\godot-git-plugin\win64\*.dll
       - uses: actions/upload-artifact@v4
         with:
@@ -69,10 +66,10 @@ jobs:
         uses: ./godot-cpp/.github/actions/godot-cache
         with:
           cache-name: macos-universal
-      - name: build-macos-editor-universal
+      - name: Build for macOS editor universal
         run: |
           brew install scons openssl
-          scons platform=macos target=editor generate_bindings=yes macos_arch=universal use_llvm=yes macos_deployment_target=10.13 macos_openssl=$(brew --prefix openssl)/ -j $(sysctl -n hw.logicalcpu)
+          scons platform=macos target=editor generate_bindings=yes macos_arch=universal use_llvm=yes macos_deployment_target=10.13 macos_openssl=$(brew --prefix openssl)/
           otool -L demo/addons/godot-git-plugin/macos/*.dylib
       - uses: actions/upload-artifact@v4
         with:
