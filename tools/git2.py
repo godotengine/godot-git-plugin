@@ -26,7 +26,7 @@ def build_library(env, deps):
         "LIBSSH2_INCLUDE_DIR": env.Dir("#thirdparty/ssh2/libssh2/include").abspath,
         "LIBSSH2_LIBRARY": deps[-1],
         "USE_WINHTTP": 0,
-        "STATIC_CRT": 0,
+        "STATIC_CRT": env.get("use_static_cpp", True),
     }
 
     if env["platform"] != "windows":
