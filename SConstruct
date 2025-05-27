@@ -25,6 +25,10 @@ ARGUMENTS["target"] = "editor"
 env = SConscript("godot-cpp/SConstruct").Clone()
 env.PrependENVPath("PATH", os.getenv("PATH"))  # Prepend PATH, done upstream in recent godot-cpp verions.
 
+# Force linking with LTO on windows MSVC, silence the linker complaining that libgit uses LTO but we are not linking with it.
+if env["platform"] == "windows" and env.get("is_msvc", False):
+    env.AppendUnique(LINKFLAGS=["/LTCG"])
+
 # OpenSSL Builder
 env.Tool("openssl", toolpath=["tools"])
 
