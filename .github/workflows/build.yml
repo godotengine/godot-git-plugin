@@ -22,7 +22,7 @@ jobs:
       - name: Build for Linux editor x86_64
         run: |
           pip3 install scons
-          scons platform=linux target=editor generate_bindings=yes
+          scons platform=linux arch=x86_64 target=editor generate_bindings=yes
           ldd demo/addons/godot-git-plugin/linux/*.so
       - uses: actions/upload-artifact@v4
         with:
@@ -47,7 +47,7 @@ jobs:
         shell: powershell
         run: |
           pip3 install scons
-          scons platform=windows target=editor generate_bindings=yes
+          scons platform=windows arch=x86_64 target=editor generate_bindings=yes
           dumpbin /dependents .\demo\addons\godot-git-plugin\win64\*.dll
       - uses: actions/upload-artifact@v4
         with:
@@ -68,8 +68,8 @@ jobs:
           cache-name: macos-universal
       - name: Build for macOS editor universal
         run: |
-          brew install scons openssl
-          scons platform=macos target=editor generate_bindings=yes macos_arch=universal use_llvm=yes macos_deployment_target=10.13 macos_openssl=$(brew --prefix openssl)/
+          pip install scons
+          scons platform=macos arch=universal target=editor generate_bindings=yes macos_deployment_target=10.13
           otool -L demo/addons/godot-git-plugin/macos/*.dylib
       - uses: actions/upload-artifact@v4
         with:
