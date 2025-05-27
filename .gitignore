@@ -1,9 +1,6 @@
 # SConstruct db
 *.dblite
 
-# Godot ignores
-demo/.godot/
-
 # Godot Serialisations
 extension_api.json
 !/ci/extension_api.json
@@ -34,3 +31,7 @@ win64/
 *.ilk
 *.pdb
 *.pyc
+*.zip
+
+# Misc
+*.log

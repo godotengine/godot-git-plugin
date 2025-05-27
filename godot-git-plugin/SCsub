@@ -6,38 +6,21 @@ env = {}
 Import("env")
 Import("ssl")
 
-# Process some arguments
-if env["use_llvm"]:
-    env["CC"] = "clang"
-    env["CXX"] = "clang++"
-
-if env["platform"] == "":
-    print("No valid target platform selected.")
-    quit()
-
 env["target_path"] = "../" + env["target_path"]
 
 if not os.path.isdir(env["target_path"]):
     os.mkdir(env["target_path"])
 
 # Check our platform specifics
+env["target_path"] += env["platform"] + "/"
+
 if env["platform"] == "macos":
-    env["target_path"] += "macos/"
-
-    # Force static linkage (https://stackoverflow.com/a/2995999/7370948)
-
     if env["macos_deployment_target"] != "default":
         env.Append(CCFLAGS=["-mmacosx-version-min=" +
                             env["macos_deployment_target"]])
         env.Append(LINKFLAGS=["-mmacosx-version-min=" +
                               env["macos_deployment_target"]])
-
-elif env["platform"] == "linux":
-    env["target_path"] += "linux/"
-
 elif env["platform"] == "windows":
-    env["target_path"] += "win64/"
-
     env.Append(LIBS=["advapi32", "winhttp", "rpcrt4", "crypt32",
                "ole32", "user32", "wsock32", "ws2_32", "bcrypt"])
 

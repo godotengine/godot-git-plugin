@@ -2,8 +2,8 @@
 
 import os
 
-EnsureSConsVersion(3, 0, 0)
-EnsurePythonVersion(3, 5)
+EnsureSConsVersion(3, 1, 2)
+EnsurePythonVersion(3, 6)
 
 opts = Variables([], ARGUMENTS)
 
@@ -11,7 +11,7 @@ env = Environment(ENV=os.environ)
 
 # Define our options
 opts.Add(PathVariable("target_path",
-         "The path where the lib is installed.", "demo/addons/godot-git-plugin/"))
+         "The path where the lib is installed.", "addons/godot-git-plugin/"))
 opts.Add(PathVariable("target_name", "The library name.",
          "libgit_plugin", PathVariable.PathAccept))
 
