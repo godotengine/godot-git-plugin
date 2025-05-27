@@ -19,11 +19,7 @@ extension_api.json
 
 # Binaries
 __pycache__/
-build/
-bin/
-macos/
-linux/
-win64/
+/bin/
 *.lib
 *.a
 *.obj

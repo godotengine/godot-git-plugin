@@ -23,7 +23,7 @@ def build_library(env, deps):
         "USE_SHA1": "mbedTLS",
         "BUILD_SHARED_LIBS": 0,
         "LINK_WITH_STATIC_LIBRARIES": 1,
-        "LIBSSH2_INCLUDE_DIR": env.Dir("#thirdparty/ssh2/libssh2/include").abspath,
+        "LIBSSH2_INCLUDE_DIR": env.Dir("#thirdparty/libssh2/include").abspath,
         "LIBSSH2_LIBRARY": deps[-1],
         "USE_WINHTTP": 0,
         "STATIC_CRT": env.get("use_static_cpp", True),
@@ -31,28 +31,38 @@ def build_library(env, deps):
 
     if env["platform"] != "windows":
         config["CMAKE_C_FLAGS"] = "-fPIC"
+    elif env.get("is_msvc", False):
+        # For some reasons, libgit2 doesn't respect the linker flags
+        link_arch = {
+            "x86_64": "X64",
+            "x86_32": "X86",
+            "arm64": "ARM64",
+        }[env["arch"]]
+        #config["CMAKE_STATIC_LIBRARY_OPTIONS"] = "/MACHINE:" + link_arch
+        #config["CMAKE_STATIC_LIBRARY_FLAGS"] = "/MACHINE:" + link_arch
+        #config["CMAKE_STATIC_LINKER_FLAGS"] = "/MACHINE:" + link_arch
+        #config["CMAKE_MODULE_LINKER_FLAGS"] = "/MACHINE:" + link_arch
+        #config["CMAKE_LINK_OPTIONS"] = "/MACHINE:" + link_arch
+        #config["CMAKE_LINK_FLAGS"] = "/MACHINE:" + link_arch
 
     is_msvc = env.get("is_msvc", False)
     lib_ext = ".lib" if is_msvc else ".a"
     lib_prefix = "" if is_msvc else "lib"
     libs = ["{}git2{}".format(lib_prefix, lib_ext)]
 
-    source = env.Dir("#thirdparty/git2/libgit2").abspath
-    target = env.Dir("#bin/thirdparty/libgit2").abspath
-
     git2 = env.CMakeBuild(
-        "#bin/thirdparty/git2/",
-        "#thirdparty/git2/libgit2",
+        env.Dir("bin/thirdparty/libgit2/"),
+        env.Dir("thirdparty/libgit2"),
         cmake_options=config,
         cmake_outputs=libs,
         cmake_targets=[],
         dependencies=deps,
     )
 
-    env.Append(CPPPATH=["#thirdparty/git2/libgit2/include"])
+    env.Append(CPPPATH=[env.Dir("thirdparty/libgit2/include")])
     env.Prepend(LIBS=git2[1:])
     if env["platform"] == "windows":
-        env.PrependUnique(LIBS=["secur32"])
+        env.PrependUnique(LIBS=["secur32", "advapi32"])
 
     return git2
 

@@ -21,20 +21,19 @@ def build_library(env, deps):
     lib_ext = ".lib" if is_msvc else ".a"
     libs = ["src/libssh2{}".format(lib_ext)]
 
-    source = env.Dir("#thirdparty/ssh2/libssh2").abspath
-    target = env.Dir("#bin/thirdparty/libssh2").abspath
-
     ssh2 = env.CMakeBuild(
-        "#bin/thirdparty/ssh2/",
-        "#thirdparty/ssh2/libssh2",
+        env.Dir("bin/thirdparty/libssh2/"),
+        env.Dir("thirdparty/libssh2"),
         cmake_options=config,
         cmake_outputs=libs,
         cmake_targets=[],
         dependencies=deps,
     )
 
-    env.Append(CPPPATH=["#thirdparty/ssh2/libssh2/include"])
+    env.Append(CPPPATH=[env.Dir("thirdparty/libssh2/include")])
     env.Prepend(LIBS=ssh2[1:])
+    if env["platform"] == "windows":
+        env.PrependUnique(LIBS=["user32"])
 
     return ssh2
 
