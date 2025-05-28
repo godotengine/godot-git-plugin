@@ -6,6 +6,7 @@
 #include "git_wrappers.h"
 
 #include "godot_cpp/classes/editor_vcs_interface.hpp"
+#include "godot_cpp/classes/editor_plugin.hpp"
 #include "git2.h"
 
 struct Credentials {
@@ -18,6 +19,8 @@ struct Credentials {
 
 class GitPlugin : public godot::EditorVCSInterface {
 	GDCLASS(GitPlugin, godot::EditorVCSInterface);
+
+	godot::TypedArray<godot::Dictionary> _parse_diff(git_diff *p_diff);
 
 protected:
 	static void _bind_methods();
@@ -33,6 +36,8 @@ public:
 	GitPlugin();
 
 	// Endpoints
+	void _attach_ui(godot::EditorPlugin *vcs_plugin_editor_plugin);
+	void _remove_ui(godot::EditorPlugin *vcs_plugin_editor_plugin);
 	bool _initialize(const godot::String &project_path) override;
 	void _set_credentials(const godot::String &username, const godot::String &password, const godot::String &ssh_public_key_path, const godot::String &ssh_private_key_path, const godot::String &ssh_passphrase) override;
 	godot::TypedArray<godot::Dictionary> _get_modified_files_data() override;
@@ -57,9 +62,6 @@ public:
 	void _fetch(const godot::String &remote) override;
 	godot::TypedArray<godot::Dictionary> _get_line_diff(const godot::String &file_path, const godot::String &text) override;
 
-	// Helpers
-	godot::TypedArray<godot::Dictionary> _parse_diff(git_diff *p_diff);
 	bool check_errors(int error, godot::String function, godot::String file, int line, godot::String message, const std::vector<git_error_code> &ignores = {});
 	void create_gitignore_and_gitattributes();
-	bool create_initial_commit();
 };
