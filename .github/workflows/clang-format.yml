@@ -12,4 +12,4 @@ jobs:
         with:
           source: "godot-git-plugin/src"
           extensions: "h,cpp"
-          clangFormatVersion: 11
+          clangFormatVersion: 18
