@@ -27,6 +27,8 @@ def build_library(env, deps):
         "LIBSSH2_LIBRARY": deps[-1],
         "USE_WINHTTP": 0,
         "STATIC_CRT": env.get("use_static_cpp", True),
+        "CMAKE_DISABLE_FIND_PACKAGE_ZLIB": 1,
+        "CMAKE_DISABLE_FIND_PACKAGE_OPENSSL": 1,
     }
 
     if env["platform"] != "windows":
