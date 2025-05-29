@@ -1,0 +1,6 @@
+{
+	"enabled_classes": [
+		"EditorVCSInterface",
+		"OS"
+	]
+}

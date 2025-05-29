@@ -1,0 +1,216 @@
+name: 📊 Static Checks -> 🔧 Build -> 📦 Package
+on: [push, pull_request]
+
+env:
+  # Only used for the cache key. Increment version to force clean build.
+  GODOT_BASE_BRANCH: master
+  SCONS_CACHE: ${{ github.workspace }}/.scons-cache/
+  ANDROID_SDK_ROOT: /usr/local/lib/android/sdk/
+
+jobs:
+  static-checks:
+    name: 📊 Static Checks
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: DoozyX/clang-format-lint-action@v0.18.2
+        with:
+          source: "src"
+          extensions: "h,cpp"
+          clangFormatVersion: 18
+
+  build:
+    runs-on: ${{ matrix.os }}
+    name: 🔧 Build
+    needs: static-checks
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # Anrdoid
+          - platform: android
+            arch: 'x86_64'
+            sconsflags: ''
+            os: 'ubuntu-22.04'
+            cache-name: android-x86_64
+          - platform: android
+            arch: 'arm64'
+            sconsflags: ''
+            os: 'ubuntu-22.04'
+            cache-name: android-arm64
+
+          # Linux
+          - platform: linux
+            arch: x86_32
+            buildroot: i686-godot-linux-gnu_sdk-buildroot
+            sconsflags: ""
+            os: ubuntu-22.04
+            cache-name: linux-x86_32
+          - platform: linux
+            arch: x86_64
+            buildroot: x86_64-godot-linux-gnu_sdk-buildroot
+            sconsflags: ""
+            os: ubuntu-22.04
+            cache-name: linux-x86_64
+          - platform: linux
+            arch: arm32
+            buildroot: arm-godot-linux-gnueabihf_sdk-buildroot
+            sconsflags: ""
+            os: ubuntu-22.04
+            cache-name: linux-arm32
+          - platform: linux
+            arch: arm64
+            buildroot: aarch64-godot-linux-gnu_sdk-buildroot
+            sconsflags: ""
+            os: ubuntu-22.04
+            cache-name: linux-arm64
+
+          # macOS
+          - platform: macos
+            arch: universal
+            sconsflags: ""
+            os: macos-latest
+            cache-name: macos-universal
+
+          # Windows
+          - platform: windows
+            arch: x86_32
+            msvc-arch: x86
+            sconsflags: ""
+            os: windows-latest
+            cache-name: win-x86_32
+          - platform: windows
+            arch: x86_64
+            msvc-arch: x64
+            sconsflags: ""
+            os: windows-latest
+            cache-name: win-x86_64
+          - platform: windows
+            arch: arm64
+            msvc-arch: amd64_arm64
+            sconsflags: ""
+            os: windows-latest
+            cache-name: win-arm64
+
+    env:
+      SCONSFLAGS: ${{ matrix.sconsflags }} platform=${{ matrix.platform }} arch=${{ matrix.arch }} debug_symbols=no
+
+    defaults:
+      run:
+        shell: bash
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Setup Godot build cache
+        uses: ./godot-cpp/.github/actions/godot-cache
+        with:
+          cache-name: ${{ matrix.cache-name }}
+        continue-on-error: true
+
+      - name: Install Linux build dependencies
+        if: ${{ matrix.platform == 'linux' }}
+        run: |
+          sudo apt-get update
+          sudo apt-get install build-essential gcc-multilib g++-multilib wget
+
+      - name: Setup Linux buildroot toolchain cache
+        if: ${{ matrix.platform == 'linux' }}
+        uses: actions/cache@v4
+        with:
+          path: |
+            ${{ matrix.buildroot }}.tar.bz2
+          key: linux-${{ matrix.buildroot }}-buildroot
+
+      - name: Setup Android dependencies
+        if: ${{ matrix.platform  == 'android' }}
+        uses: nttld/setup-ndk@v1
+        with:
+          ndk-version: r23c
+          link-to-sdk: true
+
+      - name: Set up Python 3.x
+        uses: actions/setup-python@v5
+        with:
+          python-version: 3.x
+          architecture: x64
+
+      - name: Configuring Python packages
+        run: |
+          python -c "import sys; print(sys.version)"
+          python -m pip install scons
+
+      - name: Apply build profile patches
+        run: |
+          patch -p1 < misc/patches/build_profile.diff
+
+      - name: Setup Linux toolchains
+        if: ${{ matrix.platform == 'linux' }}
+        run: |
+          if [ ! -f ${{ matrix.buildroot }}.tar.bz2 ]; then
+            wget https://github.com/godotengine/buildroot/releases/download/godot-2023.08.x-4/${{ matrix.buildroot }}.tar.bz2
+          fi
+          tar -xjf ${{ matrix.buildroot }}.tar.bz2
+          ${{ matrix.buildroot }}/relocate-sdk.sh
+          rm ${{ matrix.buildroot }}/bin/cmake
+          echo "$GITHUB_WORKSPACE/${{ matrix.buildroot }}/bin" >> $GITHUB_PATH
+          echo "PKG_CONFIG=$GITHUB_WORKSPACE/${{ matrix.buildroot }}/share/pkgconfig/" >> $GITHUB_ENV
+
+      - name: Use updated windows tools, patch libgit2.
+        if: ${{ matrix.platform == 'windows' }}
+        run: |
+          rm /usr/bin/link  # GNU linkker conflicts with MSVC linkes
+          patch -p1 < misc/patches/libgit_linker_flags.diff
+          cp misc/patches/windows.py godot-cpp/tools/windows.py
+          cp misc/patches/common_compiler_flags.py godot-cpp/tools/common_compiler_flags.py
+
+      - name: Print tools versions
+        run: |
+          python --version
+          scons --version
+          cmake --version
+
+      - name: Compile Extension - editor - ${{ matrix.platform }} - ${{ matrix.arch }}
+        run: |
+          scons target=editor build_profile=build_profile.json
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ github.job }}-${{ matrix.platform }}-${{ matrix.arch }}
+          path: |
+            bin/addons/godot-git-plugin/
+
+  package:
+    name: 📦 Package
+    needs: build
+    runs-on: "ubuntu-latest"
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Bundle licenses.
+        run: |
+          cp LICENSE artifacts/LICENSE.godot-git-plugin
+          cp thirdparty/libgit2/COPYING artifacts/LICENSE.libgit2
+          cp thirdparty/libssh2/COPYING artifacts/LICENSE.libssh2
+          cp thirdparty/mbedtls/LICENSE artifacts/LICENSE.mbedtls
+
+      - name: Package artifacts for release
+        env:
+          DESTINATION: "release"
+        run: |
+          mkdir release
+          ./misc/scripts/package_release.sh
+          ls -R release
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: godot-git-plugin
+          path: release
