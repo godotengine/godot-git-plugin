@@ -4,7 +4,7 @@ import os
 
 env = {}
 Import("env")
-Import("ssl")
+Import("mbedtls")
 
 env["target_path"] = "../" + env["target_path"]
 
@@ -29,7 +29,7 @@ env.Append(CPPPATH=[".", "src/"])
 env.Append(CPPPATH=["#thirdparty/git2/libgit2/include/"])
 
 lib_sources = Glob("src/*.cpp")
-env.Depends(lib_sources, ssl)
+env.Depends(lib_sources, mbedtls)
 library = env.SharedLibrary(
     target=env["target_path"] +
     "{}{}{}".format(env["target_name"], env["suffix"], env["SHLIBSUFFIX"]),
