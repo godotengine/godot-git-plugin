@@ -1,0 +1,59 @@
+name: Feature request
+description: Request a new feature to be added or improved in Godot Git Plugin
+labels:
+  - enhancement
+body:
+
+- type: markdown
+  attributes:
+    value: |
+      - Write a descriptive issue title above.
+      - Search [open](https://github.com/godotengine/godot-git-plugin/issues) and [closed](https://github.com/godotengine/godot-git-plugin/issues?q=is%3Aissue+is%3Aclosed) issues to ensure it has not already been reported.
+      - Verify that you are using a [supported Godot version](https://docs.godotengine.org/en/stable/about/release_policy.html).
+      - This repository only contains the Git integration. Issues pertaining to the Godot editor itself or the general version control UI should be reported on the [main Godot repository](https://github.com/godotengine/godot/issues).
+
+- type: input
+  attributes:
+    label: Godot version
+    description: >
+      Specify the Git commit hash if using a development or non-official build.
+      If you use a custom build, please test if your issue is reproducible in official builds too.
+    placeholder: 4.4.1.stable, 4.5.dev4 (209a446e3)
+  validations:
+    required: true
+
+- type: input
+  attributes:
+    label: Godot Git Plugin version
+    description: >
+      Specify the Git commit hash if using a development or non-official build.
+      If you use a custom build, please test if your issue is reproducible in official builds too.
+    placeholder: "3.2.0"
+  validations:
+    required: true
+
+- type: input
+  attributes:
+    label: System information
+    description: |
+      Specify the OS version, and when relevant hardware information.
+    placeholder: Windows 10
+  validations:
+    required: true
+
+- type: textarea
+  attributes:
+    label: Problem statement
+    description: |
+      Describe the problem or limitation you're currently facing with the Godot Git Plugin.
+  validations:
+    required: true
+
+- type: textarea
+  attributes:
+    label: Proposed solution
+    description: |
+      Describe your proposed solution and how it resolves the problem or limitation mentioned above.
+      You can include images or videos with drag and drop, and format code blocks or logs with <code>```</code> tags.
+  validations:
+    required: true
