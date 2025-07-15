@@ -6,5 +6,6 @@ compatibility_minimum = "4.2.0"
 [libraries]
 
 linux.editor.x86_64 = "linux/libgit_plugin.linux.editor.x86_64.so"
+linux.editor.arm64 = "linux/libgit_plugin.linux.editor.arm64.so"
 macos.editor = "macos/libgit_plugin.macos.editor.universal.dylib"
 windows.editor.x86_64 = "windows/libgit_plugin.windows.editor.x86_64.dll"
