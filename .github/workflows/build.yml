@@ -1,6 +1,6 @@
 name: C/C++ CI
 
-on: [push, pull_request]
+on: [push, pull_request, workflow_dispatch]
 
 env:
   # Only used for the cache key. Increment version to force clean build.
@@ -31,6 +31,32 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: libgit_plugin.linux.x86_64.editor.so-${{ github.sha }}
+          if-no-files-found: error
+          path: |
+            out/
+  linux-arm:
+    runs-on: ubuntu-22.04-arm
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - name: Setup Godot build cache
+        uses: ./godot-cpp/.github/actions/godot-cache
+        with:
+          cache-name: linux-arm
+        continue-on-error: true
+      - name: Build for Linux editor arm
+        run: |
+          pip3 install scons
+          scons platform=linux arch=aarch64 target=editor generate_bindings=yes
+          ldd addons/godot-git-plugin/linux/*.so
+      - name: Prepare artifact
+        run: |
+          mkdir out
+          mv addons out/
+      - uses: actions/upload-artifact@v4
+        with:
+          name: libgit_plugin.linux.aarch64.editor.so-${{ github.sha }}
           if-no-files-found: error
           path: |
             out/
