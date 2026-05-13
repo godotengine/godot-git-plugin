@@ -624,44 +624,17 @@ godot::TypedArray<godot::Dictionary> GitPlugin::_get_diff(const godot::String &i
 
 godot::TypedArray<godot::Dictionary> GitPlugin::_parse_diff(git_diff *diff) {
 	godot::TypedArray<godot::Dictionary> diff_contents;
-	for (int i = 0; i < git_diff_num_deltas(diff); i++) {
-		const git_diff_delta *delta = git_diff_get_delta(diff, i);
 
-		git_patch_ptr patch;
-		GIT2_CALL_R(git_patch_from_diff(Capture(patch), diff, i), "Could not create patch from diff", godot::TypedArray<godot::Dictionary>());
+	ParseDiffPayload state;
+	state.git_plugin = this;
+	state.diff_contents = &diff_contents;
 
-		godot::Dictionary diff_file = create_diff_file(godot::String::utf8(delta->new_file.path), godot::String::utf8(delta->old_file.path));
+	GIT2_CALL_R(
+			git_diff_foreach(diff, parse_diff_file_cb, parse_diff_binary_cb, parse_diff_hunk_cb, parse_diff_line_cb, &state),
+			"Could not iterate diff",
+			godot::TypedArray<godot::Dictionary>());
 
-		godot::TypedArray<godot::Dictionary> diff_hunks;
-		for (int j = 0; j < git_patch_num_hunks(patch.get()); j++) {
-			const git_diff_hunk *git_hunk;
-			size_t line_count;
-			GIT2_CALL_R(git_patch_get_hunk(&git_hunk, &line_count, patch.get(), j), "Could not get hunk from patch", godot::TypedArray<godot::Dictionary>());
-
-			godot::Dictionary diff_hunk = create_diff_hunk(git_hunk->old_start, git_hunk->new_start, git_hunk->old_lines, git_hunk->new_lines);
-
-			godot::TypedArray<godot::Dictionary> diff_lines;
-			for (int k = 0; k < line_count; k++) {
-				const git_diff_line *git_diff_line;
-				GIT2_CALL_R(git_patch_get_line_in_hunk(&git_diff_line, patch.get(), j, k), "Could not get line from hunk in patch", godot::TypedArray<godot::Dictionary>());
-
-				char *content = new char[git_diff_line->content_len + 1];
-				std::memcpy(content, git_diff_line->content, git_diff_line->content_len);
-				content[git_diff_line->content_len] = '\0';
-
-				godot::String status = " "; // We reserve 1 null terminated space to fill the + or the - character at git_diff_line->origin
-				status[0] = git_diff_line->origin;
-				diff_lines.push_back(create_diff_line(git_diff_line->new_lineno, git_diff_line->old_lineno, godot::String::utf8(content), status));
-
-				delete[] content;
-			}
-
-			diff_hunk = add_line_diffs_into_diff_hunk(diff_hunk, diff_lines);
-			diff_hunks.push_back(diff_hunk);
-		}
-		diff_file = add_diff_hunks_into_diff_file(diff_file, diff_hunks);
-		diff_contents.push_back(diff_file);
-	}
+	state.flush_file();
 	return diff_contents;
 }
 

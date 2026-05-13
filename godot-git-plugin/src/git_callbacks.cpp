@@ -107,3 +107,72 @@ extern "C" int diff_hunk_cb(const git_diff_delta *delta, const git_diff_hunk *ra
 
 	return 1;
 }
+
+void ParseDiffPayload::flush_hunk() {
+	if (!has_current_hunk) {
+		return;
+	}
+	current_hunk = git_plugin->add_line_diffs_into_diff_hunk(current_hunk, current_hunk_lines);
+	current_file_hunks.push_back(current_hunk);
+	has_current_hunk = false;
+	current_hunk = godot::Dictionary();
+	current_hunk_lines = godot::TypedArray<godot::Dictionary>();
+}
+
+void ParseDiffPayload::flush_file() {
+	flush_hunk();
+	if (!has_current_file) {
+		return;
+	}
+	current_file = git_plugin->add_diff_hunks_into_diff_file(current_file, current_file_hunks);
+	diff_contents->push_back(current_file);
+	has_current_file = false;
+	current_file = godot::Dictionary();
+	current_file_hunks = godot::TypedArray<godot::Dictionary>();
+}
+
+extern "C" int parse_diff_file_cb(const git_diff_delta *delta, float progress, void *payload) {
+	(void)progress;
+	ParseDiffPayload *state = (ParseDiffPayload *)payload;
+	state->flush_file();
+	state->current_file = state->git_plugin->create_diff_file(
+			godot::String::utf8(delta->new_file.path),
+			godot::String::utf8(delta->old_file.path));
+	state->has_current_file = true;
+	return 0;
+}
+
+extern "C" int parse_diff_binary_cb(const git_diff_delta *delta, const git_diff_binary *binary, void *payload) {
+	(void)delta;
+	(void)binary;
+	(void)payload;
+	return 0;
+}
+
+extern "C" int parse_diff_hunk_cb(const git_diff_delta *delta, const git_diff_hunk *hunk, void *payload) {
+	(void)delta;
+	ParseDiffPayload *state = (ParseDiffPayload *)payload;
+	state->flush_hunk();
+	state->current_hunk = state->git_plugin->create_diff_hunk(
+			hunk->old_start, hunk->new_start, hunk->old_lines, hunk->new_lines);
+	state->has_current_hunk = true;
+	return 0;
+}
+
+extern "C" int parse_diff_line_cb(const git_diff_delta *delta, const git_diff_hunk *hunk, const git_diff_line *line, void *payload) {
+	(void)delta;
+	(void)hunk;
+	ParseDiffPayload *state = (ParseDiffPayload *)payload;
+
+	char *content = new char[line->content_len + 1];
+	std::memcpy(content, line->content, line->content_len);
+	content[line->content_len] = '\0';
+
+	godot::String status = " ";
+	status[0] = line->origin;
+	state->current_hunk_lines.push_back(state->git_plugin->create_diff_line(
+			line->new_lineno, line->old_lineno, godot::String::utf8(content), status));
+
+	delete[] content;
+	return 0;
+}
