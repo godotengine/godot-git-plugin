@@ -1,4 +1,5 @@
 #include <iostream>
+#include <cstdio>
 #include <cstring>
 
 #include "git_callbacks.h"
@@ -129,6 +130,19 @@ void ParseDiffPayload::flush_file() {
 	has_current_file = false;
 	current_file = godot::Dictionary();
 	current_file_hunks = godot::TypedArray<godot::Dictionary>();
+	current_file_bytes = 0;
+	current_file_lines = 0;
+	current_file_truncated = false;
+}
+
+void ParseDiffPayload::begin_synthetic_truncation_hunk(const char *message) {
+	flush_hunk();
+	current_hunk = git_plugin->create_diff_hunk(0, 0, 0, 0);
+	has_current_hunk = true;
+	godot::String status = " ";
+	current_hunk_lines.push_back(git_plugin->create_diff_line(
+			0, 0, godot::String::utf8(message), status));
+	current_file_truncated = true;
 }
 
 extern "C" int parse_diff_file_cb(const git_diff_delta *delta, float progress, void *payload) {
@@ -152,6 +166,9 @@ extern "C" int parse_diff_binary_cb(const git_diff_delta *delta, const git_diff_
 extern "C" int parse_diff_hunk_cb(const git_diff_delta *delta, const git_diff_hunk *hunk, void *payload) {
 	(void)delta;
 	ParseDiffPayload *state = (ParseDiffPayload *)payload;
+	if (state->current_file_truncated) {
+		return 0;
+	}
 	state->flush_hunk();
 	state->current_hunk = state->git_plugin->create_diff_hunk(
 			hunk->old_start, hunk->new_start, hunk->old_lines, hunk->new_lines);
@@ -163,6 +180,28 @@ extern "C" int parse_diff_line_cb(const git_diff_delta *delta, const git_diff_hu
 	(void)delta;
 	(void)hunk;
 	ParseDiffPayload *state = (ParseDiffPayload *)payload;
+	if (state->current_file_truncated) {
+		return 0;
+	}
+
+	if (state->limits.byte_budget > 0 && state->current_file_bytes + line->content_len > state->limits.byte_budget) {
+		char msg[256];
+		std::snprintf(msg, sizeof(msg),
+				"... diff truncated: %zu KB limit reached. Use an external git client to view the full diff. ...\n",
+				state->limits.byte_budget / 1024);
+		state->begin_synthetic_truncation_hunk(msg);
+		return 0;
+	}
+	if (state->limits.line_budget > 0 && state->current_file_lines >= state->limits.line_budget) {
+		char msg[256];
+		std::snprintf(msg, sizeof(msg),
+				"... diff truncated: %zu-line limit reached. Use an external git client to view the full diff. ...\n",
+				state->limits.line_budget);
+		state->begin_synthetic_truncation_hunk(msg);
+		return 0;
+	}
+	state->current_file_bytes += line->content_len;
+	state->current_file_lines += 1;
 
 	char *content = new char[line->content_len + 1];
 	std::memcpy(content, line->content, line->content_len);

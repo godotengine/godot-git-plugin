@@ -12,9 +12,16 @@ struct DiffHelper {
 	GitPlugin *git_plugin;
 };
 
+struct ParseDiffLimits {
+	size_t byte_budget = 256 * 1024; // Per-file content cap.
+	size_t line_budget = 5000;       // Per-file line cap.
+};
+
 struct ParseDiffPayload {
 	GitPlugin *git_plugin = nullptr;
 	godot::TypedArray<godot::Dictionary> *diff_contents = nullptr;
+
+	ParseDiffLimits limits;
 
 	bool has_current_file = false;
 	godot::Dictionary current_file;
@@ -24,8 +31,13 @@ struct ParseDiffPayload {
 	godot::Dictionary current_hunk;
 	godot::TypedArray<godot::Dictionary> current_hunk_lines;
 
+	size_t current_file_bytes = 0;
+	size_t current_file_lines = 0;
+	bool current_file_truncated = false;
+
 	void flush_hunk();
 	void flush_file();
+	void begin_synthetic_truncation_hunk(const char *message);
 };
 
 extern "C" int progress_cb(const char *str, int len, void *data);
