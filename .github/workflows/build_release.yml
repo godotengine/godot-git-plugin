@@ -1,0 +1,231 @@
+name: 🔧 Build -> Package 📦
+on: [push, pull_request]
+
+env:
+  # Only used for the cache key. Increment version to force clean build.
+  GODOT_BASE_BRANCH: master
+  # LLVM version
+  MINGW_LLVM_VERSION: "20260616"
+  # Hardcoding this seem to be the only way
+  ANDROID_NDK_ROOT: /usr/local/lib/android/sdk/ndk/28.1.13356709/
+
+jobs:
+  build:
+    runs-on: ${{ matrix.os }}
+    name: 🔧 Build
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # Android
+          - platform: android
+            arch: 'x86_64'
+            sconsflags: ''
+            os: 'ubuntu-24.04'
+            cache-name: android-x86_64
+          - platform: android
+            arch: 'arm64'
+            sconsflags: ''
+            os: 'ubuntu-24.04'
+            cache-name: android-arm64
+
+          # Linux
+          - platform: linux
+            arch: 'x86_32'
+            buildroot: 'i686-godot-linux-gnu_sdk-buildroot'
+            sconsflags: ''
+            os: 'ubuntu-24.04'
+            cache-name: linux-x86_32
+          - platform: linux
+            arch: 'x86_64'
+            buildroot: 'x86_64-godot-linux-gnu_sdk-buildroot'
+            sconsflags: ''
+            os: 'ubuntu-24.04'
+            cache-name: linux-x86_64
+          - platform: linux
+            arch: 'arm32'
+            buildroot: 'arm-godot-linux-gnueabihf_sdk-buildroot'
+            sconsflags: ''
+            os: 'ubuntu-24.04'
+            cache-name: linux-arm32
+          - platform: linux
+            arch: 'arm64'
+            buildroot: 'aarch64-godot-linux-gnu_sdk-buildroot'
+            sconsflags: ''
+            os: 'ubuntu-24.04'
+            cache-name: linux-arm64
+
+          # macOS
+          - platform: macos
+            arch: 'universal'
+            sconsflags: ''
+            os: 'macos-latest'
+            cache-name: macos-universal
+
+          # Windows
+          - platform: windows
+            arch: 'x86_32'
+            sconsflags: 'use_mingw=yes'
+            os: 'ubuntu-24.04'
+            cache-name: win-x86_32
+          - platform: windows
+            arch: 'x86_64'
+            sconsflags: 'use_mingw=yes'
+            os: 'ubuntu-24.04'
+            cache-name: win-x86_64
+          - platform: windows
+            arch: 'arm64'
+            sconsflags: 'use_mingw=yes use_llvm=yes'
+            os: 'ubuntu-24.04'
+            cache-name: win-arm64
+
+    env:
+      SCONS_CACHE: ${{ github.workspace }}/.scons-cache/
+      SCONSFLAGS: ${{ matrix.sconsflags }} platform=${{ matrix.platform }} arch=${{ matrix.arch }} build_profile=build_profile.json target=editor api_version=4.3 target_path=out/addons/godot-git-plugin/ --jobs=2
+
+    defaults:
+      run:
+        shell: bash
+
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          submodules: recursive
+
+      - name: Restore Godot build cache
+        uses: ./godot-cpp/.github/actions/godot-cache-restore
+        with:
+          cache-name: ${{ matrix.cache-name }}
+          scons-cache: ${{ env.SCONS_CACHE }}
+        continue-on-error: true
+
+      - name: Setup Windows MinGW toolchain cache
+        if: ${{ matrix.platform == 'windows' && matrix.arch == 'arm64' }}
+        uses: actions/cache@v5
+        with:
+          path: |
+            llvm-mingw-$MINGW_LLVM_VERSION-ucrt-ubuntu-22.04-x86_64.tar.bz2
+          key: llvm-mingw-$MINGW_LLVM_VERSION-ucrt-ubuntu-22.04-x86_64
+
+      - name: Install mingw-LLVM
+        if: ${{ matrix.platform == 'windows' && matrix.arch == 'arm64' }}
+        run: |
+          NAME=llvm-mingw-$MINGW_LLVM_VERSION-ucrt-ubuntu-22.04-x86_64
+          URL="https://github.com/mstorsjo/llvm-mingw/releases/download/$MINGW_LLVM_VERSION/$NAME.tar.xz"
+          if [ ! -f $NAME.bz2 ]; then
+            wget $URL
+          fi
+          tar -xJf $NAME.tar.xz
+          echo "$GITHUB_WORKSPACE/$NAME/bin" >> $GITHUB_PATH
+
+      - name: Install mingw-GCC
+        if: ${{ matrix.platform == 'windows' && matrix.arch != 'arm64' }}
+        run: |
+          sudo apt-get update
+          sudo apt-get install build-essential mingw-w64
+          sudo update-alternatives --set i686-w64-mingw32-gcc /usr/bin/i686-w64-mingw32-gcc-posix
+          sudo update-alternatives --set i686-w64-mingw32-g++ /usr/bin/i686-w64-mingw32-g++-posix
+          sudo update-alternatives --set x86_64-w64-mingw32-gcc /usr/bin/x86_64-w64-mingw32-gcc-posix
+          sudo update-alternatives --set x86_64-w64-mingw32-g++ /usr/bin/x86_64-w64-mingw32-g++-posix
+          dpkg -l | grep ii | grep mingw
+          update-alternatives --get-selections | grep mingw
+
+      - name: Install Linux build dependencies
+        if: ${{ matrix.platform == 'linux' }}
+        run: |
+          sudo apt-get update
+          sudo apt-get install build-essential gcc-multilib g++-multilib wget
+
+      - name: Setup Linux buildroot toolchain cache
+        if: ${{ matrix.platform == 'linux' }}
+        uses: actions/cache@v5
+        with:
+          path: |
+            ${{ matrix.buildroot }}.tar.bz2
+          key: linux-${{ matrix.buildroot }}-buildroot
+
+      - name: Set up Python 3.x
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.x'
+          architecture: 'x64'
+
+      - name: Configuring Python packages
+        run: |
+          python -c "import sys; print(sys.version)"
+          python -m pip install scons
+
+      - name: Setup Linux toolchains
+        if: ${{ matrix.platform == 'linux' }}
+        run: |
+          if [ ! -f ${{ matrix.buildroot }}.tar.bz2 ]; then
+            wget https://github.com/godotengine/buildroot/releases/download/godot-2026.05.x-1/${{ matrix.buildroot }}.tar.bz2
+          fi
+          tar -xjf ${{ matrix.buildroot }}.tar.bz2
+          ${{ matrix.buildroot }}/relocate-sdk.sh
+          rm ${{ matrix.buildroot }}/bin/cmake
+          echo "$GITHUB_WORKSPACE/${{ matrix.buildroot }}/bin" >> $GITHUB_PATH
+          echo "PKG_CONFIG=$GITHUB_WORKSPACE/${{ matrix.buildroot }}/share/pkgconfig/" >> $GITHUB_ENV
+
+      - name: Setup Android dependencies
+        if: ${{ matrix.platform  == 'android' }}
+        uses: nttld/setup-ndk@v1
+        with:
+          ndk-version: r28b
+          link-to-sdk: true
+
+      - name: Print tools versions
+        run: |
+          python --version
+          scons --version
+          cmake --version
+
+      - name: Compile Extension (4.3+) - ${{ matrix.platform }} - ${{ matrix.arch }}
+        run: |
+          scons
+
+      - name: Save Godot build cache
+        uses: ./godot-cpp/.github/actions/godot-cache-save
+        with:
+          cache-name: ${{ matrix.cache-name }}
+          scons-cache: ${{ env.SCONS_CACHE }}
+        continue-on-error: true
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: ${{ github.job }}-${{ matrix.platform }}-${{ matrix.arch }}
+          path: |
+            out/
+
+  package:
+    name: 📦 Package
+    needs: build
+    runs-on: "ubuntu-latest"
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          submodules: recursive
+
+      - uses: actions/download-artifact@v8
+        with:
+          path: artifacts
+
+      - name: Bundle licenses.
+        run: |
+          cp LICENSE artifacts/LICENSE.godot-git-plugin
+          cp thirdparty/mbedtls/LICENSE artifacts/LICENSE.mbedtls
+          cp thirdparty/ssh2/libssh2/COPYING artifacts/LICENSE.libssh2
+          cp thirdparty/git2/libgit2/COPYING artifacts/LICENSE.libgit2
+
+      - name: Package artifacts for release
+        env:
+          DESTINATION: "release"
+        run: |
+          mkdir release
+          ./misc/scripts/package_release.sh
+          ls -R release
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: godot-git-plugin
+          path: release/godot-git-plugin.zip

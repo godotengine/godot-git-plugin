@@ -1,0 +1,18 @@
+[configuration]
+
+entry_symbol = "git_plugin_init"
+compatibility_minimum = "4.3"
+
+[libraries]
+
+android.editor.arm64 = "lib/libgit_plugin.android.editor.arm64.so"
+android.editor.x86_64 = "lib/libgit_plugin.android.editor.x86_64.so"
+linux.editor.arm64 = "lib/libgit_plugin.linux.editor.arm64.so"
+linux.editor.arm32 = "lib/libgit_plugin.linux.editor.arm32.so"
+linux.editor.x86_64 = "lib/libgit_plugin.linux.editor.x86_64.so"
+linux.editor.x86_32 = "lib/libgit_plugin.linux.editor.x86_32.so"
+macos.editor = "lib/libgit_plugin.macos.editor.universal.dylib"
+windows.editor.arm64 = "lib/libgit_plugin.windows.editor.arm64.dll"
+windows.editor.arm32 = "lib/libgit_plugin.windows.editor.arm32.dll"
+windows.editor.x86_64 = "lib/libgit_plugin.windows.editor.x86_64.dll"
+windows.editor.x86_32 = "lib/libgit_plugin.windows.editor.x86_32.dll"

@@ -1,4 +1,4 @@
-name: C/C++ CI
+name: C/C++ CI Tests
 
 on: [push, pull_request]
 
@@ -9,59 +9,6 @@ env:
   SCONS_CACHE: ${{ github.workspace }}/.scons-cache/
 
 jobs:
-  linux-x64:
-    runs-on: ubuntu-24.04
-    env:
-      BUILDROOT: x86_64-godot-linux-gnu_sdk-buildroot
-    steps:
-      - uses: actions/checkout@v6
-        with:
-          submodules: recursive
-      - name: Restore Godot build cache
-        uses: ./godot-cpp/.github/actions/godot-cache-restore
-        with:
-          cache-name: linux-x86_64
-          scons-cache: ${{ env.SCONS_CACHE }}
-        continue-on-error: true
-      - name: Setup Linux buildroot toolchain cache
-        uses: actions/cache@v5
-        with:
-          path: |
-            ${{ env.BUILDROOT }}.tar.bz2
-          key: linux-${{ env.BUILDROOT }}-buildroot
-        continue-on-error: true
-      - name: Setup Linux toolchains
-        run: |
-          if [ ! -f ${{ env.BUILDROOT }}.tar.bz2 ]; then
-            wget https://github.com/godotengine/buildroot/releases/download/godot-2026.05.x-1/${{ env.BUILDROOT }}.tar.bz2
-          fi
-          tar -xjf ${{ env.BUILDROOT }}.tar.bz2
-          ${{ env.BUILDROOT }}/relocate-sdk.sh
-          rm ${{ env.BUILDROOT }}/bin/cmake
-          echo "$GITHUB_WORKSPACE/${{ env.BUILDROOT }}/bin" >> $GITHUB_PATH
-          echo "PKG_CONFIG=$GITHUB_WORKSPACE/${{ env.BUILDROOT }}/share/pkgconfig/" >> $GITHUB_ENV
-      - name: Build for Linux editor x86_64
-        run: |
-          pip3 install scons
-          scons platform=linux arch=x86_64
-          ldd addons/godot-git-plugin/linux/*.so
-      - name: Save Godot build cache
-        uses: ./godot-cpp/.github/actions/godot-cache-save
-        with:
-          cache-name: linux-x86_64
-          scons-cache: ${{ env.SCONS_CACHE }}
-        continue-on-error: true
-      - name: Prepare artifact
-        run: |
-          mkdir out
-          mv addons out/
-      - uses: actions/upload-artifact@v7
-        with:
-          name: libgit_plugin.linux.x86_64.editor.so-${{ github.sha }}
-          if-no-files-found: error
-          path: |
-            out/
-
   windows-x64:
     runs-on: windows-2022
     steps:
@@ -92,46 +39,12 @@ jobs:
         shell: bash
         run: |
           # Not needed to use the plugin.
-          rm -f addons/godot-git-plugin/windows/*.{exp,lib}
+          rm -f addons/godot-git-plugin/lib/*.{exp,lib}
           mkdir out
           mv addons out/
       - uses: actions/upload-artifact@v7
         with:
           name: libgit_plugin.windows.x86_64.editor.dll-${{ github.sha }}
-          if-no-files-found: error
-          path: |
-            out/
-
-  macos-universal:
-    runs-on: macos-latest
-    steps:
-      - uses: actions/checkout@v6
-        with:
-          submodules: recursive
-      - name: Restore Godot build cache
-        uses: ./godot-cpp/.github/actions/godot-cache-restore
-        with:
-          cache-name: macos-universal
-          scons-cache: ${{ env.SCONS_CACHE }}
-        continue-on-error: true
-      - name: Build for macOS editor universal
-        run: |
-          pip install scons
-          scons platform=macos arch=universal macos_deployment_target=10.13
-          otool -L addons/godot-git-plugin/macos/*.dylib
-      - name: Save Godot build cache
-        uses: ./godot-cpp/.github/actions/godot-cache-save
-        with:
-          cache-name: macos-universal
-          scons-cache: ${{ env.SCONS_CACHE }}
-        continue-on-error: true
-      - name: Prepare artifact
-        run: |
-          mkdir out
-          mv addons out/
-      - uses: actions/upload-artifact@v7
-        with:
-          name: libgit_plugin.macos.universal.editor.dylib-${{ github.sha }}
           if-no-files-found: error
           path: |
             out/
