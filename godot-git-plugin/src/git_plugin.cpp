@@ -113,6 +113,8 @@ void GitPlugin::_commit(const godot::String &msg) {
 		GIT2_CALL(git_commit_lookup(Capture(parent_commit), repo.get(), &parent_commit_id), "Could not lookup parent commit data");
 	}
 
+	GIT2_CALL(git_oid_equal(&tree_id, git_commit_tree_id(parent_commit.get())), "Nothing to commit. Please stage your changes first");
+
 	git_oid new_commit_id;
 	if (!has_merge) {
 		GIT2_CALL(
