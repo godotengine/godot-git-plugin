@@ -153,12 +153,20 @@ void GitPlugin::_commit(const godot::String &msg) {
 
 void GitPlugin::_stage_file(const godot::String &file_path) {
 	CString c_path(file_path);
-	char *paths[] = { c_path.data };
-	git_strarray array = { paths, 1 };
 
 	git_index_ptr index;
 	GIT2_CALL(git_repository_index(Capture(index), repo.get()), "Could not get repository index");
-	GIT2_CALL(git_index_add_all(index.get(), &array, GIT_INDEX_ADD_DEFAULT | GIT_INDEX_ADD_DISABLE_PATHSPEC_MATCH, nullptr, nullptr), "Could not add " + file_path + " to index");
+
+	unsigned int status_flags = 0;
+	int status_err = git_status_file(&status_flags, repo.get(), c_path.data);
+	bool deleted_in_workdir = (status_err == 0) && (status_flags & GIT_STATUS_WT_DELETED);
+
+	if (deleted_in_workdir) {
+		GIT2_CALL(git_index_remove_bypath(index.get(), c_path.data), "Could not remove " + file_path + " from index");
+	} else {
+		GIT2_CALL(git_index_add_bypath(index.get(), c_path.data), "Could not add " + file_path + " to index");
+	}
+
 	GIT2_CALL(git_index_write(index.get()), "Could not write changes to disk");
 }
 
@@ -225,7 +233,7 @@ godot::TypedArray<godot::Dictionary> GitPlugin::_get_modified_files_data() {
 	git_status_options opts = GIT_STATUS_OPTIONS_INIT;
 	opts.show = GIT_STATUS_SHOW_INDEX_AND_WORKDIR;
 	opts.flags = GIT_STATUS_OPT_EXCLUDE_SUBMODULES;
-	opts.flags |= GIT_STATUS_OPT_INCLUDE_UNTRACKED | GIT_STATUS_OPT_RENAMES_HEAD_TO_INDEX | GIT_STATUS_OPT_SORT_CASE_SENSITIVELY | GIT_STATUS_OPT_RECURSE_UNTRACKED_DIRS;
+	opts.flags |= GIT_STATUS_OPT_INCLUDE_UNTRACKED | GIT_STATUS_OPT_SORT_CASE_SENSITIVELY | GIT_STATUS_OPT_RECURSE_UNTRACKED_DIRS | GIT_STATUS_OPT_UPDATE_INDEX;
 
 	git_status_list_ptr statuses;
 	GIT2_CALL_R(git_status_list_new(Capture(statuses), repo.get(), &opts), "Could not get status information from repository", godot::TypedArray<godot::Dictionary>());
@@ -248,13 +256,7 @@ godot::TypedArray<godot::Dictionary> GitPlugin::_get_modified_files_data() {
 		}
 
 		if (entry->status & git_status_index) {
-			if (entry->status & GIT_STATUS_INDEX_RENAMED) {
-				godot::String old_path = godot::String::utf8(entry->head_to_index->old_file.path);
-				stats_files.push_back(create_status_file(old_path, map_changes.at(GIT_STATUS_INDEX_DELETED), TREE_AREA_STAGED));
-				stats_files.push_back(create_status_file(path, map_changes.at(GIT_STATUS_INDEX_NEW), TREE_AREA_STAGED));
-			} else {
-				stats_files.push_back(create_status_file(path, map_changes.at(git_status_t(entry->status & git_status_index)), TREE_AREA_STAGED));
-			}
+			stats_files.push_back(create_status_file(path, map_changes.at(git_status_t(entry->status & git_status_index)), TREE_AREA_STAGED));
 		}
 	}
 
