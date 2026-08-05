@@ -1,4 +1,4 @@
-# Third-Party Notices
+# Third-party notices
 
 The Godot Git Plugin source code uses the following third-party source code:
 
@@ -7,7 +7,7 @@ The Godot Git Plugin source code uses the following third-party source code:
 3. libssh2/libssh2 - BSD-3-Clause License - https://github.com/libssh2/libssh2/tree/635caa90787220ac3773c1d5ba11f1236c22eae8
 4. openssl - OpenSSL License - https://github.com/openssl/openssl/tree/aae016bfd52fcad2bc9657c2c782cfdf73b1ed5f
 
-## License Texts
+## License texts
 
 ### godotengine/godot-cpp
 
