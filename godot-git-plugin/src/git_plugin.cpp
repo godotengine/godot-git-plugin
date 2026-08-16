@@ -91,7 +91,7 @@ void GitPlugin::_discard_file(const godot::String &file_path) {
 	GIT2_CALL(git_checkout_index(repo.get(), nullptr, &opts), "Could not checkout index");
 }
 
-void GitPlugin::_commit(const godot::String &msg) {
+void GitPlugin::_commit(const godot::String &msg, bool amend) {
 	git_index_ptr repo_index;
 	GIT2_CALL(git_repository_index(Capture(repo_index), repo.get()), "Could not get repository index");
 
@@ -115,19 +115,33 @@ void GitPlugin::_commit(const godot::String &msg) {
 
 	git_oid new_commit_id;
 	if (!has_merge) {
-		GIT2_CALL(
-				git_commit_create_v(
-						&new_commit_id,
-						repo.get(),
-						"HEAD",
-						default_sign.get(),
-						default_sign.get(),
-						"UTF-8",
-						CString(msg).data,
-						tree.get(),
-						parent_commit.get() ? 1 : 0,
-						parent_commit.get()),
-				"Could not create commit");
+		if (amend) {
+			GIT2_CALL(
+					git_commit_amend(
+							&new_commit_id,
+							parent_commit.get(),
+							"HEAD",
+							default_sign.get(),
+							default_sign.get(),
+							"UTF-8",
+							CString(msg).data,
+							tree.get()),
+					"Could not create amend commit");
+		} else {
+			GIT2_CALL(
+					git_commit_create_v(
+							&new_commit_id,
+							repo.get(),
+							"HEAD",
+							default_sign.get(),
+							default_sign.get(),
+							"UTF-8",
+							CString(msg).data,
+							tree.get(),
+							parent_commit.get() ? 1 : 0,
+							parent_commit.get()),
+					"Could not create commit");
+		}
 	} else {
 		git_commit_ptr fetchhead_commit;
 		GIT2_CALL(git_commit_lookup(Capture(fetchhead_commit), repo.get(), &pull_merge_oid), "Could not lookup commit pointed to by HEAD");
@@ -149,6 +163,10 @@ void GitPlugin::_commit(const godot::String &msg) {
 		has_merge = false;
 		GIT2_CALL(git_repository_state_cleanup(repo.get()), "Could not clean repository state");
 	}
+}
+
+bool GitPlugin::_allow_amends() {
+	return true;
 }
 
 void GitPlugin::_stage_file(const godot::String &file_path) {
