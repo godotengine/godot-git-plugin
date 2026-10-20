@@ -1,20 +1,17 @@
-import os
-
-
-def build_library(env, deps):
+def build_library(env, ssl, ssh2):
     config = {
         "CMAKE_BUILD_TYPE": "RelWithDebInfo" if env["debug_symbols"] else "Release",
-        "OPENSSL_USE_STATIC_LIBS": 1,
-        "OPENSSL_INCLUDE_DIR": env["SSL_INCLUDE"],
-        "OPENSSL_SSL_LIBRARY": env["SSL_LIBRARY"],
-        "OPENSSL_CRYPTO_LIBRARY": env["SSL_CRYPTO_LIBRARY"],
-        "OPENSSL_ROOT_DIR": env["SSL_INSTALL"],
+        "CMAKE_C_STANDARD": "99",
+        "MBEDTLS_LIBRARY": env["MBEDTLS_LIBRARY"],
+        "MBEDCRYPTO_LIBRARY": env["MBEDTLS_CRYPTO_LIBRARY"],
+        "MBEDX509_LIBRARY": env["MBEDTLS_X509_LIBRARY"],
+        "MBEDTLS_INCLUDE_DIR": env["MBEDTLS_INCLUDE"],
         "BUILD_TESTS": "OFF",
         "BUILD_CLI": "OFF",
         "BUILD_EXAMPLES": "OFF",
         "BUILD_FUZZERS": "OFF",
-        "USE_SSH": "ON",
-        "USE_HTTPS": "OpenSSL",
+        "USE_SSH": "libssh2",
+        "USE_HTTPS": "mbedTLS",
         "USE_SHA1": "CollisionDetection",
         "USE_BUNDLED_ZLIB": "ON",
         "USE_HTTP_PARSER": "builtin",
@@ -22,26 +19,18 @@ def build_library(env, deps):
         "BUILD_SHARED_LIBS": 0,
         "LINK_WITH_STATIC_LIBRARIES": 1,
         "LIBSSH2_INCLUDE_DIRS": env.Dir("#thirdparty/ssh2/libssh2/include").abspath,
-        "LIBSSH2_RESOLVED": deps[-1].abspath,
+        "LIBSSH2_RESOLVED": ssh2[-1].abspath,
         "LIBSSH2_LIBRARIES": "LIBSSH2",
         "LIBSSH2_FOUND": 1,
-        "USE_WINHTTP": 0,
+        "CMAKE_POSITION_INDEPENDENT_CODE": "ON",
         "STATIC_CRT": env.get("use_static_cpp", True),
-        "CMAKE_DISABLE_FIND_PACKAGE_ZLIB": 1,
+        "CMAKE_C_FLAGS": env.MbedTLSFlags(),
     }
-
-    if env["platform"] != "windows":
-        config["CMAKE_C_FLAGS"] = "-fPIC"
-    else:
-        config["OPENSSL_ROOT_DIR"] = env["SSL_BUILD"]
 
     is_msvc = env.get("is_msvc", False)
     lib_ext = ".lib" if is_msvc else ".a"
     lib_prefix = "" if is_msvc else "lib"
     libs = ["{}git2{}".format(lib_prefix, lib_ext)]
-
-    source = env.Dir("#thirdparty/git2/libgit2").abspath
-    target = env.Dir("#bin/thirdparty/libgit2").abspath
 
     git2 = env.CMakeBuild(
         "#bin/thirdparty/git2/",
@@ -49,15 +38,16 @@ def build_library(env, deps):
         cmake_options=config,
         cmake_outputs=libs,
         cmake_targets=[],
-        dependencies=deps,
+        dependencies=ssl + ssh2,
     )
 
     env.Append(CPPPATH=["#thirdparty/git2/libgit2/include"])
     env.Prepend(LIBS=git2[1:])
+
     if env["platform"] == "windows":
-        env.PrependUnique(LIBS=["secur32"])
+        env.AppendUnique(LIBS=["secur32"])
     elif env["platform"] == "macos":
-        env.Append(LIBS=["iconv"])
+        env.AppendUnique(LIBS=["iconv"])
 
     return git2
 
