@@ -18,7 +18,7 @@ body:
     description: >
       Specify the Git commit hash if using a development or non-official build.
       If you use a custom build, please test if your issue is reproducible in official builds too.
-    placeholder: 4.4.1.stable, 4.5.dev4 (209a446e3)
+    placeholder: 4.7.2.stable, 4.8.beta1 (4d10419ca)
   validations:
     required: true
 
@@ -28,7 +28,7 @@ body:
     description: >
       Specify the Git commit hash if using a development or non-official build.
       If you use a custom build, please test if your issue is reproducible in official builds too.
-    placeholder: "3.2.1"
+    placeholder: "3.3.0"
   validations:
     required: true
 
@@ -37,7 +37,7 @@ body:
     label: System information
     description: |
       Specify the OS version, and when relevant hardware information.
-    placeholder: Windows 10
+    placeholder: Windows 11
   validations:
     required: true
 
