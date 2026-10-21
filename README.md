@@ -8,8 +8,8 @@ Git implementation of the Godot Engine VCS interface in Godot. We use [libgit2](
 
 ## Installation
 
-1.  Grab the platform binaries here: https://github.com/godotengine/godot-git-plugin/releases
-2.  Then read the installation instructions: https://github.com/godotengine/godot-git-plugin/wiki
+1. Grab the platform binaries from the [Asset Store](https://store.godotengine.org/asset/godot-foundation/git-version-control-plugin/), or from [GitHub Releases](https://github.com/godotengine/godot-git-plugin/releases).
+2. Read the [installation instructions](https://github.com/godotengine/godot-git-plugin/wiki/Git-plugin-v3).
 
 ## Build
 
