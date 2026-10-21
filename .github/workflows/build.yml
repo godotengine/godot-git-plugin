@@ -5,7 +5,7 @@ on: [push, pull_request]
 env:
   # Only used for the cache key. Increment version to force clean build.
   GODOT_BASE_BRANCH: master
-  SCONSFLAGS: target=editor build_profile=build_profile.json api_version=4.3
+  SCONSFLAGS: target=editor build_profile=build_profile.json api_version=4.7
   SCONS_CACHE: ${{ github.workspace }}/.scons-cache/
 
 jobs:

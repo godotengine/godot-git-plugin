@@ -1,6 +1,7 @@
 #pragma once
 
 #include <unordered_map>
+#include <vector>
 
 #include "git_callbacks.h"
 #include "git_wrappers.h"
@@ -41,7 +42,8 @@ public:
 	void _stage_file(const godot::String &file_path) override;
 	void _unstage_file(const godot::String &file_path) override;
 	void _discard_file(const godot::String &file_path) override;
-	void _commit(const godot::String &msg) override;
+	void _commit(const godot::String &msg, bool amend) override;
+	bool _allow_amends() override;
 	godot::TypedArray<godot::Dictionary> _get_diff(const godot::String &identifier, int32_t area) override;
 	bool _shut_down() override;
 	godot::String _get_vcs_name() override;
