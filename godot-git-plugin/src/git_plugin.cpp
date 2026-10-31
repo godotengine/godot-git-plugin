@@ -1,5 +1,6 @@
 #include "git_plugin.h"
 
+#include <cstdio>
 #include <cstring>
 
 #include <git2/tree.h>
@@ -626,6 +627,9 @@ godot::TypedArray<godot::Dictionary> GitPlugin::_get_diff(const godot::String &i
 }
 
 godot::TypedArray<godot::Dictionary> GitPlugin::_parse_diff(git_diff *diff) {
+	constexpr size_t per_file_byte_budget = 256 * 1024;
+	constexpr size_t per_file_line_budget = 5000;
+
 	godot::TypedArray<godot::Dictionary> diff_contents;
 	for (int i = 0; i < git_diff_num_deltas(diff); i++) {
 		const git_diff_delta *delta = git_diff_get_delta(diff, i);
@@ -636,7 +640,10 @@ godot::TypedArray<godot::Dictionary> GitPlugin::_parse_diff(git_diff *diff) {
 		godot::Dictionary diff_file = create_diff_file(godot::String::utf8(delta->new_file.path), godot::String::utf8(delta->old_file.path));
 
 		godot::TypedArray<godot::Dictionary> diff_hunks;
-		for (int j = 0; j < git_patch_num_hunks(patch.get()); j++) {
+		size_t file_bytes = 0;
+		size_t file_lines = 0;
+		bool truncated = false;
+		for (int j = 0; j < git_patch_num_hunks(patch.get()) && !truncated; j++) {
 			const git_diff_hunk *git_hunk;
 			size_t line_count;
 			GIT2_CALL_R(git_patch_get_hunk(&git_hunk, &line_count, patch.get(), j), "Could not get hunk from patch", godot::TypedArray<godot::Dictionary>());
@@ -648,6 +655,11 @@ godot::TypedArray<godot::Dictionary> GitPlugin::_parse_diff(git_diff *diff) {
 				const git_diff_line *git_diff_line;
 				GIT2_CALL_R(git_patch_get_line_in_hunk(&git_diff_line, patch.get(), j, k), "Could not get line from hunk in patch", godot::TypedArray<godot::Dictionary>());
 
+				if (file_bytes + git_diff_line->content_len > per_file_byte_budget || file_lines >= per_file_line_budget) {
+					truncated = true;
+					break;
+				}
+
 				char *content = new char[git_diff_line->content_len + 1];
 				std::memcpy(content, git_diff_line->content, git_diff_line->content_len);
 				content[git_diff_line->content_len] = '\0';
@@ -657,11 +669,30 @@ godot::TypedArray<godot::Dictionary> GitPlugin::_parse_diff(git_diff *diff) {
 				diff_lines.push_back(create_diff_line(git_diff_line->new_lineno, git_diff_line->old_lineno, godot::String::utf8(content), status));
 
 				delete[] content;
+
+				file_bytes += git_diff_line->content_len;
+				file_lines += 1;
 			}
 
 			diff_hunk = add_line_diffs_into_diff_hunk(diff_hunk, diff_lines);
 			diff_hunks.push_back(diff_hunk);
 		}
+
+		if (truncated) {
+			char msg[256];
+			if (file_lines >= per_file_line_budget) {
+				std::snprintf(msg, sizeof(msg), "... diff truncated: %zu-line limit reached. Use an external git client to view the full diff. ...\n", per_file_line_budget);
+			} else {
+				std::snprintf(msg, sizeof(msg), "... diff truncated: %zu KB limit reached. Use an external git client to view the full diff. ...\n", per_file_byte_budget / 1024);
+			}
+			godot::Dictionary truncation_hunk = create_diff_hunk(0, 0, 0, 0);
+			godot::TypedArray<godot::Dictionary> truncation_lines;
+			godot::String status = " ";
+			truncation_lines.push_back(create_diff_line(0, 0, godot::String::utf8(msg), status));
+			truncation_hunk = add_line_diffs_into_diff_hunk(truncation_hunk, truncation_lines);
+			diff_hunks.push_back(truncation_hunk);
+		}
+
 		diff_file = add_diff_hunks_into_diff_file(diff_file, diff_hunks);
 		diff_contents.push_back(diff_file);
 	}
