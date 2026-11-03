@@ -110,8 +110,9 @@ bool GitPlugin::sign_commit_with_gpg(const char *commit_data, size_t commit_size
 		return false;
 	}
 
-	// Use unique temporary files. Never pass commit data through
-	// a shell command, as commit messages may contain arbitrary text.
+	// NOTE: Never pass commit data through a shell command, as commit messages may contain arbitrary text.
+
+	// Use unique temporary files. It might be better to use the commit hash for the temp file name, this is just an overly cautious simply way
 	static std::atomic<unsigned long long> counter{ 0 };
 
 	const auto nonce = std::chrono::steady_clock::now().time_since_epoch().count();
@@ -122,9 +123,9 @@ bool GitPlugin::sign_commit_with_gpg(const char *commit_data, size_t commit_size
 	const fs::path commit_path = temp_dir / (stem + ".commit");
 	const fs::path signature_path = temp_dir / (stem + ".sig");
 
+	// OS provides "execute_with_pipe" but that adds more complexity
 	struct TempFiles {
-		fs::path commit;
-		fs::path signature;
+		fs::path commit, signature;
 
 		~TempFiles() {
 			std::error_code ec;
@@ -133,22 +134,24 @@ bool GitPlugin::sign_commit_with_gpg(const char *commit_data, size_t commit_size
 		}
 	} cleanup{ commit_path, signature_path };
 
-	// Write the exact bytes libgit2 generated. Do not append a newline.
 	{
 		std::ofstream file(commit_path, std::ios::binary);
-		if (!file || !file.write(commit_data, static_cast<std::streamsize>(commit_size))) {
-			godot::UtilityFunctions::push_error("Could not write temporary commit data for GPG.");
+		if (!file) {
+			godot::UtilityFunctions::push_error("Could not open temporary file for signing the commit.");
+			return false;
+		}
+
+		if (!file.write(commit_data, static_cast<std::streamsize>(commit_size))) {
+			godot::UtilityFunctions::push_error("Failed to write to the temporary file.");
 			return false;
 		}
 	}
 
-	godot::PackedStringArray args;
-	args.push_back("--batch");
-	args.push_back("--yes");
-	args.push_back("--armor");
-	args.push_back("--detach-sign");
+	godot::PackedStringArray args{
+		"--batch", "--yes", "--armor", "--detach-sign"
+	};
 
-	// Select a specific signing key when configured.
+	// If configured use a specified signing key
 	if (!gpg_key_id.is_empty()) {
 		args.push_back("--local-user");
 		args.push_back(gpg_key_id);
@@ -156,8 +159,10 @@ bool GitPlugin::sign_commit_with_gpg(const char *commit_data, size_t commit_size
 
 	args.push_back("--output");
 	args.push_back(godot::String::utf8(signature_path.string().c_str()));
+
 	args.push_back(godot::String::utf8(commit_path.string().c_str()));
 
+	// Would it be a good idea to add a "which" check to see if we have the binary before trying?
 	godot::Array output;
 	int32_t exit_code = godot::OS::get_singleton()->execute("gpg", args, output, true, false);
 
@@ -166,7 +171,7 @@ bool GitPlugin::sign_commit_with_gpg(const char *commit_data, size_t commit_size
 		return false;
 	}
 
-	// Read the detached ASCII-armored signature exactly as GPG produced it.
+	// Read the ASCII-armored signature
 	{
 		std::ifstream file(signature_path, std::ios::binary);
 		if (!file) {
