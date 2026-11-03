@@ -10,6 +10,17 @@
 #include "godot_cpp/classes/project_settings.hpp"
 #include "godot_cpp/variant/utility_functions.hpp"
 
+//  gpg
+#include <atomic>
+#include <chrono>
+#include <filesystem>
+#include <fstream>
+#include <iterator>
+#include <string>
+#include <vector>
+
+#include <godot_cpp/variant/packed_string_array.hpp>
+
 #define GIT2_CALL(error, msg)                                         \
 	if (check_errors(error, __FUNCTION__, __FILE__, __LINE__, msg)) { \
 		return;                                                       \
@@ -91,7 +102,99 @@ void GitPlugin::_discard_file(const godot::String &file_path) {
 	GIT2_CALL(git_checkout_index(repo.get(), nullptr, &opts), "Could not checkout index");
 }
 
+bool GitPlugin::sign_commit_with_gpg(const char *commit_data, size_t commit_size, std::string &signature) {
+	namespace fs = std::filesystem;
+
+	if (!commit_data) {
+		godot::UtilityFunctions::push_error("Cannot sign an empty commit buffer.");
+		return false;
+	}
+
+	// NOTE: Never pass commit data through a shell command, as commit messages may contain arbitrary text.
+
+	// Use unique temporary files. It might be better to use the commit hash for the temp file name, this is just an overly cautious simply way
+	static std::atomic<unsigned long long> counter{ 0 };
+
+	const auto nonce = std::chrono::steady_clock::now().time_since_epoch().count();
+
+	const fs::path temp_dir = fs::temp_directory_path();
+	const std::string stem = "godot_git_sign_" + std::to_string(nonce) + "_" + std::to_string(counter.fetch_add(1));
+
+	const fs::path commit_path = temp_dir / (stem + ".commit");
+	const fs::path signature_path = temp_dir / (stem + ".sig");
+
+	// OS provides "execute_with_pipe" but that adds more complexity
+	struct TempFiles {
+		fs::path commit, signature;
+
+		~TempFiles() {
+			std::error_code ec;
+			fs::remove(commit, ec);
+			fs::remove(signature, ec);
+		}
+	} cleanup{ commit_path, signature_path };
+
+	{
+		std::ofstream file(commit_path, std::ios::binary);
+		if (!file) {
+			godot::UtilityFunctions::push_error("Could not open temporary file for signing the commit.");
+			return false;
+		}
+
+		if (!file.write(commit_data, static_cast<std::streamsize>(commit_size))) {
+			godot::UtilityFunctions::push_error("Failed to write to the temporary file.");
+			return false;
+		}
+	}
+
+	godot::PackedStringArray args{
+		"--batch", "--yes", "--armor", "--detach-sign"
+	};
+
+	// If configured use a specified signing key
+	if (!gpg_key_id.is_empty()) {
+		args.push_back("--local-user");
+		args.push_back(gpg_key_id);
+	}
+
+	args.push_back("--output");
+	args.push_back(godot::String::utf8(signature_path.string().c_str()));
+
+	args.push_back(godot::String::utf8(commit_path.string().c_str()));
+
+	// Would it be a good idea to add a "which" check to see if we have the binary before trying?
+	godot::Array output;
+	int32_t exit_code = godot::OS::get_singleton()->execute("gpg", args, output, true, false);
+
+	if (exit_code != 0) {
+		godot::UtilityFunctions::push_error("GPG signing failed. Check that GPG is installed, the signing key is available, and gpg-agent can authorize the signing operation.");
+		return false;
+	}
+
+	// Read the ASCII-armored signature
+	{
+		std::ifstream file(signature_path, std::ios::binary);
+		if (!file) {
+			godot::UtilityFunctions::push_error("GPG succeeded but its signature file could not be read.");
+			return false;
+		}
+
+		signature.assign(std::istreambuf_iterator<char>(file), std::istreambuf_iterator<char>());
+	}
+
+	if (signature.empty()) {
+		godot::UtilityFunctions::push_error("GPG produced an empty signature.");
+		return false;
+	}
+
+	return true;
+}
+
 void GitPlugin::_commit(const godot::String &msg) {
+	godot::ProjectSettings *settings = godot::ProjectSettings::get_singleton();
+	sign_commits = settings->get_setting("godot_git/gpg/sign_commits", false);
+	gpg_key_id = settings->get_setting("godot_git/gpg/gpg_key_id", godot::String(""));
+
 	git_index_ptr repo_index;
 	GIT2_CALL(git_repository_index(Capture(repo_index), repo.get()), "Could not get repository index");
 
@@ -113,39 +216,98 @@ void GitPlugin::_commit(const godot::String &msg) {
 		GIT2_CALL(git_commit_lookup(Capture(parent_commit), repo.get(), &parent_commit_id), "Could not lookup parent commit data");
 	}
 
-	git_oid new_commit_id;
-	if (!has_merge) {
-		GIT2_CALL(
-				git_commit_create_v(
-						&new_commit_id,
-						repo.get(),
-						"HEAD",
-						default_sign.get(),
-						default_sign.get(),
-						"UTF-8",
-						CString(msg).data,
-						tree.get(),
-						parent_commit.get() ? 1 : 0,
-						parent_commit.get()),
-				"Could not create commit");
-	} else {
-		git_commit_ptr fetchhead_commit;
-		GIT2_CALL(git_commit_lookup(Capture(fetchhead_commit), repo.get(), &pull_merge_oid), "Could not lookup commit pointed to by HEAD");
+	// Build the parent list for either a normal commit or a merge commit.
+	const git_commit *parents[2];
+	size_t parent_count = 0;
 
-		GIT2_CALL(
-				git_commit_create_v(
+	if (parent_commit.get()) {
+		parents[parent_count++] = parent_commit.get();
+	}
+
+	git_commit_ptr fetchhead_commit;
+
+	if (has_merge) {
+		GIT2_CALL(git_commit_lookup(Capture(fetchhead_commit), repo.get(), &pull_merge_oid), "Could not lookup commit pointed to by HEAD");
+		parents[parent_count++] = fetchhead_commit.get();
+	}
+
+	// Serialize the unsigned commit into a buffer.
+	git_buf commit_content = GIT_BUF_INIT;
+
+	int error = git_commit_create_buffer(&commit_content, repo.get(), default_sign.get(), default_sign.get(), "UTF-8", CString(msg).data, tree.get(), parent_count, parents);
+	if (check_errors(error, "git_commit_create_buffer", __FILE__, __LINE__, "Could not create commit buffer")) {
+		git_buf_dispose(&commit_content);
+		return;
+	}
+
+	git_oid new_commit_id;
+
+	if (sign_commits) {
+		std::string signature;
+
+		if (!sign_commit_with_gpg(commit_content.ptr, commit_content.size, signature)) {
+			git_buf_dispose(&commit_content);
+			return;
+		}
+
+		error = git_commit_create_with_signature(&new_commit_id, repo.get(), commit_content.ptr, signature.c_str(), nullptr);
+	} else {
+		// An unsigned commit can use the normal API, which updates HEAD.
+		error = git_commit_create(&new_commit_id, repo.get(), "HEAD", default_sign.get(), default_sign.get(), "UTF-8", CString(msg).data, tree.get(), parent_count, parents);
+	}
+
+	git_buf_dispose(&commit_content);
+
+	if (check_errors(error, sign_commits ? "git_commit_create_with_signature" : "git_commit_create", __FILE__, __LINE__, "Could not create commit")) {
+		return;
+	}
+
+	if (sign_commits) {
+		// The signed-commit API writes the object, but doesn't update HEAD.
+		git_reference *head = nullptr;
+		git_reference *resolved_head = nullptr;
+		git_reference *updated_ref = nullptr;
+
+		error = git_reference_lookup(&head, repo.get(), "HEAD");
+
+		if (error == 0) {
+			// For an existing branch or detached HEAD, resolve HEAD to
+			// its direct reference.
+			error = git_reference_resolve(&resolved_head, head);
+
+			if (error == 0) {
+				error = git_reference_set_target(
+						&updated_ref,
+						resolved_head,
 						&new_commit_id,
-						repo.get(),
-						"HEAD",
-						default_sign.get(),
-						default_sign.get(),
-						"UTF-8",
-						CString(msg).data,
-						tree.get(),
-						2,
-						parent_commit.get(),
-						fetchhead_commit.get()),
-				"Could not create merge commit");
+						"Create signed commit");
+			} else if (error == GIT_ENOTFOUND) {
+				// An unborn branch has a symbolic HEAD but no branch
+				// reference yet. Create that branch at the new commit.
+				const char *target = git_reference_symbolic_target(head);
+
+				if (target) {
+					error = git_reference_create(
+							&updated_ref,
+							repo.get(),
+							target,
+							&new_commit_id,
+							0,
+							"Create initial signed commit");
+				}
+			}
+		}
+
+		git_reference_free(updated_ref);
+		git_reference_free(resolved_head);
+		git_reference_free(head);
+
+		if (check_errors(error, "update HEAD", __FILE__, __LINE__, "Could not update HEAD after creating signed commit")) {
+			return;
+		}
+	}
+
+	if (has_merge) {
 		has_merge = false;
 		GIT2_CALL(git_repository_state_cleanup(repo.get()), "Could not clean repository state");
 	}

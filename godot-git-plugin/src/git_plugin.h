@@ -9,6 +9,8 @@
 #include "git2.h"
 
 #include <vector>
+#include <cstddef>
+#include <string>
 
 struct Credentials {
 	godot::String username;
@@ -24,6 +26,9 @@ class GitPlugin : public godot::EditorVCSInterface {
 protected:
 	static void _bind_methods();
 
+private:
+	bool sign_commit_with_gpg(const char *commit_data, size_t commit_size, std::string &signature);
+
 public:
 	Credentials creds;
 	bool has_merge = false;
@@ -31,6 +36,8 @@ public:
 	git_oid pull_merge_oid = {};
 	godot::String repo_project_path;
 	std::unordered_map<git_status_t, ChangeType> map_changes;
+	bool sign_commits = false;
+	godot::String gpg_key_id;
 
 	GitPlugin();
 
